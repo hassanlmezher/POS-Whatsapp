@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { MoreVertical, Paperclip, Phone, Send, ShoppingCart, Smile, Video } from "lucide-react";
 import type { Company, Conversation, Customer, Message, Order } from "@/lib/types/domain";
 import { useInboxStore } from "@/lib/stores/inbox-store";
@@ -27,10 +26,11 @@ export function InboxWorkspace({
   selectedMessages: Message[];
   recentOrders: Order[];
 }) {
-  const router = useRouter();
   const [draft, setDraft] = useState("");
   const [sendError, setSendError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [activeCustomer, setActiveCustomer] = useState<Customer | null>(selectedCustomer ?? null);
+  const [activeRecentOrders, setActiveRecentOrders] = useState<Order[]>(recentOrders);
   const {
     activeConversationId,
     conversations: storeConversations,
@@ -51,15 +51,58 @@ export function InboxWorkspace({
   const activeMessages = activeConversation
     ? messages.filter((message) => message.conversationId === activeConversation.id)
     : [];
-  const customer = selectedCustomer;
+  useEffect(() => {
+    let cancelled = false;
+
+    async function syncInbox() {
+      const search = activeConversationId ? `?activeConversationId=${encodeURIComponent(activeConversationId)}` : "";
+      const response = await fetch(`/api/inbox${search}`, { cache: "no-store" });
+
+      if (!response.ok || cancelled) {
+        return;
+      }
+
+      const payload = await response.json() as {
+        conversations: Conversation[];
+        selectedConversation: Conversation | null;
+        selectedCustomer?: Customer | null;
+        selectedMessages: Message[];
+        recentOrders: Order[];
+      };
+
+      if (cancelled) {
+        return;
+      }
+
+      setInitialState(
+        payload.conversations,
+        payload.selectedMessages,
+        payload.selectedConversation?.id ?? activeConversationId ?? payload.conversations[0]?.id ?? "",
+      );
+      setActiveCustomer(payload.selectedCustomer ?? null);
+      setActiveRecentOrders(payload.recentOrders ?? []);
+    }
+
+    void syncInbox();
+    const intervalId = window.setInterval(() => {
+      void syncInbox();
+    }, 3000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [activeConversationId, setInitialState]);
+
+  const customer = activeCustomer;
 
   const totals = useMemo(() => {
-    const paidOrders = recentOrders.filter((order) => order.paymentStatus === "paid");
+    const paidOrders = activeRecentOrders.filter((order) => order.paymentStatus === "paid");
     return {
       spent: paidOrders.reduce((sum, order) => sum + order.total, 0),
-      orders: recentOrders.length,
+      orders: activeRecentOrders.length,
     };
-  }, [recentOrders]);
+  }, [activeRecentOrders]);
 
   async function sendMessage() {
     if (!draft.trim() || !activeConversation || isSending) return;
@@ -91,8 +134,6 @@ export function InboxWorkspace({
       if (payload?.message) {
         appendMessage(payload.message);
       }
-
-      router.refresh();
     } catch (error) {
       console.error("[inbox] Send message request failed", error);
       setDraft(body);
@@ -243,7 +284,7 @@ export function InboxWorkspace({
             <button className="text-sm font-bold text-emerald-700">View All</button>
           </div>
           <div className="space-y-3">
-            {recentOrders.slice(0, 2).map((order) => (
+            {activeRecentOrders.slice(0, 2).map((order) => (
               <div key={order.id} className="rounded-xl p-4 shadow-sm ring-1 ring-slate-200">
                 <div className="flex items-center justify-between">
                   <div className="font-semibold">#{order.orderNumber}</div>

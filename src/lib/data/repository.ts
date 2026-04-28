@@ -460,12 +460,15 @@ export async function getPOSData() {
   }, { company: fallbackCompany, categories: fallbackCategories, products: fallbackProducts, customers: fallbackCustomers });
 }
 
-export async function getInboxData() {
+export async function getInboxData(activeConversationId?: string) {
   return withSupabase("getInboxData", async (supabase) => {
     const [company, customers] = await Promise.all([fetchCompany(supabase), fetchCustomers(supabase)]);
     const customersById = new Map(customers.map((customer) => [customer.id, customer]));
     const conversations = await fetchConversations(supabase, customersById);
-    const selectedConversation = conversations[0] ?? null;
+    const selectedConversation =
+      conversations.find((conversation) => conversation.id === activeConversationId) ??
+      conversations[0] ??
+      null;
     const selectedCustomer = selectedConversation ? customersById.get(selectedConversation.customerId) ?? null : null;
     const selectedMessages = selectedConversation ? await fetchMessages(supabase, selectedConversation.id) : [];
     const orders = selectedConversation ? await fetchOrders(supabase, customersById) : [];
