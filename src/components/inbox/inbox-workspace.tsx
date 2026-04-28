@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MoreVertical, Paperclip, Phone, Send, ShoppingCart, Smile, Video } from "lucide-react";
 import type { Company, Conversation, Customer, Message, Order } from "@/lib/types/domain";
 import { useInboxStore } from "@/lib/stores/inbox-store";
@@ -10,6 +10,8 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+
+const INBOX_SYNC_INTERVAL_MS = 1000;
 
 function formatSendError(payload: unknown) {
   if (!payload || typeof payload !== "object") {
@@ -50,6 +52,7 @@ export function InboxWorkspace({
   const [isSending, setIsSending] = useState(false);
   const [activeCustomer, setActiveCustomer] = useState<Customer | null>(selectedCustomer ?? null);
   const [activeRecentOrders, setActiveRecentOrders] = useState<Order[]>(recentOrders);
+  const syncInFlightRef = useRef(false);
   const {
     activeConversationId,
     conversations: storeConversations,
@@ -70,46 +73,81 @@ export function InboxWorkspace({
   const activeMessages = activeConversation
     ? messages.filter((message) => message.conversationId === activeConversation.id)
     : [];
+
   useEffect(() => {
     let cancelled = false;
+    let timeoutId: number | null = null;
 
     async function syncInbox() {
-      const search = activeConversationId ? `?activeConversationId=${encodeURIComponent(activeConversationId)}` : "";
-      const response = await fetch(`/api/inbox${search}`, { cache: "no-store" });
-
-      if (!response.ok || cancelled) {
+      if (cancelled || syncInFlightRef.current) {
         return;
       }
 
-      const payload = await response.json() as {
-        conversations: Conversation[];
-        selectedConversation: Conversation | null;
-        selectedCustomer?: Customer | null;
-        selectedMessages: Message[];
-        recentOrders: Order[];
-      };
+      syncInFlightRef.current = true;
 
+      try {
+        const search = activeConversationId ? `?activeConversationId=${encodeURIComponent(activeConversationId)}` : "";
+        const response = await fetch(`/api/inbox${search}`, { cache: "no-store" });
+
+        if (!response.ok || cancelled) {
+          return;
+        }
+
+        const payload = await response.json() as {
+          conversations: Conversation[];
+          selectedConversation: Conversation | null;
+          selectedCustomer?: Customer | null;
+          selectedMessages: Message[];
+          recentOrders: Order[];
+        };
+
+        if (cancelled) {
+          return;
+        }
+
+        setInitialState(
+          payload.conversations,
+          payload.selectedMessages,
+          payload.selectedConversation?.id ?? activeConversationId ?? payload.conversations[0]?.id ?? "",
+        );
+        setActiveCustomer(payload.selectedCustomer ?? null);
+        setActiveRecentOrders(payload.recentOrders ?? []);
+      } finally {
+        syncInFlightRef.current = false;
+      }
+    }
+
+    function scheduleSync(delayMs: number) {
       if (cancelled) {
         return;
       }
 
-      setInitialState(
-        payload.conversations,
-        payload.selectedMessages,
-        payload.selectedConversation?.id ?? activeConversationId ?? payload.conversations[0]?.id ?? "",
-      );
-      setActiveCustomer(payload.selectedCustomer ?? null);
-      setActiveRecentOrders(payload.recentOrders ?? []);
+      timeoutId = window.setTimeout(() => {
+        void syncInbox().finally(() => {
+          scheduleSync(INBOX_SYNC_INTERVAL_MS);
+        });
+      }, delayMs);
+    }
+
+    function handleVisibilitySync() {
+      if (document.visibilityState === "visible") {
+        void syncInbox();
+      }
     }
 
     void syncInbox();
-    const intervalId = window.setInterval(() => {
-      void syncInbox();
-    }, 3000);
+    scheduleSync(INBOX_SYNC_INTERVAL_MS);
+    window.addEventListener("focus", handleVisibilitySync);
+    document.addEventListener("visibilitychange", handleVisibilitySync);
 
     return () => {
       cancelled = true;
-      window.clearInterval(intervalId);
+      syncInFlightRef.current = false;
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+      window.removeEventListener("focus", handleVisibilitySync);
+      document.removeEventListener("visibilitychange", handleVisibilitySync);
     };
   }, [activeConversationId, setInitialState]);
 
