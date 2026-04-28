@@ -21,7 +21,7 @@ export function InboxWorkspace({
 }: {
   company: Company;
   conversations: Conversation[];
-  selectedConversation: Conversation;
+  selectedConversation: Conversation | null;
   selectedCustomer?: Customer | null;
   selectedMessages: Message[];
   recentOrders: Order[];
@@ -30,13 +30,15 @@ export function InboxWorkspace({
   const { activeConversationId, setInitialState, setActiveConversation, appendMessage, messages } = useInboxStore();
 
   useEffect(() => {
-    setInitialState(conversations, selectedMessages, selectedConversation.id);
-  }, [conversations, selectedConversation.id, selectedMessages, setInitialState]);
+    setInitialState(conversations, selectedMessages, selectedConversation?.id ?? conversations[0]?.id ?? "");
+  }, [conversations, selectedConversation?.id, selectedMessages, setInitialState]);
 
   useRealtimeMessages(company.id, appendMessage);
 
-  const activeConversation = conversations.find((item) => item.id === activeConversationId) ?? selectedConversation;
-  const activeMessages = messages.filter((message) => message.conversationId === activeConversation.id);
+  const activeConversation = conversations.find((item) => item.id === activeConversationId) ?? selectedConversation ?? null;
+  const activeMessages = activeConversation
+    ? messages.filter((message) => message.conversationId === activeConversation.id)
+    : [];
   const customer = selectedCustomer;
 
   const totals = useMemo(() => {
@@ -48,7 +50,7 @@ export function InboxWorkspace({
   }, [recentOrders]);
 
   async function sendMessage() {
-    if (!draft.trim()) return;
+    if (!draft.trim() || !activeConversation) return;
     const body = draft.trim();
     setDraft("");
 
@@ -77,10 +79,10 @@ export function InboxWorkspace({
               key={conversation.id}
               onClick={() => setActiveConversation(conversation.id)}
               className={`relative flex w-full items-center gap-4 border-b border-slate-100 p-5 text-left transition hover:bg-emerald-50 ${
-                conversation.id === activeConversation.id ? "bg-emerald-50" : ""
+                conversation.id === activeConversation?.id ? "bg-emerald-50" : ""
               }`}
             >
-              {conversation.id === activeConversation.id ? <span className="absolute right-0 h-full w-1 bg-emerald-700" /> : null}
+              {conversation.id === activeConversation?.id ? <span className="absolute right-0 h-full w-1 bg-emerald-700" /> : null}
               <Avatar name={conversation.customerName} src={conversation.avatarUrl} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
@@ -99,13 +101,20 @@ export function InboxWorkspace({
 
       <section className="flex min-w-0 flex-col bg-[linear-gradient(130deg,#b5b09e_0%,#c8eadf_52%,#f0eadb_100%)]">
         <div className="flex h-20 items-center justify-between border-b border-slate-200 bg-white px-6">
-          <div className="flex items-center gap-4">
-            <Avatar name={activeConversation.customerName} src={activeConversation.avatarUrl} />
-            <div>
-              <div className="text-lg font-semibold">{activeConversation.customerName}</div>
-              <div className="text-sm text-emerald-700">Online</div>
+          {activeConversation ? (
+            <div className="flex items-center gap-4">
+              <Avatar name={activeConversation.customerName} src={activeConversation.avatarUrl} />
+              <div>
+                <div className="text-lg font-semibold">{activeConversation.customerName}</div>
+                <div className="text-sm text-emerald-700">Online</div>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div>
+              <div className="text-lg font-semibold">No conversations</div>
+              <div className="text-sm text-slate-500">Incoming WhatsApp messages will appear here.</div>
+            </div>
+          )}
           <div className="flex items-center gap-3 text-slate-600">
             <Phone className="h-5 w-5" />
             <Video className="h-5 w-5" />
@@ -116,7 +125,7 @@ export function InboxWorkspace({
 
         <div className="flex-1 space-y-5 overflow-y-auto p-6">
           <div className="mx-auto w-fit rounded-lg bg-white px-5 py-2 text-xs font-black uppercase text-slate-600 shadow-sm">Today</div>
-          {activeMessages.map((message) => (
+          {activeConversation ? activeMessages.map((message) => (
             <div key={message.id} className={`flex ${message.direction === "outbound" ? "justify-end" : "justify-start"}`}>
               <div
                 className={`max-w-[70%] rounded-xl p-4 shadow-sm ${
@@ -130,7 +139,11 @@ export function InboxWorkspace({
                 </div>
               </div>
             </div>
-          ))}
+          )) : (
+            <div className="mx-auto mt-20 max-w-sm rounded-xl bg-white/80 p-6 text-center text-slate-600 shadow-sm">
+              Connect WhatsApp and receive a customer message to start a conversation.
+            </div>
+          )}
         </div>
 
         <div className="bg-white/90 p-5">

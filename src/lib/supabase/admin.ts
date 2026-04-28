@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
 export function createSupabaseAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !serviceRoleKey) {
@@ -14,4 +14,13 @@ export function createSupabaseAdminClient() {
       autoRefreshToken: false,
     },
   });
+}
+
+function normalizeSupabaseUrl(value?: string) {
+  if (!value) {
+    return value;
+  }
+
+  const url = new URL(value);
+  return url.origin;
 }
