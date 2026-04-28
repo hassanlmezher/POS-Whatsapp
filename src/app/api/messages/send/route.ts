@@ -1,7 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { isInsideCustomerServiceWindow, sendWhatsAppTextMessage } from "@/lib/whatsapp";
+import {
+  isInsideCustomerServiceWindow,
+  normalizeWhatsAppPhone,
+  sendWhatsAppTextMessage,
+  validateWhatsAppSendEnv,
+  WhatsAppApiError,
+} from "@/lib/whatsapp";
 
 const sendSchema = z.object({
   conversationId: z.string().uuid(),
@@ -18,7 +24,8 @@ type DbConversation = {
 
 type DbCustomer = {
   id: string;
-  whatsapp_phone: string;
+  phone: string | null;
+  whatsapp_phone: string | null;
 };
 
 type DbMessage = {
@@ -55,10 +62,6 @@ function getSupabase() {
       autoRefreshToken: false,
     },
   });
-}
-
-function hasWhatsAppEnv() {
-  return Boolean(process.env.WHATSAPP_PHONE_NUMBER_ID && process.env.WHATSAPP_ACCESS_TOKEN);
 }
 
 export async function POST(request: Request) {
@@ -99,7 +102,7 @@ export async function POST(request: Request) {
 
     const { data: customer, error: customerError } = await supabase
       .from("customers")
-      .select("id,whatsapp_phone")
+      .select("id,phone,whatsapp_phone")
       .eq("id", conversation.customer_id)
       .single<DbCustomer>();
 
@@ -112,10 +115,27 @@ export async function POST(request: Request) {
     }
 
     let whatsappMessageId: string | null = null;
-    let developmentMode = false;
     const status: DbMessage["status"] = "sent";
+    const recipientPhone = normalizeWhatsAppPhone(customer.whatsapp_phone) ?? normalizeWhatsAppPhone(customer.phone);
 
-    if (hasWhatsAppEnv()) {
+    console.info("[whatsapp/send] recipient", {
+      conversationId: conversation.id,
+      customerId: customer.id,
+      phone: customer.phone,
+      whatsappPhone: customer.whatsapp_phone,
+      normalizedRecipientPhone: recipientPhone,
+    });
+
+    if (!recipientPhone) {
+      return NextResponse.json(
+        { error: "Customer does not have a valid WhatsApp phone number." },
+        { status: 400 },
+      );
+    }
+
+    const env = validateWhatsAppSendEnv();
+
+    if (env.ok && env.phoneNumberId && env.accessToken) {
       if (!isInsideCustomerServiceWindow(conversation.last_inbound_at ?? conversation.last_message_at)) {
         return NextResponse.json(
           { error: "Outside the 24-hour WhatsApp service window. Use a template message." },
@@ -124,15 +144,22 @@ export async function POST(request: Request) {
       }
 
       const result = await sendWhatsAppTextMessage({
-        phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID as string,
-        accessToken: process.env.WHATSAPP_ACCESS_TOKEN as string,
-        to: customer.whatsapp_phone,
+        phoneNumberId: env.phoneNumberId,
+        accessToken: env.accessToken,
+        to: recipientPhone,
         body: input.body,
       });
       whatsappMessageId = result.messages?.[0]?.id ?? null;
     } else {
-      developmentMode = true;
-      console.info("[messages/send] WhatsApp env vars missing. Saving simulated outgoing message locally.");
+      console.error("[messages/send] WhatsApp env vars missing.", {
+        errors: env.errors,
+      });
+      return NextResponse.json(
+        {
+          error: `WhatsApp send is not configured: ${env.errors.join(", ")}. Restart the dev server after updating .env.local.`,
+        },
+        { status: 500 },
+      );
     }
 
     const { data: message, error: messageError } = await supabase
@@ -188,10 +215,35 @@ export async function POST(request: Request) {
         whatsappMessageId: message.whatsapp_message_id,
         createdAt: message.created_at,
       },
-      developmentMode,
     });
   } catch (error) {
     console.error("[messages/send] Unexpected failure", error);
-    return NextResponse.json({ error: "Unexpected send-message failure" }, { status: 500 });
+
+    if (error instanceof WhatsAppApiError) {
+      if (error.isAuthError) {
+        return NextResponse.json(
+          {
+            error: "WhatsApp authentication failed. Regenerate WHATSAPP_ACCESS_TOKEN in Meta API Setup and restart dev server.",
+            details: process.env.NODE_ENV !== "production" ? error.payload : undefined,
+          },
+          { status: 401 },
+        );
+      }
+
+      return NextResponse.json(
+        {
+          error: error.message,
+          details: process.env.NODE_ENV !== "production" ? error.payload : undefined,
+        },
+        { status: error.status || 500 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Unexpected send-message failure",
+      },
+      { status: 500 },
+    );
   }
 }

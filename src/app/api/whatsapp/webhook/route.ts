@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getPreferredWebhookVerifyToken } from "@/lib/whatsapp";
 
 const SEEDED_COMPANY_ID = process.env.NEXT_PUBLIC_SEEDED_COMPANY_ID ?? "11111111-1111-4111-8111-111111111111";
 
@@ -20,8 +21,9 @@ export async function GET(request: Request) {
   const mode = url.searchParams.get("hub.mode");
   const token = url.searchParams.get("hub.verify_token");
   const challenge = url.searchParams.get("hub.challenge");
+  const verifyToken = getPreferredWebhookVerifyToken();
 
-  if (mode === "subscribe" && token === process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN && challenge) {
+  if (mode === "subscribe" && token === verifyToken && challenge) {
     return new Response(challenge, { status: 200 });
   }
 

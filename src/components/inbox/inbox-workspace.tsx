@@ -11,6 +11,25 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+function formatSendError(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return "Message could not be sent.";
+  }
+
+  const record = payload as { error?: unknown; details?: unknown };
+  const error = typeof record.error === "string" ? record.error : "Message could not be sent.";
+
+  if (typeof record.details === "string" && record.details.length > 0) {
+    return `${error} ${record.details}`;
+  }
+
+  if (record.details && typeof record.details === "object") {
+    return `${error} ${JSON.stringify(record.details)}`;
+  }
+
+  return error;
+}
+
 export function InboxWorkspace({
   company,
   conversations,
@@ -122,12 +141,12 @@ export function InboxWorkspace({
       const payload = await response.json().catch(() => null);
 
       if (!response.ok) {
-        console.error("[inbox] Send message failed", {
+        console.warn("[inbox] Send message failed", {
           status: response.status,
           payload,
         });
         setDraft(body);
-        setSendError(payload?.error ?? "Message could not be sent.");
+        setSendError(formatSendError(payload));
         return;
       }
 
