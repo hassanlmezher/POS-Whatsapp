@@ -32,3 +32,33 @@ values
 on conflict (company_id, branch_id, product_id) do update
 set quantity = greatest(inventory.quantity, excluded.quantity),
     reorder_level = excluded.reorder_level;
+
+insert into customers (id, company_id, name, phone, whatsapp_phone, avatar_url, notes, tags)
+values
+('55555555-5555-4555-8555-555555555551', '11111111-1111-4111-8111-111111111111', 'Sarah Jenkins', '+1 (555) 0123-4567', '155501234567', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80', 'Prefers local organic produce. Usually orders on Tuesday mornings.', array['loyal customer']),
+('55555555-5555-4555-8555-555555555552', '11111111-1111-4111-8111-111111111111', 'Marcus Low', '+1 (555) 0991-1122', '15550991122', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80', 'Asks for delivery updates on high-value orders.', array['vip'])
+on conflict (id) do update
+set name = excluded.name,
+    phone = excluded.phone,
+    whatsapp_phone = excluded.whatsapp_phone,
+    avatar_url = excluded.avatar_url,
+    notes = excluded.notes,
+    tags = excluded.tags;
+
+insert into conversations (id, company_id, customer_id, status, last_message, last_message_at, last_inbound_at, unread_count)
+values
+('66666666-6666-4666-8666-666666666661', '11111111-1111-4111-8111-111111111111', '55555555-5555-4555-8555-555555555551', 'open', 'When will my organic honey ship?', now() - interval '8 minutes', now() - interval '8 minutes', 1),
+('66666666-6666-4666-8666-666666666662', '11111111-1111-4111-8111-111111111111', '55555555-5555-4555-8555-555555555552', 'pending', 'Is the Arabica blend back in stock?', now() - interval '35 minutes', now() - interval '35 minutes', 0)
+on conflict (id) do update
+set status = excluded.status,
+    last_message = excluded.last_message,
+    last_message_at = excluded.last_message_at,
+    last_inbound_at = excluded.last_inbound_at,
+    unread_count = excluded.unread_count;
+
+insert into messages (id, company_id, conversation_id, customer_id, direction, body, status, created_at)
+values
+('77777777-7777-4777-8777-777777777771', '11111111-1111-4111-8111-111111111111', '66666666-6666-4666-8666-666666666661', '55555555-5555-4555-8555-555555555551', 'inbound', 'Hi there! I placed an order this morning. Can I add organic sourdough before it ships?', 'received', now() - interval '12 minutes'),
+('77777777-7777-4777-8777-777777777772', '11111111-1111-4111-8111-111111111111', '66666666-6666-4666-8666-666666666661', '55555555-5555-4555-8555-555555555551', 'inbound', 'When will my organic honey ship?', 'received', now() - interval '8 minutes'),
+('77777777-7777-4777-8777-777777777773', '11111111-1111-4111-8111-111111111111', '66666666-6666-4666-8666-666666666662', '55555555-5555-4555-8555-555555555552', 'inbound', 'Is the Arabica blend back in stock?', 'received', now() - interval '35 minutes')
+on conflict (id) do nothing;

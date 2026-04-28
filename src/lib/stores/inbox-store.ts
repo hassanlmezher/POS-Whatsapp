@@ -21,7 +21,9 @@ export const useInboxStore = create<InboxState>((set) => ({
   setActiveConversation: (activeConversationId) => set({ activeConversationId }),
   appendMessage: (message) =>
     set((state) => ({
-      messages: [...state.messages, message],
+      messages: state.messages.some((item) => item.id === message.id)
+        ? state.messages
+        : [...state.messages, message],
       conversations: state.conversations.map((conversation) =>
         conversation.id === message.conversationId
           ? {

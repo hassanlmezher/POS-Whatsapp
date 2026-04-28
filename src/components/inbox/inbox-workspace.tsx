@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { MoreVertical, Paperclip, Phone, Send, ShoppingCart, Smile, Video } from "lucide-react";
 import type { Company, Conversation, Customer, Message, Order } from "@/lib/types/domain";
 import { useInboxStore } from "@/lib/stores/inbox-store";
@@ -26,8 +27,18 @@ export function InboxWorkspace({
   selectedMessages: Message[];
   recentOrders: Order[];
 }) {
+  const router = useRouter();
   const [draft, setDraft] = useState("");
-  const { activeConversationId, setInitialState, setActiveConversation, appendMessage, messages } = useInboxStore();
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [isSending, setIsSending] = useState(false);
+  const {
+    activeConversationId,
+    conversations: storeConversations,
+    setInitialState,
+    setActiveConversation,
+    appendMessage,
+    messages,
+  } = useInboxStore();
 
   useEffect(() => {
     setInitialState(conversations, selectedMessages, selectedConversation?.id ?? conversations[0]?.id ?? "");
@@ -35,7 +46,8 @@ export function InboxWorkspace({
 
   useRealtimeMessages(company.id, appendMessage);
 
-  const activeConversation = conversations.find((item) => item.id === activeConversationId) ?? selectedConversation ?? null;
+  const visibleConversations = storeConversations.length ? storeConversations : conversations;
+  const activeConversation = visibleConversations.find((item) => item.id === activeConversationId) ?? selectedConversation ?? null;
   const activeMessages = activeConversation
     ? messages.filter((message) => message.conversationId === activeConversation.id)
     : [];
@@ -50,18 +62,43 @@ export function InboxWorkspace({
   }, [recentOrders]);
 
   async function sendMessage() {
-    if (!draft.trim() || !activeConversation) return;
+    if (!draft.trim() || !activeConversation || isSending) return;
     const body = draft.trim();
+    setSendError(null);
+    setIsSending(true);
+    console.info("[inbox] Sending message", { conversationId: activeConversation.id });
     setDraft("");
 
-    const response = await fetch("/api/messages/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ conversationId: activeConversation.id, body }),
-    });
+    try {
+      const response = await fetch("/api/messages/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId: activeConversation.id, body }),
+      });
 
-    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        console.error("[inbox] Send message failed", {
+          status: response.status,
+          payload,
+        });
+        setDraft(body);
+        setSendError(payload?.error ?? "Message could not be sent.");
+        return;
+      }
+
+      if (payload?.message) {
+        appendMessage(payload.message);
+      }
+
+      router.refresh();
+    } catch (error) {
+      console.error("[inbox] Send message request failed", error);
       setDraft(body);
+      setSendError("Message request failed. Check the console and server logs.");
+    } finally {
+      setIsSending(false);
     }
   }
 
@@ -74,7 +111,7 @@ export function InboxWorkspace({
         </div>
         <div className="p-4"><Input icon placeholder="Search conversations..." /></div>
         <div>
-          {conversations.map((conversation) => (
+          {visibleConversations.map((conversation) => (
             <button
               key={conversation.id}
               onClick={() => setActiveConversation(conversation.id)}
@@ -154,13 +191,26 @@ export function InboxWorkspace({
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === "Enter") void sendMessage();
+                if (event.key === "Enter" && !event.shiftKey) void sendMessage();
               }}
               placeholder="Type a message"
+              disabled={!activeConversation || isSending}
               className="h-10 flex-1 bg-transparent px-3 outline-none"
             />
-            <Button size="icon" onClick={sendMessage} aria-label="Send message"><Send className="h-5 w-5" /></Button>
+            <Button
+              size="icon"
+              onClick={sendMessage}
+              disabled={!draft.trim() || !activeConversation || isSending}
+              aria-label="Send message"
+            >
+              {isSending ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> : <Send className="h-5 w-5" />}
+            </Button>
           </div>
+          {sendError ? (
+            <div className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+              {sendError}
+            </div>
+          ) : null}
         </div>
       </section>
 
