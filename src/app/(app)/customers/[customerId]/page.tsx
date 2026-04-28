@@ -5,6 +5,8 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 
+export const dynamic = "force-dynamic";
+
 export default async function CustomerDetailsPage({ params }: { params: Promise<{ customerId: string }> }) {
   const { customerId } = await params;
   const { customer, orders, conversations } = await getCustomerDetails(customerId);

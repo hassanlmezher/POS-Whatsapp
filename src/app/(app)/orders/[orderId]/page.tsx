@@ -5,6 +5,8 @@ import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 
+export const dynamic = "force-dynamic";
+
 export default async function OrderDetailsPage({ params }: { params: Promise<{ orderId: string }> }) {
   const { orderId } = await params;
   const { order, items, customer, conversation } = await getOrderDetails(orderId);

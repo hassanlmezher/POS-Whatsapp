@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   Banknote,
@@ -36,8 +37,11 @@ export function POSWorkspace({
   products: Product[];
   customers: Customer[];
 }) {
+  const router = useRouter();
   const [categoryId, setCategoryId] = useState("cat-all");
   const [query, setQuery] = useState("");
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
   const { items, addItem, decrementItem, removeItem, paymentMethod, setPaymentMethod, customerId, setCustomer, clear } = useCartStore();
   const totals = getCartTotals(items, company.taxRate);
 
@@ -50,6 +54,8 @@ export function POSWorkspace({
   }, [categoryId, products, query]);
 
   async function checkout() {
+    setCheckoutError(null);
+    setIsCheckingOut(true);
     const response = await fetch("/api/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -63,7 +69,14 @@ export function POSWorkspace({
 
     if (response.ok) {
       clear();
+      router.push("/orders");
+      router.refresh();
+      return;
     }
+
+    const payload = await response.json().catch(() => null);
+    setCheckoutError(payload?.error ?? "Checkout failed. Check the server logs for details.");
+    setIsCheckingOut(false);
   }
 
   return (
@@ -183,8 +196,13 @@ export function POSWorkspace({
               <CreditCard className="h-5 w-5" /> Card
             </Button>
           </div>
-          <Button className="mt-4 h-16 w-full text-lg" onClick={checkout} disabled={!items.length}>
-            Checkout <ArrowRight className="h-5 w-5" />
+          {checkoutError ? (
+            <div className="mt-4 rounded-xl bg-red-50 p-3 text-sm font-medium text-red-700">
+              {checkoutError}
+            </div>
+          ) : null}
+          <Button className="mt-4 h-16 w-full text-lg" onClick={checkout} disabled={!items.length || isCheckingOut}>
+            {isCheckingOut ? "Processing..." : "Checkout"} <ArrowRight className="h-5 w-5" />
           </Button>
         </div>
       </aside>
