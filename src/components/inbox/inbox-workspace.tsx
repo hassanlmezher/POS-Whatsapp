@@ -58,6 +58,7 @@ export function InboxWorkspace({
   const [isSyncing, setIsSyncing] = useState(false);
   const [activeCustomer, setActiveCustomer] = useState<Customer | null>(selectedCustomer ?? null);
   const [activeRecentOrders, setActiveRecentOrders] = useState<Order[]>(recentOrders);
+  const draftTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const activeConversationIdRef = useRef<string | null>(selectedConversation?.id ?? conversations[0]?.id ?? null);
   const syncAbortControllerRef = useRef<AbortController | null>(null);
   const syncSequenceRef = useRef(0);
@@ -86,6 +87,17 @@ export function InboxWorkspace({
     : [];
   const activeSuggestion = suggestionConversationId === activeConversation?.id ? suggestion : null;
   const activeSuggestionError = suggestionConversationId === activeConversation?.id ? suggestionError : null;
+
+  useEffect(() => {
+    const textarea = draftTextareaRef.current;
+    if (!textarea) {
+      return;
+    }
+
+    textarea.style.height = "0px";
+    const nextHeight = Math.min(textarea.scrollHeight, 160);
+    textarea.style.height = `${nextHeight}px`;
+  }, [draft]);
 
   useEffect(() => {
     activeConversationIdRef.current = activeConversation?.id ?? null;
@@ -307,14 +319,14 @@ export function InboxWorkspace({
   }
 
   return (
-    <div className="grid min-h-[calc(100vh-98px)] bg-[#f7f6ff] xl:grid-cols-[405px_minmax(0,1fr)_320px]">
-      <aside className="border-r border-[#d9deea] bg-white">
+    <div className="grid h-[calc(100vh-98px)] overflow-hidden bg-[#f7f6ff] xl:grid-cols-[405px_minmax(0,1fr)_320px]">
+      <aside className="flex h-full min-h-0 flex-col border-r border-[#d9deea] bg-white">
         <div className="flex h-20 items-center justify-between border-b border-[#d9deea] px-6">
           <h2 className="text-xl font-semibold text-[#080c1a]">Messages</h2>
           <Button variant="ghost" size="icon" aria-label="Compose"><Send className="h-5 w-5 rotate-[-35deg] text-[#0b4edb]" /></Button>
         </div>
         <div className="p-4"><Input icon placeholder="Search conversations..." /></div>
-        <div>
+        <div className="min-h-0 flex-1 overflow-y-auto">
           {visibleConversations.map((conversation) => (
             <button
               key={conversation.id}
@@ -340,7 +352,7 @@ export function InboxWorkspace({
         </div>
       </aside>
 
-      <section className="flex min-w-0 flex-col bg-[#f7f6ff]">
+      <section className="flex h-full min-w-0 min-h-0 flex-col bg-[#f7f6ff]">
         <div className="flex h-20 items-center justify-between border-b border-[#d9deea] bg-white px-6 backdrop-blur">
           {activeConversation ? (
             <div className="flex items-center gap-4">
@@ -365,7 +377,7 @@ export function InboxWorkspace({
           </div>
         </div>
 
-        <div className="flex-1 space-y-5 overflow-y-auto p-6">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-6">
           <div className="mx-auto w-fit rounded-lg bg-[#eef2f7] px-5 py-2 text-xs font-black uppercase text-[#536884] shadow-sm ring-1 ring-[#d9deea]">Today</div>
           {activeConversation ? activeMessages.map((message) => (
             <div key={message.id} className={`flex ${message.direction === "outbound" ? "justify-end" : "justify-start"}`}>
@@ -428,18 +440,23 @@ export function InboxWorkspace({
               {activeSuggestionError}
             </div>
           ) : null}
-          <div className="flex items-center gap-3 rounded-xl bg-white p-3 shadow-lg ring-1 ring-[#d9deea]">
+          <div className="flex items-end gap-3 rounded-xl bg-white p-3 shadow-lg ring-1 ring-[#d9deea]">
             <Smile className="h-6 w-6 text-[#536884]" />
             <Paperclip className="h-6 w-6 text-[#536884]" />
-            <input
+            <textarea
+              ref={draftTextareaRef}
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) void sendMessage();
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  void sendMessage();
+                }
               }}
               placeholder="Type a message"
               disabled={!activeConversation || isSending}
-              className="h-10 flex-1 bg-transparent px-3 text-[#080c1a] outline-none placeholder:text-[#8090aa]"
+              rows={1}
+              className="max-h-40 min-h-10 flex-1 resize-none overflow-y-auto bg-transparent px-3 py-2 text-[#080c1a] outline-none placeholder:text-[#8090aa]"
             />
             <Button
               size="icon"
@@ -458,7 +475,7 @@ export function InboxWorkspace({
         </div>
       </section>
 
-      <aside className="border-l border-[#d9deea] bg-white p-7">
+      <aside className="h-full overflow-y-auto border-l border-[#d9deea] bg-white p-7">
         {customer ? (
           <div className="text-center">
             <Avatar name={customer.name} src={customer.avatarUrl} className="mx-auto h-24 w-24 shadow-xl" />
