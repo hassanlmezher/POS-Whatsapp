@@ -1,5 +1,13 @@
 import "server-only";
-import { AiConfigurationError, AiProviderError, buildReplyPrompt, sanitizeSuggestion, type SuggestReplyInput } from "@/lib/ai/shared";
+import {
+  AiConfigurationError,
+  AiProviderError,
+  buildReplyPrompt,
+  getFallbackSuggestion,
+  sanitizeSuggestion,
+  shouldUseFallbackSuggestion,
+  type SuggestReplyInput,
+} from "@/lib/ai/shared";
 
 type GeminiResponse = {
   candidates?: {
@@ -31,6 +39,7 @@ function uniqueModels(configuredModel?: string) {
 export async function generateGeminiSuggestion(input: SuggestReplyInput) {
   const apiKey = process.env.GEMINI_API_KEY;
   const configuredModel = process.env.GEMINI_MODEL;
+  const prompt = buildReplyPrompt(input);
 
   if (!apiKey) {
     throw new AiConfigurationError("Gemini is not configured. Add GEMINI_API_KEY and restart the server.");
@@ -49,12 +58,13 @@ export async function generateGeminiSuggestion(input: SuggestReplyInput) {
         contents: [
           {
             role: "user",
-            parts: [{ text: buildReplyPrompt(input) }],
+            parts: [{ text: prompt }],
           },
         ],
         generationConfig: {
-          temperature: 0.4,
-          maxOutputTokens: 180,
+          temperature: 0.3,
+          topP: 0.8,
+          maxOutputTokens: 120,
         },
       }),
     });
@@ -84,19 +94,40 @@ export async function generateGeminiSuggestion(input: SuggestReplyInput) {
       .trim();
 
     if (!text) {
-      throw new AiProviderError("Gemini returned an empty suggestion.");
+      console.warn("[ai/gemini] Empty suggestion returned, using fallback", {
+        model,
+        endpoint,
+      });
+      return getFallbackSuggestion();
     }
 
-    return sanitizeSuggestion(text);
+    const suggestion = sanitizeSuggestion(text);
+    if (shouldUseFallbackSuggestion(suggestion)) {
+      console.warn("[ai/gemini] Suggestion failed quality checks, using fallback", {
+        model,
+        endpoint,
+        suggestion,
+      });
+      return getFallbackSuggestion();
+    }
+
+    return suggestion;
   }
 
   if (lastNonModelError) {
-    throw new AiProviderError(lastNonModelError);
+    console.warn("[ai/gemini] All model attempts failed, using fallback", {
+      modelsTried: modelsToTry,
+      error: lastNonModelError,
+    });
+    return getFallbackSuggestion();
   }
 
   if (sawModelNotFound) {
     throw new AiProviderError("Gemini model not available. Try GEMINI_MODEL=gemini-2.0-flash.");
   }
 
-  throw new AiProviderError("Gemini request failed.");
+  console.warn("[ai/gemini] Gemini request failed without payload details, using fallback", {
+    modelsTried: modelsToTry,
+  });
+  return getFallbackSuggestion();
 }

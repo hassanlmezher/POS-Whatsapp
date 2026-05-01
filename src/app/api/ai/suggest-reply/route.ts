@@ -148,7 +148,7 @@ export async function POST(request: Request) {
         .select("direction,body,created_at")
         .eq("conversation_id", conversation.id)
         .order("created_at", { ascending: false })
-        .limit(12)
+        .limit(8)
         .returns<DbMessage[]>(),
       supabase
         .from("product_categories")
