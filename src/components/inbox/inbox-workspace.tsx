@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MoreVertical, Paperclip, Phone, RefreshCw, Send, ShoppingCart, Smile, Sparkles, Video, X } from "lucide-react";
 import type { Company, Conversation, Customer, Message, Order } from "@/lib/types/domain";
 import { useInboxStore } from "@/lib/stores/inbox-store";
@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-const INBOX_SYNC_INTERVAL_MS = 1000;
+const INBOX_SYNC_INTERVAL_MS = 5000;
+const INBOX_SYNC_DEBOUNCE_MS = 250;
 
 function formatSendError(payload: unknown) {
   if (!payload || typeof payload !== "object") {
@@ -55,10 +56,13 @@ export function InboxWorkspace({
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
   const [isSuggesting, setIsSuggesting] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [activeCustomer, setActiveCustomer] = useState<Customer | null>(selectedCustomer ?? null);
   const [activeRecentOrders, setActiveRecentOrders] = useState<Order[]>(recentOrders);
-  const syncInFlightRef = useRef(false);
+  const activeConversationIdRef = useRef<string | null>(selectedConversation?.id ?? conversations[0]?.id ?? null);
   const syncAbortControllerRef = useRef<AbortController | null>(null);
+  const syncSequenceRef = useRef(0);
+  const syncTimerRef = useRef<number | null>(null);
   const {
     activeConversationId,
     conversations: storeConversations,
@@ -72,7 +76,9 @@ export function InboxWorkspace({
     setInitialState(conversations, selectedMessages, selectedConversation?.id ?? conversations[0]?.id ?? "");
   }, [conversations, selectedConversation?.id, selectedMessages, setInitialState]);
 
-  useRealtimeMessages(company.id, appendMessage);
+  useEffect(() => {
+    activeConversationIdRef.current = activeConversationId;
+  }, [activeConversationId]);
 
   const visibleConversations = storeConversations.length ? storeConversations : conversations;
   const activeConversation = visibleConversations.find((item) => item.id === activeConversationId) ?? selectedConversation ?? null;
@@ -84,97 +90,124 @@ export function InboxWorkspace({
   const activeSuggestionError = suggestionConversationId === activeConversation?.id ? suggestionError : null;
 
   useEffect(() => {
-    let cancelled = false;
-    let timeoutId: number | null = null;
+    activeConversationIdRef.current = activeConversation?.id ?? null;
+  }, [activeConversation?.id]);
 
-    async function syncInbox() {
-      if (cancelled || syncInFlightRef.current) {
+  const syncInbox = useCallback(async (reason: string) => {
+    const requestId = syncSequenceRef.current + 1;
+    syncSequenceRef.current = requestId;
+
+    syncAbortControllerRef.current?.abort();
+    const controller = new AbortController();
+    syncAbortControllerRef.current = controller;
+    setIsSyncing(true);
+
+    try {
+      const latestConversationId = activeConversationIdRef.current;
+      const search = latestConversationId
+        ? `?activeConversationId=${encodeURIComponent(latestConversationId)}`
+        : "";
+      const response = await fetch(`/api/inbox${search}`, {
+        cache: "no-store",
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text().catch(() => "");
+        console.warn("[inbox] Inbox sync request failed", {
+          reason,
+          status: response.status,
+          body: errorBody,
+        });
         return;
       }
 
-      const controller = new AbortController();
-      syncAbortControllerRef.current = controller;
-      syncInFlightRef.current = true;
+      const payload = await response.json() as {
+        conversations: Conversation[];
+        selectedConversation: Conversation | null;
+        selectedCustomer?: Customer | null;
+        selectedMessages: Message[];
+        recentOrders: Order[];
+      };
 
-      try {
-        const search = activeConversationId ? `?activeConversationId=${encodeURIComponent(activeConversationId)}` : "";
-        const response = await fetch(`/api/inbox${search}`, {
-          cache: "no-store",
-          signal: controller.signal,
-        });
-
-        if (!response.ok || cancelled) {
-          return;
-        }
-
-        const payload = await response.json() as {
-          conversations: Conversation[];
-          selectedConversation: Conversation | null;
-          selectedCustomer?: Customer | null;
-          selectedMessages: Message[];
-          recentOrders: Order[];
-        };
-
-        if (cancelled) {
-          return;
-        }
-
-        setInitialState(
-          payload.conversations,
-          payload.selectedMessages,
-          payload.selectedConversation?.id ?? activeConversationId ?? payload.conversations[0]?.id ?? "",
-        );
-        setActiveCustomer(payload.selectedCustomer ?? null);
-        setActiveRecentOrders(payload.recentOrders ?? []);
-      } catch (error) {
-        if (cancelled || controller.signal.aborted) {
-          return;
-        }
-
-        console.warn("[inbox] Inbox sync request failed", error);
-      } finally {
-        if (syncAbortControllerRef.current === controller) {
-          syncAbortControllerRef.current = null;
-        }
-        syncInFlightRef.current = false;
-      }
-    }
-
-    function scheduleSync(delayMs: number) {
-      if (cancelled) {
+      if (controller.signal.aborted || requestId !== syncSequenceRef.current) {
         return;
       }
 
-      timeoutId = window.setTimeout(() => {
-        void syncInbox().finally(() => {
-          scheduleSync(INBOX_SYNC_INTERVAL_MS);
-        });
-      }, delayMs);
+      setInitialState(
+        payload.conversations,
+        payload.selectedMessages,
+        payload.selectedConversation?.id ?? activeConversationIdRef.current ?? payload.conversations[0]?.id ?? "",
+      );
+      setActiveCustomer(payload.selectedCustomer ?? null);
+      setActiveRecentOrders(payload.recentOrders ?? []);
+    } catch (error) {
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      console.warn("[inbox] Inbox sync request failed", {
+        reason,
+        error,
+      });
+    } finally {
+      if (syncAbortControllerRef.current === controller) {
+        syncAbortControllerRef.current = null;
+      }
+
+      if (requestId === syncSequenceRef.current) {
+        setIsSyncing(false);
+      }
     }
+  }, [setInitialState]);
+
+  const scheduleSync = useCallback((reason: string, delayMs = INBOX_SYNC_DEBOUNCE_MS) => {
+    if (syncTimerRef.current !== null) {
+      window.clearTimeout(syncTimerRef.current);
+    }
+
+    syncTimerRef.current = window.setTimeout(() => {
+      syncTimerRef.current = null;
+      void syncInbox(reason);
+    }, delayMs);
+  }, [syncInbox]);
+
+  useRealtimeMessages(company.id, (message) => {
+    appendMessage(message);
+    scheduleSync("realtime");
+  });
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      void syncInbox("interval");
+    }, INBOX_SYNC_INTERVAL_MS);
 
     function handleVisibilitySync() {
       if (document.visibilityState === "visible") {
-        void syncInbox();
+        scheduleSync("visibility");
       }
     }
 
-    void syncInbox();
-    scheduleSync(INBOX_SYNC_INTERVAL_MS);
+    scheduleSync("mount", 0);
     window.addEventListener("focus", handleVisibilitySync);
     document.addEventListener("visibilitychange", handleVisibilitySync);
 
     return () => {
-      cancelled = true;
+      if (syncTimerRef.current !== null) {
+        window.clearTimeout(syncTimerRef.current);
+        syncTimerRef.current = null;
+      }
+      window.clearInterval(intervalId);
       syncAbortControllerRef.current?.abort();
       syncAbortControllerRef.current = null;
-      syncInFlightRef.current = false;
-      if (timeoutId !== null) {
-        window.clearTimeout(timeoutId);
-      }
       window.removeEventListener("focus", handleVisibilitySync);
       document.removeEventListener("visibilitychange", handleVisibilitySync);
     };
-  }, [activeConversationId, setInitialState]);
+  }, [scheduleSync, syncInbox]);
+
+  useEffect(() => {
+    scheduleSync("conversation-change");
+  }, [activeConversationId, scheduleSync]);
 
   const customer = activeCustomer;
 
@@ -215,6 +248,7 @@ export function InboxWorkspace({
 
       if (payload?.message) {
         appendMessage(payload.message);
+        scheduleSync("send-message");
       }
     } catch (error) {
       console.error("[inbox] Send message request failed", error);
@@ -327,6 +361,7 @@ export function InboxWorkspace({
             </div>
           )}
           <div className="flex items-center gap-3 text-[#536884]">
+            {isSyncing ? <span className="text-xs font-semibold text-[#8090aa]">Syncing...</span> : null}
             <Phone className="h-5 w-5" />
             <Video className="h-5 w-5" />
             <div className="h-8 w-px bg-[#d9deea]" />
