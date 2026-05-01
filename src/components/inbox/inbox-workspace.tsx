@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MoreVertical, Paperclip, Phone, Send, ShoppingCart, Smile, Video } from "lucide-react";
+import { MoreVertical, Paperclip, Phone, RefreshCw, Send, ShoppingCart, Smile, Sparkles, Video, X } from "lucide-react";
 import type { Company, Conversation, Customer, Message, Order } from "@/lib/types/domain";
 import { useInboxStore } from "@/lib/stores/inbox-store";
 import { useRealtimeMessages } from "@/lib/supabase/realtime";
@@ -50,6 +50,11 @@ export function InboxWorkspace({
   const [draft, setDraft] = useState("");
   const [sendError, setSendError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [suggestionConversationId, setSuggestionConversationId] = useState<string | null>(null);
+  const [suggestionId, setSuggestionId] = useState<string | null>(null);
+  const [suggestion, setSuggestion] = useState<string | null>(null);
+  const [suggestionError, setSuggestionError] = useState<string | null>(null);
+  const [isSuggesting, setIsSuggesting] = useState(false);
   const [activeCustomer, setActiveCustomer] = useState<Customer | null>(selectedCustomer ?? null);
   const [activeRecentOrders, setActiveRecentOrders] = useState<Order[]>(recentOrders);
   const syncInFlightRef = useRef(false);
@@ -73,6 +78,9 @@ export function InboxWorkspace({
   const activeMessages = activeConversation
     ? messages.filter((message) => message.conversationId === activeConversation.id)
     : [];
+  const activeSuggestion = suggestionConversationId === activeConversation?.id ? suggestion : null;
+  const activeSuggestionId = suggestionConversationId === activeConversation?.id ? suggestionId : null;
+  const activeSuggestionError = suggestionConversationId === activeConversation?.id ? suggestionError : null;
 
   useEffect(() => {
     let cancelled = false;
@@ -200,6 +208,50 @@ export function InboxWorkspace({
     }
   }
 
+  async function suggestMessageReply() {
+    if (!activeConversation || isSuggesting) return;
+
+    setSuggestionConversationId(activeConversation.id);
+    setSuggestionError(null);
+    setIsSuggesting(true);
+
+    try {
+      const response = await fetch("/api/ai/suggest-reply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId: activeConversation.id }),
+      });
+      const payload = await response.json().catch(() => null) as { suggestion?: string; suggestionId?: string; error?: string } | null;
+
+      if (!response.ok || !payload?.suggestion) {
+        setSuggestionError(payload?.error ?? "AI suggestion could not be generated.");
+        return;
+      }
+
+      setSuggestion(payload.suggestion);
+      setSuggestionId(payload.suggestionId ?? null);
+    } catch (error) {
+      console.error("[inbox] AI suggestion request failed", error);
+      setSuggestionError("AI suggestion request failed. Check the console and server logs.");
+    } finally {
+      setIsSuggesting(false);
+    }
+  }
+
+  function handleUseSuggestion(text: string, acceptedSuggestionId: string | null) {
+    setDraft(text);
+
+    if (acceptedSuggestionId) {
+      void fetch("/api/ai/suggest-reply", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ suggestionId: acceptedSuggestionId }),
+      }).catch((error) => {
+        console.warn("[inbox] AI suggestion accept logging failed", error);
+      });
+    }
+  }
+
   return (
     <div className="grid min-h-[calc(100vh-98px)] bg-[#f7f6ff] xl:grid-cols-[405px_minmax(0,1fr)_320px]">
       <aside className="border-r border-[#d9deea] bg-white">
@@ -282,6 +334,42 @@ export function InboxWorkspace({
         </div>
 
         <div className="bg-white p-5 backdrop-blur">
+          <div className="mb-3 flex flex-wrap items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={suggestMessageReply}
+              disabled={!activeConversation || isSuggesting}
+            >
+              {isSuggesting ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#8090aa]/40 border-t-[#0b4edb]" />
+              ) : (
+                <Sparkles className="h-4 w-4 text-[#0b4edb]" />
+              )}
+              {isSuggesting ? "Suggesting..." : "AI Suggest Reply"}
+            </Button>
+          </div>
+          {activeSuggestion ? (
+            <div className="mb-3 rounded-xl bg-[#f7f9fc] p-4 ring-1 ring-[#d9deea]">
+              <p className="text-sm leading-6 text-[#080c1a]">{activeSuggestion}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button size="sm" onClick={() => handleUseSuggestion(activeSuggestion, activeSuggestionId)}>
+                  Use suggestion
+                </Button>
+                <Button variant="outline" size="sm" onClick={suggestMessageReply} disabled={isSuggesting}>
+                  <RefreshCw className="h-4 w-4" /> Regenerate
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setSuggestion(null)}>
+                  <X className="h-4 w-4" /> Dismiss
+                </Button>
+              </div>
+            </div>
+          ) : null}
+          {activeSuggestionError ? (
+            <div className="mb-3 rounded-xl bg-[#fff7ed] px-4 py-3 text-sm font-medium text-[#9a3412] ring-1 ring-[#fed7aa]">
+              {activeSuggestionError}
+            </div>
+          ) : null}
           <div className="flex items-center gap-3 rounded-xl bg-white p-3 shadow-lg ring-1 ring-[#d9deea]">
             <Smile className="h-6 w-6 text-[#536884]" />
             <Paperclip className="h-6 w-6 text-[#536884]" />

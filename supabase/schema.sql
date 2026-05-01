@@ -204,6 +204,16 @@ create table whatsapp_webhook_events (
   created_at timestamptz not null default now()
 );
 
+create table ai_suggestions (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid not null references companies(id) on delete cascade,
+  conversation_id uuid not null references conversations(id) on delete cascade,
+  suggestion_text text not null,
+  provider text not null,
+  accepted boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
 create index idx_company_users_user on company_users(user_id);
 create index idx_products_company_category on products(company_id, category_id);
 create index idx_inventory_product on inventory(company_id, product_id);
@@ -216,6 +226,7 @@ create index idx_orders_customer on orders(company_id, customer_id);
 create index idx_order_items_order on order_items(order_id);
 create index idx_payments_order on payments(order_id);
 create index idx_webhook_events_message on whatsapp_webhook_events(whatsapp_message_id);
+create index idx_ai_suggestions_conversation on ai_suggestions(company_id, conversation_id, created_at desc);
 
 create or replace function user_company_ids()
 returns setof uuid
@@ -242,6 +253,7 @@ alter table order_items enable row level security;
 alter table payments enable row level security;
 alter table receipts enable row level security;
 alter table whatsapp_webhook_events enable row level security;
+alter table ai_suggestions enable row level security;
 
 create policy "company members can read companies" on companies for select using (id in (select user_company_ids()));
 create policy "company members can read company users" on company_users for select using (company_id in (select user_company_ids()));
@@ -258,6 +270,7 @@ create policy "tenant select orders" on orders for select using (company_id in (
 create policy "tenant select order items" on order_items for select using (company_id in (select user_company_ids()));
 create policy "tenant select payments" on payments for select using (company_id in (select user_company_ids()));
 create policy "tenant select receipts" on receipts for select using (company_id in (select user_company_ids()));
+create policy "tenant select ai suggestions" on ai_suggestions for select using (company_id in (select user_company_ids()));
 
 -- Add insert/update/delete policies per role. For example, cashiers can create
 -- orders/payments, support can create messages, and owners/admins can manage settings.
