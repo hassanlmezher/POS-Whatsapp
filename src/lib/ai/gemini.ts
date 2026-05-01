@@ -3,9 +3,10 @@ import {
   AiConfigurationError,
   AiProviderError,
   buildReplyPrompt,
+  buildRetryPrompt,
   getFallbackSuggestion,
   sanitizeSuggestion,
-  shouldUseFallbackSuggestion,
+  validateSuggestion,
   type SuggestReplyInput,
 } from "@/lib/ai/shared";
 
@@ -36,7 +37,78 @@ function uniqueModels(configuredModel?: string) {
   return [...new Set(list)];
 }
 
-export async function generateGeminiSuggestion(input: SuggestReplyInput) {
+type GeminiSuggestionResult = {
+  suggestion: string;
+  model: string;
+  wasRetried: boolean;
+};
+
+async function requestGeminiSuggestion({
+  apiKey,
+  endpoint,
+  prompt,
+  model,
+}: {
+  apiKey: string;
+  endpoint: string;
+  prompt: string;
+  model: string;
+}) {
+  const response = await fetch(`${endpoint}?key=${encodeURIComponent(apiKey)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: prompt }],
+        },
+      ],
+      generationConfig: {
+        temperature: 0.2,
+        topP: 0.8,
+        maxOutputTokens: 180,
+      },
+    }),
+  });
+
+  const payload = (await response.json().catch(() => null)) as GeminiResponse | null;
+
+  if (!response.ok) {
+    console.error("[ai/gemini] generateContent failed", {
+      model,
+      endpoint,
+      status: response.status,
+      error: payload?.error ?? payload,
+    });
+
+    return {
+      ok: false as const,
+      status: response.status,
+      payload,
+    };
+  }
+
+  const rawText = payload?.candidates?.[0]?.content?.parts
+    ?.map((part) => part.text ?? "")
+    .join("")
+    .trim() ?? "";
+
+  if (process.env.NODE_ENV !== "production") {
+    console.info("[ai/gemini] raw response", {
+      model,
+      endpoint,
+      rawText,
+    });
+  }
+
+  return {
+    ok: true as const,
+    rawText,
+  };
+}
+
+export async function generateGeminiSuggestion(input: SuggestReplyInput): Promise<GeminiSuggestionResult> {
   const apiKey = process.env.GEMINI_API_KEY;
   const configuredModel = process.env.GEMINI_MODEL;
   const prompt = buildReplyPrompt(input);
@@ -51,75 +123,99 @@ export async function generateGeminiSuggestion(input: SuggestReplyInput) {
 
   for (const model of modelsToTry) {
     const endpoint = `${GEMINI_ENDPOINT_BASE}/models/${encodeURIComponent(model)}:generateContent`;
-    const response = await fetch(`${endpoint}?key=${encodeURIComponent(apiKey)}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: prompt }],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.3,
-          topP: 0.8,
-          maxOutputTokens: 120,
-        },
-      }),
+    const firstAttempt = await requestGeminiSuggestion({
+      apiKey,
+      endpoint,
+      prompt,
+      model,
     });
 
-    const payload = (await response.json().catch(() => null)) as GeminiResponse | null;
-
-    if (!response.ok) {
-      console.error("[ai/gemini] generateContent failed", {
-        model,
-        endpoint,
-        status: response.status,
-        error: payload?.error ?? payload,
-      });
-
-      if (isModelNotFound(response.status, payload)) {
+    if (!firstAttempt.ok) {
+      if (isModelNotFound(firstAttempt.status, firstAttempt.payload)) {
         sawModelNotFound = true;
         continue;
       }
 
-      lastNonModelError = payload?.error?.message || `Gemini request failed with status ${response.status}.`;
+      lastNonModelError =
+        firstAttempt.payload?.error?.message || `Gemini request failed with status ${firstAttempt.status}.`;
       continue;
     }
 
-    const text = payload?.candidates?.[0]?.content?.parts
-      ?.map((part) => part.text ?? "")
-      .join("")
-      .trim();
+    const firstCleaned = sanitizeSuggestion(firstAttempt.rawText);
+    const firstValidation = validateSuggestion(firstCleaned, input);
 
-    if (!text) {
-      console.warn("[ai/gemini] Empty suggestion returned, using fallback", {
+    if (process.env.NODE_ENV !== "production") {
+      console.info("[ai/gemini] cleaned response", {
         model,
         endpoint,
+        cleaned: firstCleaned,
+        validation: firstValidation,
       });
-      return getFallbackSuggestion();
     }
 
-    const suggestion = sanitizeSuggestion(text);
-    if (shouldUseFallbackSuggestion(suggestion)) {
-      console.warn("[ai/gemini] Suggestion failed quality checks, using fallback", {
+    if (firstValidation.isValid) {
+      return {
+        suggestion: firstCleaned,
         model,
-        endpoint,
-        suggestion,
-      });
-      return getFallbackSuggestion();
+        wasRetried: false,
+      };
     }
 
-    return suggestion;
+    const retryPrompt = buildRetryPrompt(input, firstCleaned || firstAttempt.rawText);
+    const retryAttempt = await requestGeminiSuggestion({
+      apiKey,
+      endpoint,
+      prompt: retryPrompt,
+      model,
+    });
+
+    if (retryAttempt.ok) {
+      const retryCleaned = sanitizeSuggestion(retryAttempt.rawText);
+      const retryValidation = validateSuggestion(retryCleaned, input);
+
+      if (process.env.NODE_ENV !== "production") {
+        console.info("[ai/gemini] retry result", {
+          model,
+          endpoint,
+          cleaned: retryCleaned,
+          validation: retryValidation,
+        });
+      }
+
+      if (retryValidation.isValid) {
+        return {
+          suggestion: retryCleaned,
+          model,
+          wasRetried: true,
+        };
+      }
+    }
+
+    console.warn("[ai/gemini] Using fallback after validation failure", {
+      model,
+      endpoint,
+      validation: firstValidation,
+      fallbackUsed: true,
+    });
+
+    return {
+      suggestion: getFallbackSuggestion(),
+      model,
+      wasRetried: true,
+    };
   }
 
   if (lastNonModelError) {
     console.warn("[ai/gemini] All model attempts failed, using fallback", {
       modelsTried: modelsToTry,
       error: lastNonModelError,
+      fallbackUsed: true,
     });
-    return getFallbackSuggestion();
+    return {
+      suggestion: getFallbackSuggestion(),
+      model: modelsToTry[0],
+      wasRetried: false,
+    };
   }
 
   if (sawModelNotFound) {
@@ -128,6 +224,11 @@ export async function generateGeminiSuggestion(input: SuggestReplyInput) {
 
   console.warn("[ai/gemini] Gemini request failed without payload details, using fallback", {
     modelsTried: modelsToTry,
+    fallbackUsed: true,
   });
-  return getFallbackSuggestion();
+  return {
+    suggestion: getFallbackSuggestion(),
+    model: modelsToTry[0],
+    wasRetried: false,
+  };
 }

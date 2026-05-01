@@ -1,5 +1,12 @@
 import "server-only";
-import { AiProviderError, buildReplyPrompt, sanitizeSuggestion, type SuggestReplyInput } from "@/lib/ai/shared";
+import {
+  AiProviderError,
+  buildReplyPrompt,
+  getFallbackSuggestion,
+  sanitizeSuggestion,
+  validateSuggestion,
+  type SuggestReplyInput,
+} from "@/lib/ai/shared";
 
 type OllamaResponse = {
   response?: string;
@@ -37,8 +44,32 @@ export async function generateOllamaSuggestion(input: SuggestReplyInput) {
   }
 
   if (!payload?.response?.trim()) {
-    throw new AiProviderError("Ollama returned an empty suggestion.");
+    return {
+      suggestion: getFallbackSuggestion(),
+      model,
+      wasRetried: false,
+    };
   }
 
-  return sanitizeSuggestion(payload.response);
+  const suggestion = sanitizeSuggestion(payload.response);
+  const validation = validateSuggestion(suggestion, input);
+
+  if (!validation.isValid) {
+    console.warn("[ai/ollama] Suggestion failed validation, using fallback", {
+      model,
+      validation,
+      cleaned: suggestion,
+    });
+    return {
+      suggestion: getFallbackSuggestion(),
+      model,
+      wasRetried: false,
+    };
+  }
+
+  return {
+    suggestion,
+    model,
+    wasRetried: false,
+  };
 }

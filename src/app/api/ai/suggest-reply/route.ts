@@ -252,7 +252,13 @@ export async function POST(request: Request) {
       console.warn("[ai/suggest-reply] Suggestion logging skipped", logError);
     }
 
-    return NextResponse.json({ suggestion: result.suggestion, suggestionId: suggestionLog?.id });
+    return NextResponse.json({
+      suggestion: result.suggestion,
+      provider: result.provider,
+      model: result.model,
+      wasRetried: result.wasRetried,
+      suggestionId: suggestionLog?.id,
+    });
   } catch (error) {
     console.error("[ai/suggest-reply] Failed", error);
 

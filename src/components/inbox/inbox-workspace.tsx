@@ -58,6 +58,7 @@ export function InboxWorkspace({
   const [activeCustomer, setActiveCustomer] = useState<Customer | null>(selectedCustomer ?? null);
   const [activeRecentOrders, setActiveRecentOrders] = useState<Order[]>(recentOrders);
   const syncInFlightRef = useRef(false);
+  const syncAbortControllerRef = useRef<AbortController | null>(null);
   const {
     activeConversationId,
     conversations: storeConversations,
@@ -91,11 +92,16 @@ export function InboxWorkspace({
         return;
       }
 
+      const controller = new AbortController();
+      syncAbortControllerRef.current = controller;
       syncInFlightRef.current = true;
 
       try {
         const search = activeConversationId ? `?activeConversationId=${encodeURIComponent(activeConversationId)}` : "";
-        const response = await fetch(`/api/inbox${search}`, { cache: "no-store" });
+        const response = await fetch(`/api/inbox${search}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
 
         if (!response.ok || cancelled) {
           return;
@@ -120,7 +126,16 @@ export function InboxWorkspace({
         );
         setActiveCustomer(payload.selectedCustomer ?? null);
         setActiveRecentOrders(payload.recentOrders ?? []);
+      } catch (error) {
+        if (cancelled || controller.signal.aborted) {
+          return;
+        }
+
+        console.warn("[inbox] Inbox sync request failed", error);
       } finally {
+        if (syncAbortControllerRef.current === controller) {
+          syncAbortControllerRef.current = null;
+        }
         syncInFlightRef.current = false;
       }
     }
@@ -150,6 +165,8 @@ export function InboxWorkspace({
 
     return () => {
       cancelled = true;
+      syncAbortControllerRef.current?.abort();
+      syncAbortControllerRef.current = null;
       syncInFlightRef.current = false;
       if (timeoutId !== null) {
         window.clearTimeout(timeoutId);
@@ -221,7 +238,14 @@ export function InboxWorkspace({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ conversationId: activeConversation.id }),
       });
-      const payload = await response.json().catch(() => null) as { suggestion?: string; suggestionId?: string; error?: string } | null;
+      const payload = await response.json().catch(() => null) as {
+        suggestion?: string;
+        suggestionId?: string;
+        provider?: string;
+        model?: string;
+        wasRetried?: boolean;
+        error?: string;
+      } | null;
 
       if (!response.ok || !payload?.suggestion) {
         setSuggestionError(payload?.error ?? "AI suggestion could not be generated.");

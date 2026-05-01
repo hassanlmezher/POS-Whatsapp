@@ -17,6 +17,8 @@ export type AiProviderName = "gemini" | "ollama" | "mock";
 export type SuggestReplyResult = {
   suggestion: string;
   provider: AiProviderName;
+  model: string;
+  wasRetried: boolean;
 };
 
 export async function suggestReply(input: SuggestReplyInput): Promise<SuggestReplyResult> {
@@ -27,24 +29,18 @@ export async function suggestReply(input: SuggestReplyInput): Promise<SuggestRep
   }
 
   if (provider === "gemini") {
-    return {
-      suggestion: await generateGeminiSuggestion(input),
-      provider,
-    };
+    const result = await generateGeminiSuggestion(input);
+    return { ...result, provider };
   }
 
   if (provider === "ollama") {
-    return {
-      suggestion: await generateOllamaSuggestion(input),
-      provider,
-    };
+    const result = await generateOllamaSuggestion(input);
+    return { ...result, provider };
   }
 
   if (provider === "mock") {
-    return {
-      suggestion: generateMockSuggestion(input),
-      provider,
-    };
+    const result = generateMockSuggestion(input);
+    return { ...result, provider };
   }
 
   throw new AiConfigurationError(`Unsupported AI_PROVIDER "${provider}". Use gemini, ollama, or mock.`);
