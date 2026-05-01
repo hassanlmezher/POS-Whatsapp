@@ -7,18 +7,18 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const variants = {
-  primary: "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-600",
-  secondary: "bg-slate-900 text-white hover:bg-slate-800",
-  ghost: "bg-transparent text-slate-600 hover:bg-slate-100",
-  outline: "border border-slate-200 bg-white text-slate-800 shadow-sm hover:bg-slate-50",
-  danger: "bg-red-50 text-red-700 hover:bg-red-100",
+  primary: "bg-[#0b4edb] text-white shadow-[0_6px_14px_rgba(11,78,219,0.2)] hover:bg-[#0642c4]",
+  secondary: "bg-[#0f172a] text-white hover:bg-[#1f2937]",
+  ghost: "bg-transparent text-[#536884] hover:bg-[#f4f6fa] hover:text-[#0b4edb]",
+  outline: "border border-[#d9deea] bg-white text-[#0f172a] shadow-sm hover:bg-[#f8fafc]",
+  danger: "bg-[#fff1f2] text-[#be123c] hover:bg-[#ffe4e6]",
 };
 
 const sizes = {
   sm: "h-9 rounded-lg px-3 text-sm",
-  md: "h-11 rounded-xl px-4 text-sm",
-  lg: "h-14 rounded-xl px-5 text-base",
-  icon: "h-10 w-10 rounded-xl p-0",
+  md: "h-12 rounded-lg px-5 text-sm",
+  lg: "h-14 rounded-xl px-6 text-base",
+  icon: "h-10 w-10 rounded-lg p-0",
 };
 
 export function Button({

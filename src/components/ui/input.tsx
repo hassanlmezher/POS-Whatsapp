@@ -10,12 +10,12 @@ export function Input({ className, icon, ...props }: InputProps) {
   return (
     <label className="relative block">
       {icon ? (
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8090aa]" />
       ) : null}
       <input
         className={cn(
-          "h-11 w-full rounded-xl border border-transparent bg-[#eef2ff] px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-emerald-300 focus:bg-white focus:ring-4 focus:ring-emerald-100",
-          icon && "pl-10",
+          "h-12 w-full rounded-xl border border-[#d9deea] bg-[#f7f9fc] px-4 text-sm text-[#0f172a] outline-none transition placeholder:text-[#65758f] focus:border-[#0b4edb] focus:bg-white focus:ring-4 focus:ring-[#0b4edb]/10",
+          icon && "pl-11",
           className,
         )}
         {...props}

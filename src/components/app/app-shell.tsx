@@ -10,9 +10,9 @@ export function AppShell({
   title?: string;
 }) {
   return (
-    <div className="min-h-screen bg-[#f7f8fb] text-slate-950">
+    <div className="min-h-screen bg-[#f7f6ff] text-[#080c1a]">
       <Sidebar />
-      <div className="min-h-screen lg:pl-[270px]">
+      <div className="min-h-screen lg:pl-[300px]">
         <Header title={title} />
         <main className="pb-20 lg:pb-0">{children}</main>
       </div>

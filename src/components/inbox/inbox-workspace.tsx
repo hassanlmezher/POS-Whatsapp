@@ -201,11 +201,11 @@ export function InboxWorkspace({
   }
 
   return (
-    <div className="grid min-h-[calc(100vh-67px)] bg-white xl:grid-cols-[405px_minmax(0,1fr)_320px]">
-      <aside className="border-r border-slate-200 bg-white">
-        <div className="flex h-20 items-center justify-between border-b border-slate-100 px-6">
-          <h2 className="text-xl font-semibold">Messages</h2>
-          <Button variant="ghost" size="icon" aria-label="Compose"><Send className="h-5 w-5 rotate-[-35deg] text-emerald-700" /></Button>
+    <div className="grid min-h-[calc(100vh-98px)] bg-[#f7f6ff] xl:grid-cols-[405px_minmax(0,1fr)_320px]">
+      <aside className="border-r border-[#d9deea] bg-white">
+        <div className="flex h-20 items-center justify-between border-b border-[#d9deea] px-6">
+          <h2 className="text-xl font-semibold text-[#080c1a]">Messages</h2>
+          <Button variant="ghost" size="icon" aria-label="Compose"><Send className="h-5 w-5 rotate-[-35deg] text-[#0b4edb]" /></Button>
         </div>
         <div className="p-4"><Input icon placeholder="Search conversations..." /></div>
         <div>
@@ -213,20 +213,20 @@ export function InboxWorkspace({
             <button
               key={conversation.id}
               onClick={() => setActiveConversation(conversation.id)}
-              className={`relative flex w-full items-center gap-4 border-b border-slate-100 p-5 text-left transition hover:bg-emerald-50 ${
-                conversation.id === activeConversation?.id ? "bg-emerald-50" : ""
+              className={`relative flex w-full items-center gap-4 border-b border-[#d9deea] p-5 text-left transition hover:bg-[#f5f7fb] ${
+                conversation.id === activeConversation?.id ? "bg-[#eef2f7]" : ""
               }`}
             >
-              {conversation.id === activeConversation?.id ? <span className="absolute right-0 h-full w-1 bg-emerald-700" /> : null}
+              {conversation.id === activeConversation?.id ? <span className="absolute right-0 h-full w-1 bg-slate-200" /> : null}
               <Avatar name={conversation.customerName} src={conversation.avatarUrl} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
-                  <div className="truncate font-semibold">{conversation.customerName}</div>
-                  <div className="text-xs font-semibold text-slate-400">
+                  <div className="truncate font-semibold text-[#080c1a]">{conversation.customerName}</div>
+                  <div className="text-xs font-semibold text-[#8090aa]">
                     {new Date(conversation.lastMessageAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </div>
                 </div>
-                <div className="mt-1 truncate text-slate-600">{conversation.lastMessage}</div>
+                <div className="mt-1 truncate text-[#536884]">{conversation.lastMessage}</div>
               </div>
               {conversation.unreadCount ? <Badge tone="green">{conversation.unreadCount}</Badge> : null}
             </button>
@@ -234,57 +234,57 @@ export function InboxWorkspace({
         </div>
       </aside>
 
-      <section className="flex min-w-0 flex-col bg-[linear-gradient(130deg,#b5b09e_0%,#c8eadf_52%,#f0eadb_100%)]">
-        <div className="flex h-20 items-center justify-between border-b border-slate-200 bg-white px-6">
+      <section className="flex min-w-0 flex-col bg-[#f7f6ff]">
+        <div className="flex h-20 items-center justify-between border-b border-[#d9deea] bg-white px-6 backdrop-blur">
           {activeConversation ? (
             <div className="flex items-center gap-4">
               <Avatar name={activeConversation.customerName} src={activeConversation.avatarUrl} />
               <div>
-                <div className="text-lg font-semibold">{activeConversation.customerName}</div>
-                <div className="text-sm text-emerald-700">Online</div>
+                <div className="text-lg font-semibold text-[#080c1a]">{activeConversation.customerName}</div>
+                <div className="text-sm text-[#0b4edb]">Online</div>
               </div>
             </div>
           ) : (
             <div>
-              <div className="text-lg font-semibold">No conversations</div>
-              <div className="text-sm text-slate-500">Incoming WhatsApp messages will appear here.</div>
+              <div className="text-lg font-semibold text-[#080c1a]">No conversations</div>
+              <div className="text-sm text-[#8090aa]">Incoming WhatsApp messages will appear here.</div>
             </div>
           )}
-          <div className="flex items-center gap-3 text-slate-600">
+          <div className="flex items-center gap-3 text-[#536884]">
             <Phone className="h-5 w-5" />
             <Video className="h-5 w-5" />
-            <div className="h-8 w-px bg-slate-200" />
+            <div className="h-8 w-px bg-[#d9deea]" />
             <MoreVertical className="h-5 w-5" />
           </div>
         </div>
 
         <div className="flex-1 space-y-5 overflow-y-auto p-6">
-          <div className="mx-auto w-fit rounded-lg bg-white px-5 py-2 text-xs font-black uppercase text-slate-600 shadow-sm">Today</div>
+          <div className="mx-auto w-fit rounded-lg bg-[#eef2f7] px-5 py-2 text-xs font-black uppercase text-[#536884] shadow-sm ring-1 ring-[#d9deea]">Today</div>
           {activeConversation ? activeMessages.map((message) => (
             <div key={message.id} className={`flex ${message.direction === "outbound" ? "justify-end" : "justify-start"}`}>
               <div
                 className={`max-w-[70%] rounded-xl p-4 shadow-sm ${
-                  message.direction === "outbound" ? "bg-[#d9ffd2]" : "bg-white"
+                  message.direction === "outbound" ? "bg-[#2f66ea] text-white" : "bg-white text-[#080c1a] ring-1 ring-[#d9deea]"
                 }`}
               >
                 <p className="leading-7">{message.body}</p>
-                <div className="mt-2 text-right text-xs text-slate-400">
+                <div className={`mt-2 text-right text-xs ${message.direction === "outbound" ? "text-blue-100" : "text-[#8090aa]"}`}>
                   {new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   {message.direction === "outbound" ? " ✓✓" : ""}
                 </div>
               </div>
             </div>
           )) : (
-            <div className="mx-auto mt-20 max-w-sm rounded-xl bg-white/80 p-6 text-center text-slate-600 shadow-sm">
+            <div className="mx-auto mt-20 max-w-sm rounded-xl bg-[#f7f9fc] p-6 text-center text-[#536884] shadow-sm ring-1 ring-[#d9deea]">
               Connect WhatsApp and receive a customer message to start a conversation.
             </div>
           )}
         </div>
 
-        <div className="bg-white/90 p-5">
-          <div className="flex items-center gap-3 rounded-xl bg-white p-3 shadow-lg ring-1 ring-slate-200">
-            <Smile className="h-6 w-6 text-slate-500" />
-            <Paperclip className="h-6 w-6 text-slate-500" />
+        <div className="bg-white p-5 backdrop-blur">
+          <div className="flex items-center gap-3 rounded-xl bg-white p-3 shadow-lg ring-1 ring-[#d9deea]">
+            <Smile className="h-6 w-6 text-[#536884]" />
+            <Paperclip className="h-6 w-6 text-[#536884]" />
             <input
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
@@ -293,7 +293,7 @@ export function InboxWorkspace({
               }}
               placeholder="Type a message"
               disabled={!activeConversation || isSending}
-              className="h-10 flex-1 bg-transparent px-3 outline-none"
+              className="h-10 flex-1 bg-transparent px-3 text-[#080c1a] outline-none placeholder:text-[#8090aa]"
             />
             <Button
               size="icon"
@@ -305,57 +305,57 @@ export function InboxWorkspace({
             </Button>
           </div>
           {sendError ? (
-            <div className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            <div className="mt-3 rounded-xl bg-[#fff1f2] px-4 py-3 text-sm font-medium text-[#be123c] ring-1 ring-[#fecdd3]">
               {sendError}
             </div>
           ) : null}
         </div>
       </section>
 
-      <aside className="border-l border-slate-200 bg-white p-7">
+      <aside className="border-l border-[#d9deea] bg-white p-7">
         {customer ? (
           <div className="text-center">
             <Avatar name={customer.name} src={customer.avatarUrl} className="mx-auto h-24 w-24 shadow-xl" />
-            <h2 className="mt-5 text-xl font-semibold">{customer.name}</h2>
-            <p className="mt-2 text-slate-600">{customer.phone}</p>
+            <h2 className="mt-5 text-xl font-semibold text-[#080c1a]">{customer.name}</h2>
+            <p className="mt-2 text-[#536884]">{customer.phone}</p>
             <Badge tone="green" className="mt-4 uppercase">{customer.tags[0] ?? "customer"}</Badge>
           </div>
         ) : null}
         <div className="mt-10">
-          <div className="text-sm font-black uppercase tracking-[0.18em] text-slate-400">Status</div>
-          <p className="mt-4 leading-7">{customer?.notes}</p>
+          <div className="text-sm font-black uppercase tracking-[0.18em] text-[#8090aa]">Status</div>
+          <p className="mt-4 leading-7 text-[#536884]">{customer?.notes}</p>
         </div>
         <div className="mt-8 grid grid-cols-2 gap-4">
-          <div className="rounded-xl bg-[#eef2ff] p-5">
-            <div className="text-xs font-black uppercase text-slate-500">Total Spent</div>
-            <div className="mt-2 text-lg font-black">{formatCurrency(totals.spent)}</div>
+          <div className="rounded-xl bg-[#f7f9fc] p-5 ring-1 ring-[#d9deea]">
+            <div className="text-xs font-black uppercase text-[#8090aa]">Total Spent</div>
+            <div className="mt-2 text-lg font-black text-[#080c1a]">{formatCurrency(totals.spent)}</div>
           </div>
-          <div className="rounded-xl bg-[#eef2ff] p-5">
-            <div className="text-xs font-black uppercase text-slate-500">Total Orders</div>
-            <div className="mt-2 text-lg font-black">{totals.orders}</div>
+          <div className="rounded-xl bg-[#f7f9fc] p-5 ring-1 ring-[#d9deea]">
+            <div className="text-xs font-black uppercase text-[#8090aa]">Total Orders</div>
+            <div className="mt-2 text-lg font-black text-[#080c1a]">{totals.orders}</div>
           </div>
         </div>
         <div className="mt-8">
           <div className="mb-4 flex items-center justify-between">
-            <div className="text-sm font-black uppercase tracking-[0.18em] text-slate-400">Recent Orders</div>
-            <button className="text-sm font-bold text-emerald-700">View All</button>
+            <div className="text-sm font-black uppercase tracking-[0.18em] text-[#8090aa]">Recent Orders</div>
+            <button className="text-sm font-bold text-[#0b4edb]">View All</button>
           </div>
           <div className="space-y-3">
             {activeRecentOrders.slice(0, 2).map((order) => (
-              <div key={order.id} className="rounded-xl p-4 shadow-sm ring-1 ring-slate-200">
+              <div key={order.id} className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-[#d9deea]">
                 <div className="flex items-center justify-between">
-                  <div className="font-semibold">#{order.orderNumber}</div>
+                  <div className="font-semibold text-[#080c1a]">#{order.orderNumber}</div>
                   <Badge tone={order.paymentStatus === "paid" ? "green" : "yellow"}>{order.status}</Badge>
                 </div>
-                <div className="mt-3 flex justify-between text-sm text-slate-500">
+                <div className="mt-3 flex justify-between text-sm text-[#8090aa]">
                   <span>{new Date(order.createdAt).toLocaleDateString()}</span>
-                  <span className="font-black text-emerald-700">{formatCurrency(order.total)}</span>
+                  <span className="font-black text-[#0b4edb]">{formatCurrency(order.total)}</span>
                 </div>
               </div>
             ))}
           </div>
         </div>
-        <Button className="mt-10 h-16 w-full bg-emerald-700 text-lg hover:bg-emerald-800">
+        <Button className="mt-10 h-16 w-full text-lg">
           <ShoppingCart className="h-6 w-6" /> Create New Order
         </Button>
       </aside>
