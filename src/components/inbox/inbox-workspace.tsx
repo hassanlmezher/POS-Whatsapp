@@ -52,7 +52,6 @@ export function InboxWorkspace({
   const [sendError, setSendError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [suggestionConversationId, setSuggestionConversationId] = useState<string | null>(null);
-  const [suggestionId, setSuggestionId] = useState<string | null>(null);
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
   const [isSuggesting, setIsSuggesting] = useState(false);
@@ -86,7 +85,6 @@ export function InboxWorkspace({
     ? messages.filter((message) => message.conversationId === activeConversation.id)
     : [];
   const activeSuggestion = suggestionConversationId === activeConversation?.id ? suggestion : null;
-  const activeSuggestionId = suggestionConversationId === activeConversation?.id ? suggestionId : null;
   const activeSuggestionError = suggestionConversationId === activeConversation?.id ? suggestionError : null;
 
   useEffect(() => {
@@ -248,6 +246,9 @@ export function InboxWorkspace({
 
       if (payload?.message) {
         appendMessage(payload.message);
+        setSuggestion(null);
+        setSuggestionConversationId(null);
+        setSuggestionError(null);
         scheduleSync("send-message");
       }
     } catch (error) {
@@ -286,27 +287,22 @@ export function InboxWorkspace({
         return;
       }
 
+      setDraft(payload.suggestion);
       setSuggestion(payload.suggestion);
-      setSuggestionId(payload.suggestionId ?? null);
+      if (payload.suggestionId) {
+        void fetch("/api/ai/suggest-reply", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ suggestionId: payload.suggestionId }),
+        }).catch((error) => {
+          console.warn("[inbox] AI suggestion accept logging failed", error);
+        });
+      }
     } catch (error) {
       console.error("[inbox] AI suggestion request failed", error);
       setSuggestionError("AI suggestion request failed. Check the console and server logs.");
     } finally {
       setIsSuggesting(false);
-    }
-  }
-
-  function handleUseSuggestion(text: string, acceptedSuggestionId: string | null) {
-    setDraft(text);
-
-    if (acceptedSuggestionId) {
-      void fetch("/api/ai/suggest-reply", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ suggestionId: acceptedSuggestionId }),
-      }).catch((error) => {
-        console.warn("[inbox] AI suggestion accept logging failed", error);
-      });
     }
   }
 
@@ -410,15 +406,18 @@ export function InboxWorkspace({
           </div>
           {activeSuggestion ? (
             <div className="mb-3 rounded-xl bg-[#f7f9fc] p-4 ring-1 ring-[#d9deea]">
-              <p className="text-sm leading-6 text-[#080c1a]">{activeSuggestion}</p>
+              <p className="text-sm leading-6 text-[#536884]">Suggestion added to the message input.</p>
               <div className="mt-3 flex flex-wrap gap-2">
-                <Button size="sm" onClick={() => handleUseSuggestion(activeSuggestion, activeSuggestionId)}>
-                  Use suggestion
-                </Button>
                 <Button variant="outline" size="sm" onClick={suggestMessageReply} disabled={isSuggesting}>
                   <RefreshCw className="h-4 w-4" /> Regenerate
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => setSuggestion(null)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSuggestion(null);
+                  }}
+                >
                   <X className="h-4 w-4" /> Dismiss
                 </Button>
               </div>
