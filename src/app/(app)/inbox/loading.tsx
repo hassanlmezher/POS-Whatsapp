@@ -1,0 +1,47 @@
+export default function InboxLoading() {
+  return (
+    <div className="flex h-[calc(100vh-98px)] animate-pulse overflow-hidden">
+      {/* Conversation list */}
+      <div className="w-[340px] flex-shrink-0 border-r border-[#d9deea] bg-white">
+        <div className="border-b border-[#d9deea] p-4">
+          <div className="h-10 w-full rounded-lg bg-[#e8ecf5]" />
+        </div>
+        <div className="divide-y divide-[#edf1f7]">
+          {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="flex items-center gap-3 p-4">
+              <div className="h-11 w-11 flex-shrink-0 rounded-full bg-[#e8ecf5]" />
+              <div className="flex-1 space-y-2">
+                <div className="flex justify-between">
+                  <div className="h-4 w-28 rounded bg-[#e8ecf5]" />
+                  <div className="h-3 w-10 rounded bg-[#e8ecf5]" />
+                </div>
+                <div className="h-3 w-44 rounded bg-[#e8ecf5]" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Message pane */}
+      <div className="flex flex-1 flex-col">
+        <div className="flex items-center gap-4 border-b border-[#d9deea] bg-white px-6 py-4">
+          <div className="h-11 w-11 rounded-full bg-[#e8ecf5]" />
+          <div className="space-y-2">
+            <div className="h-4 w-32 rounded bg-[#e8ecf5]" />
+            <div className="h-3 w-24 rounded bg-[#e8ecf5]" />
+          </div>
+        </div>
+        <div className="flex-1 space-y-4 p-6">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className={`flex ${i % 2 === 0 ? "justify-start" : "justify-end"}`}>
+              <div className="h-12 w-64 rounded-2xl bg-[#e8ecf5]" />
+            </div>
+          ))}
+        </div>
+        <div className="border-t border-[#d9deea] bg-white p-4">
+          <div className="h-12 w-full rounded-xl bg-[#e8ecf5]" />
+        </div>
+      </div>
+    </div>
+  );
+}

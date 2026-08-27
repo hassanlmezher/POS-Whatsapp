@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import {
   categories as fallbackCategories,
@@ -394,27 +395,33 @@ export async function getCompanyContext() {
   return withSupabase("getCompanyContext", fetchCompany, fallbackCompany);
 }
 
-export async function getDashboardData() {
+async function _getDashboardData(): Promise<DashboardData> {
   return withSupabase<DashboardData>("getDashboardData", async (supabase) => {
-    const [products, customers] = await Promise.all([
+    // Fire ALL queries simultaneously — no sequential waterfalls
+    const [products, customers, orderItemRows] = await Promise.all([
       fetchProducts(supabase),
       fetchCustomers(supabase),
+      supabase
+        .from("order_items")
+        .select("product_id,quantity")
+        .eq("company_id", SEEDED_COMPANY_ID)
+        .returns<{ product_id: string | null; quantity: number }[]>()
+        .then(({ data, error }) => {
+          assertNoError(error, "dashboard order_items select failed");
+          return data ?? [];
+        }),
     ]);
+
     const customersById = new Map(customers.map((customer) => [customer.id, customer]));
+
+    // Now fetch orders + conversations (need customersById) — still parallel with each other
     const [orders, conversations] = await Promise.all([
       fetchOrders(supabase, customersById),
       fetchConversations(supabase, customersById),
     ]);
 
-    const { data: orderItemRows, error: orderItemsError } = await supabase
-      .from("order_items")
-      .select("product_id,quantity")
-      .eq("company_id", SEEDED_COMPANY_ID)
-      .returns<{ product_id: string | null; quantity: number }[]>();
-    assertNoError(orderItemsError, "dashboard order_items select failed");
-
     const salesByProductId = new Map<string, number>();
-    for (const row of orderItemRows ?? []) {
+    for (const row of orderItemRows) {
       if (row.product_id) {
         salesByProductId.set(row.product_id, (salesByProductId.get(row.product_id) ?? 0) + row.quantity);
       }
@@ -448,7 +455,13 @@ export async function getDashboardData() {
   }, fallbackDashboardData);
 }
 
-export async function getPOSData() {
+export const getDashboardData = unstable_cache(
+  _getDashboardData,
+  ["dashboard-data"],
+  { revalidate: 60, tags: ["dashboard"] },
+);
+
+async function _getPOSData() {
   return withSupabase("getPOSData", async (supabase) => {
     const [company, categories, products, customers] = await Promise.all([
       fetchCompany(supabase),
@@ -460,6 +473,12 @@ export async function getPOSData() {
   }, { company: fallbackCompany, categories: fallbackCategories, products: fallbackProducts, customers: fallbackCustomers });
 }
 
+export const getPOSData = unstable_cache(
+  _getPOSData,
+  ["pos-data"],
+  { revalidate: 60, tags: ["pos"] },
+);
+
 export async function getInboxData(activeConversationId?: string) {
   return withSupabase("getInboxData", async (supabase) => {
     const [company, customers] = await Promise.all([fetchCompany(supabase), fetchCustomers(supabase)]);
@@ -470,8 +489,12 @@ export async function getInboxData(activeConversationId?: string) {
       conversations[0] ??
       null;
     const selectedCustomer = selectedConversation ? customersById.get(selectedConversation.customerId) ?? null : null;
-    const selectedMessages = selectedConversation ? await fetchMessages(supabase, selectedConversation.id) : [];
-    const orders = selectedConversation ? await fetchOrders(supabase, customersById) : [];
+
+    // Fetch messages and orders in parallel — previously sequential
+    const [selectedMessages, orders] = await Promise.all([
+      selectedConversation ? fetchMessages(supabase, selectedConversation.id) : Promise.resolve([]),
+      selectedConversation ? fetchOrders(supabase, customersById) : Promise.resolve([]),
+    ]);
 
     return {
       company,
@@ -493,7 +516,7 @@ export async function getInboxData(activeConversationId?: string) {
   });
 }
 
-export async function getOrdersData() {
+async function _getOrdersData() {
   return withSupabase("getOrdersData", async (supabase) => {
     const [company, customers] = await Promise.all([fetchCompany(supabase), fetchCustomers(supabase)]);
     const customersById = new Map(customers.map((customer) => [customer.id, customer]));
@@ -501,6 +524,12 @@ export async function getOrdersData() {
     return { company, orders, customers };
   }, { company: fallbackCompany, orders: fallbackOrders, customers: fallbackCustomers });
 }
+
+export const getOrdersData = unstable_cache(
+  _getOrdersData,
+  ["orders-data"],
+  { revalidate: 60, tags: ["orders"] },
+);
 
 export async function getOrderDetails(orderId: string) {
   return withSupabase("getOrderDetails", async (supabase) => {
@@ -532,7 +561,7 @@ export async function getOrderDetails(orderId: string) {
   });
 }
 
-export async function getCustomersData() {
+async function _getCustomersData() {
   return withSupabase("getCustomersData", async (supabase) => {
     const [company, customers] = await Promise.all([fetchCompany(supabase), fetchCustomers(supabase)]);
     const customersById = new Map(customers.map((customer) => [customer.id, customer]));
@@ -543,6 +572,12 @@ export async function getCustomersData() {
     return { company, customers, orders, conversations };
   }, { company: fallbackCompany, customers: fallbackCustomers, orders: fallbackOrders, conversations: fallbackConversations });
 }
+
+export const getCustomersData = unstable_cache(
+  _getCustomersData,
+  ["customers-data"],
+  { revalidate: 60, tags: ["customers"] },
+);
 
 export async function getCustomerDetails(customerId: string) {
   return withSupabase("getCustomerDetails", async (supabase) => {
