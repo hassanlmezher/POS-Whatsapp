@@ -129,44 +129,44 @@ export function LoginForm({ initialError, year }: LoginFormProps) {
         <div className="absolute right-12 top-[24%] h-[265px] w-[265px] rounded-full border border-[#136cff]/10" />
         <div className="absolute bottom-0 left-0 right-0 h-[34%] bg-gradient-to-t from-[#020711] via-[#061a34]/72 to-transparent" />
 
-        <div className="relative z-10 flex min-h-dvh flex-col px-[7.8%] pb-8 pt-12">
+        <div className="relative z-10 flex min-h-dvh flex-col px-[7.8%] pb-6 pt-8">
           <Image
             src="/inchouf-pos-logo.png"
             alt="InChouf POS"
-            width={260}
-            height={180}
+            width={300}
+            height={106}
             priority
-            className="h-auto w-[230px] object-contain drop-shadow-[0_18px_28px_rgba(0,0,0,0.36)]"
+            className="h-[92px] w-[260px] rounded-lg object-cover object-center drop-shadow-[0_18px_28px_rgba(0,0,0,0.36)]"
           />
 
-          <div className="mt-12 max-w-[560px]">
-            <p className="text-[15px] font-medium text-[#c8d3e7]">Smart POS. Smarter Business.</p>
-            <h1 className="mt-9 text-[50px] font-bold leading-[1.15] text-white xl:text-[58px]">
+          <div className="mt-7 max-w-[560px]">
+            <p className="text-[14px] font-medium text-[#c8d3e7]">Smart POS. Smarter Business.</p>
+            <h1 className="mt-7 text-[42px] font-bold leading-[1.15] text-white xl:text-[48px]">
               Run your business{" "}
               <span className="text-[#2387ff]">smarter</span>, faster, better.
             </h1>
-            <p className="mt-7 max-w-[520px] text-[22px] leading-[1.55] text-[#c8d2e4]">
+            <p className="mt-5 max-w-[520px] text-[18px] leading-[1.5] text-[#c8d2e4]">
               Manage sales, WhatsApp orders, inventory, employees and customers - all in one
               powerful POS system.
             </p>
           </div>
 
-          <div className="mt-10 grid max-w-[530px] gap-6">
+          <div className="mt-8 grid max-w-[530px] gap-5">
             {features.map((feature) => {
               const Icon = feature.icon;
 
               return (
-                <div key={feature.title} className="flex items-start gap-5">
+                <div key={feature.title} className="flex items-start gap-4">
                   <div
-                    className={`flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-lg ${feature.background} ${feature.color} shadow-[0_12px_30px_rgba(0,0,0,0.22)]`}
+                    className={`flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-lg ${feature.background} ${feature.color} shadow-[0_12px_30px_rgba(0,0,0,0.22)]`}
                   >
-                    <Icon aria-hidden="true" className="h-8 w-8" strokeWidth={2.15} />
+                    <Icon aria-hidden="true" className="h-7 w-7" strokeWidth={2.15} />
                   </div>
                   <div>
-                    <h2 className="text-[18px] font-bold leading-tight text-white">
+                    <h2 className="text-[17px] font-bold leading-tight text-white">
                       {feature.title}
                     </h2>
-                    <p className="mt-1 text-[16px] leading-6 text-[#d3d9e5]">
+                    <p className="mt-1 text-[14px] leading-5 text-[#d3d9e5]">
                       {feature.description}
                     </p>
                   </div>
@@ -175,30 +175,30 @@ export function LoginForm({ initialError, year }: LoginFormProps) {
             })}
           </div>
 
-          <div className="relative mt-auto h-[245px]">
+          <div className="relative mt-auto h-[190px]">
             <div className="absolute bottom-1 left-[11%] h-20 w-28 rounded-lg bg-[#050a12] shadow-[0_24px_42px_rgba(0,0,0,0.45)]">
               <div className="mx-auto mt-3 h-9 w-16 rounded-sm bg-white">
                 <div className="mx-auto h-full w-12 bg-[repeating-linear-gradient(to_bottom,#c8d0dc_0,#c8d0dc_2px,transparent_2px,transparent_8px)]" />
               </div>
             </div>
-            <div className="absolute bottom-0 left-[30%] h-20 w-[300px] rounded-lg bg-[#050a12] shadow-[0_30px_55px_rgba(0,0,0,0.55)]" />
-            <div className="absolute bottom-[74px] left-[27%] h-[152px] w-[355px] rounded-xl border border-white/20 bg-[#0a1020] p-3 shadow-[0_32px_60px_rgba(0,0,0,0.55)]">
+            <div className="absolute bottom-0 left-[30%] h-16 w-[270px] rounded-lg bg-[#050a12] shadow-[0_30px_55px_rgba(0,0,0,0.55)]" />
+            <div className="absolute bottom-[58px] left-[27%] h-[124px] w-[315px] rounded-xl border border-white/20 bg-[#0a1020] p-3 shadow-[0_32px_60px_rgba(0,0,0,0.55)]">
               <div className="h-full rounded-md bg-[#f7f9fd] p-4">
                 <div className="flex gap-2">
-                  <div className="h-8 flex-1 rounded-md bg-[#eaf1ff]" />
-                  <div className="h-8 flex-1 rounded-md bg-[#eaf8f0]" />
-                  <div className="h-8 flex-1 rounded-md bg-[#fff4e2]" />
+                  <div className="h-6 flex-1 rounded-md bg-[#eaf1ff]" />
+                  <div className="h-6 flex-1 rounded-md bg-[#eaf8f0]" />
+                  <div className="h-6 flex-1 rounded-md bg-[#fff4e2]" />
                 </div>
-                <div className="mt-5 h-16 rounded-md bg-[linear-gradient(120deg,transparent_0_12%,#56a3ff_12%_14%,transparent_14%_26%,#56a3ff_26%_28%,transparent_28%_42%,#56a3ff_42%_44%,transparent_44%_100%),linear-gradient(#eef3fb,#eef3fb)]" />
-                <div className="mt-4 grid grid-cols-4 gap-2">
-                  <span className="h-4 rounded bg-[#dce5f2]" />
-                  <span className="h-4 rounded bg-[#dce5f2]" />
-                  <span className="h-4 rounded bg-[#dce5f2]" />
-                  <span className="h-4 rounded bg-[#dce5f2]" />
+                <div className="mt-4 h-12 rounded-md bg-[linear-gradient(120deg,transparent_0_12%,#56a3ff_12%_14%,transparent_14%_26%,#56a3ff_26%_28%,transparent_28%_42%,#56a3ff_42%_44%,transparent_44%_100%),linear-gradient(#eef3fb,#eef3fb)]" />
+                <div className="mt-3 grid grid-cols-4 gap-2">
+                  <span className="h-3 rounded bg-[#dce5f2]" />
+                  <span className="h-3 rounded bg-[#dce5f2]" />
+                  <span className="h-3 rounded bg-[#dce5f2]" />
+                  <span className="h-3 rounded bg-[#dce5f2]" />
                 </div>
               </div>
             </div>
-            <div className="absolute bottom-2 right-[8%] h-36 w-16 rounded-[28px] bg-[#050a12] shadow-[0_24px_45px_rgba(0,0,0,0.45)]">
+            <div className="absolute bottom-2 right-[8%] h-28 w-14 rounded-[28px] bg-[#050a12] shadow-[0_24px_45px_rgba(0,0,0,0.45)]">
               <div className="mx-auto mt-4 h-8 w-14 rounded-full bg-[#121c2d]" />
             </div>
           </div>
