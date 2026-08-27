@@ -1,6 +1,6 @@
-# Merchant OS
+# InChouf POS
 
-Merchant OS is a desktop-first SaaS POS foundation with a WhatsApp-style customer inbox.
+InChouf POS is a desktop-first SaaS POS foundation with a WhatsApp-style customer inbox.
 
 ## Architecture
 

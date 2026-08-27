@@ -8,10 +8,10 @@ import {
 } from "@/lib/tenant-context";
 
 export default async function MerchantLayout({ children }: { children: React.ReactNode }) {
-  const { membership, tenant } = await loadTenantContext();
+  const { membership } = await loadTenantContext();
 
   return (
-    <AppShell tenantName={tenant.name} userName={membership.name}>
+    <AppShell userName={membership.name}>
       {children}
     </AppShell>
   );

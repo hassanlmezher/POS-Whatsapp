@@ -1,16 +1,20 @@
 "use client";
 
+import Image from "next/image";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
   ArrowRight,
+  BarChart3,
+  Box,
   Eye,
   EyeOff,
   LockKeyhole,
   Mail,
   ShieldCheck,
-  ShoppingBag,
+  ShoppingCart,
+  Smartphone,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -18,6 +22,37 @@ type LoginFormProps = {
   initialError: string | null;
   year: number;
 };
+
+const features = [
+  {
+    title: "WhatsApp Integration",
+    description: "Reply to customers and manage orders directly from the POS.",
+    icon: Smartphone,
+    color: "text-[#22e084]",
+    background: "bg-[#11314a]",
+  },
+  {
+    title: "Easy Sales & Checkout",
+    description: "Create orders in seconds and close sales effortlessly.",
+    icon: ShoppingCart,
+    color: "text-[#2e8cff]",
+    background: "bg-[#102b4c]",
+  },
+  {
+    title: "Inventory Management",
+    description: "Track stock in real-time and never run out again.",
+    icon: Box,
+    color: "text-[#8a5cff]",
+    background: "bg-[#1c254a]",
+  },
+  {
+    title: "Powerful Reports",
+    description: "Get insights that help you grow your business.",
+    icon: BarChart3,
+    color: "text-[#ff9d1c]",
+    background: "bg-[#252b37]",
+  },
+];
 
 export function LoginForm({ initialError, year }: LoginFormProps) {
   const router = useRouter();
@@ -79,33 +114,104 @@ export function LoginForm({ initialError, year }: LoginFormProps) {
 
   function showResetHelp() {
     setError(null);
-    setNotice("Contact your InChoufPOS administrator to reset your password.");
+    setNotice("Contact your InChouf POS administrator to reset your password.");
   }
 
   return (
     <main className="grid min-h-dvh overflow-hidden bg-[#f3f5f9] lg:grid-cols-[46%_54%]">
       <section
-        aria-label="InChoufPOS business management features"
-        className="login-hero-reference relative hidden min-h-dvh bg-[#020a18] bg-no-repeat lg:block"
+        aria-label="InChouf POS business management features"
+        className="relative hidden min-h-dvh overflow-hidden bg-[#020a18] lg:block"
       >
-        <span className="sr-only">
-          InChoufPOS. Smart POS. Smarter Business. Manage sales, WhatsApp orders, inventory,
-          employees, customers, and reports in one business system.
-        </span>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_38%,rgba(10,105,238,0.30),transparent_34%),radial-gradient(circle_at_26%_96%,rgba(12,139,255,0.22),transparent_30%),linear-gradient(135deg,#020711_0%,#03172f_48%,#051d43_100%)]" />
+        <div className="absolute -right-28 top-[14%] h-[520px] w-[520px] rounded-full border border-[#136cff]/20" />
+        <div className="absolute -right-16 top-[19%] h-[390px] w-[390px] rounded-full border border-[#136cff]/15" />
+        <div className="absolute right-12 top-[24%] h-[265px] w-[265px] rounded-full border border-[#136cff]/10" />
+        <div className="absolute bottom-0 left-0 right-0 h-[34%] bg-gradient-to-t from-[#020711] via-[#061a34]/72 to-transparent" />
+
+        <div className="relative z-10 flex min-h-dvh flex-col px-[7.8%] pb-8 pt-12">
+          <Image
+            src="/inchouf-pos-logo.png"
+            alt="InChouf POS"
+            width={260}
+            height={180}
+            priority
+            className="h-auto w-[230px] object-contain drop-shadow-[0_18px_28px_rgba(0,0,0,0.36)]"
+          />
+
+          <div className="mt-12 max-w-[560px]">
+            <p className="text-[15px] font-medium text-[#c8d3e7]">Smart POS. Smarter Business.</p>
+            <h1 className="mt-9 text-[50px] font-bold leading-[1.15] text-white xl:text-[58px]">
+              Run your business{" "}
+              <span className="text-[#2387ff]">smarter</span>, faster, better.
+            </h1>
+            <p className="mt-7 max-w-[520px] text-[22px] leading-[1.55] text-[#c8d2e4]">
+              Manage sales, WhatsApp orders, inventory, employees and customers - all in one
+              powerful POS system.
+            </p>
+          </div>
+
+          <div className="mt-10 grid max-w-[530px] gap-6">
+            {features.map((feature) => {
+              const Icon = feature.icon;
+
+              return (
+                <div key={feature.title} className="flex items-start gap-5">
+                  <div
+                    className={`flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-lg ${feature.background} ${feature.color} shadow-[0_12px_30px_rgba(0,0,0,0.22)]`}
+                  >
+                    <Icon aria-hidden="true" className="h-8 w-8" strokeWidth={2.15} />
+                  </div>
+                  <div>
+                    <h2 className="text-[18px] font-bold leading-tight text-white">
+                      {feature.title}
+                    </h2>
+                    <p className="mt-1 text-[16px] leading-6 text-[#d3d9e5]">
+                      {feature.description}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="relative mt-auto h-[245px]">
+            <div className="absolute bottom-1 left-[11%] h-20 w-28 rounded-lg bg-[#050a12] shadow-[0_24px_42px_rgba(0,0,0,0.45)]">
+              <div className="mx-auto mt-3 h-9 w-16 rounded-sm bg-white">
+                <div className="mx-auto h-full w-12 bg-[repeating-linear-gradient(to_bottom,#c8d0dc_0,#c8d0dc_2px,transparent_2px,transparent_8px)]" />
+              </div>
+            </div>
+            <div className="absolute bottom-0 left-[30%] h-20 w-[300px] rounded-lg bg-[#050a12] shadow-[0_30px_55px_rgba(0,0,0,0.55)]" />
+            <div className="absolute bottom-[74px] left-[27%] h-[152px] w-[355px] rounded-xl border border-white/20 bg-[#0a1020] p-3 shadow-[0_32px_60px_rgba(0,0,0,0.55)]">
+              <div className="h-full rounded-md bg-[#f7f9fd] p-4">
+                <div className="flex gap-2">
+                  <div className="h-8 flex-1 rounded-md bg-[#eaf1ff]" />
+                  <div className="h-8 flex-1 rounded-md bg-[#eaf8f0]" />
+                  <div className="h-8 flex-1 rounded-md bg-[#fff4e2]" />
+                </div>
+                <div className="mt-5 h-16 rounded-md bg-[linear-gradient(120deg,transparent_0_12%,#56a3ff_12%_14%,transparent_14%_26%,#56a3ff_26%_28%,transparent_28%_42%,#56a3ff_42%_44%,transparent_44%_100%),linear-gradient(#eef3fb,#eef3fb)]" />
+                <div className="mt-4 grid grid-cols-4 gap-2">
+                  <span className="h-4 rounded bg-[#dce5f2]" />
+                  <span className="h-4 rounded bg-[#dce5f2]" />
+                  <span className="h-4 rounded bg-[#dce5f2]" />
+                  <span className="h-4 rounded bg-[#dce5f2]" />
+                </div>
+              </div>
+            </div>
+            <div className="absolute bottom-2 right-[8%] h-36 w-16 rounded-[28px] bg-[#050a12] shadow-[0_24px_45px_rgba(0,0,0,0.45)]">
+              <div className="mx-auto mt-4 h-8 w-14 rounded-full bg-[#121c2d]" />
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="flex min-h-dvh min-w-0 flex-col items-center justify-center px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
         <div className="my-auto w-full max-w-[566px] rounded-lg border border-[#dfe3eb] bg-white px-6 py-8 shadow-[0_18px_50px_rgba(20,39,77,0.10)] sm:px-12 sm:py-11 lg:px-12">
           <div className="text-center">
-            <div className="mx-auto flex h-[82px] w-[82px] items-center justify-center rounded-full bg-[#eef4fc]">
-              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#1473ed] text-white shadow-[0_8px_18px_rgba(20,115,237,0.28)]">
-                <ShoppingBag aria-hidden="true" className="h-6 w-6" strokeWidth={2.25} />
-              </div>
-            </div>
-            <h1 className="mt-5 text-[28px] font-bold leading-tight text-[#081735] sm:text-[30px]">
+            <h1 className="text-[28px] font-bold leading-tight text-[#081735] sm:text-[30px]">
               Welcome Back!
             </h1>
-            <p className="mt-2 text-[16px] text-[#65718b]">Sign in to continue to InChoufPOS</p>
+            <p className="mt-2 text-[16px] text-[#65718b]">Sign in to continue to InChouf POS</p>
           </div>
 
           <form className="mt-9 space-y-6" onSubmit={login}>
@@ -224,7 +330,7 @@ export function LoginForm({ initialError, year }: LoginFormProps) {
         </div>
 
         <footer className="mt-8 shrink-0 text-center text-[13px] text-[#68758e] sm:text-[14px]">
-          &copy; {year} InChoufPOS. All rights reserved.
+          &copy; {year} InChouf POS. All rights reserved.
         </footer>
       </section>
     </main>

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -10,11 +11,12 @@ import {
   LogOut,
   Package,
   Settings,
-  Store,
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+
+const APP_NAME = "InChouf POS";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -25,7 +27,7 @@ const nav = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-export function Sidebar({ tenantName }: { tenantName: string }) {
+export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -37,12 +39,17 @@ export function Sidebar({ tenantName }: { tenantName: string }) {
 
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-[300px] flex-col border-r border-[#d9deea] bg-white lg:flex">
-      <Link href="/dashboard" className="flex h-[98px] items-center gap-4 px-7">
-        <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#0b4edb] text-white shadow-[0_8px_18px_rgba(11,78,219,0.22)]">
-          <Store className="h-5 w-5" />
-        </div>
-        <div>
-          <div className="max-w-[190px] truncate text-[21px] font-black leading-6 text-[#080c1a]">{tenantName}</div>
+      <Link href="/dashboard" className="flex h-[112px] items-center gap-4 px-6">
+        <Image
+          src="/inchouf-pos-mark.png"
+          alt={APP_NAME}
+          width={64}
+          height={64}
+          priority
+          className="h-16 w-16 shrink-0 rounded-lg bg-black object-cover shadow-[0_8px_18px_rgba(11,78,219,0.18)]"
+        />
+        <div className="min-w-0">
+          <div className="max-w-[190px] truncate text-[21px] font-black leading-6 text-[#080c1a]">{APP_NAME}</div>
           <div className="mt-2 text-[11px] font-black uppercase tracking-[0.24em] text-[#95a0b5]">Enterprise Portal</div>
         </div>
       </Link>

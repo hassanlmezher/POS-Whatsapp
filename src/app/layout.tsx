@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "InChoufPOS",
+  title: "InChouf POS",
   description: "Smart POS, inventory, reporting, and WhatsApp customer management.",
 };
 

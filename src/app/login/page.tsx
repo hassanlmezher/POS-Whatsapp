@@ -8,8 +8,8 @@ import {
 } from "@/lib/tenant-context";
 
 export const metadata: Metadata = {
-  title: "Sign In | InChoufPOS",
-  description: "Sign in to your InChoufPOS business workspace.",
+  title: "Sign In | InChouf POS",
+  description: "Sign in to your InChouf POS business workspace.",
 };
 
 type LoginPageProps = {
