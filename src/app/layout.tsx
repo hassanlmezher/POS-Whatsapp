@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Merchant OS",
-  description: "SaaS POS system with integrated WhatsApp customer inbox.",
+  title: "InChoufPOS",
+  description: "Smart POS, inventory, reporting, and WhatsApp customer management.",
 };
 
 export default function RootLayout({

@@ -5,7 +5,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export function Header({ title }: { title?: string }) {
+export function Header({ title, userName }: { title?: string; userName: string }) {
   return (
     <header className="sticky top-0 z-20 flex h-[98px] items-center justify-between border-b border-[#d9deea] bg-white px-8">
       <div className="w-full max-w-[520px]">
@@ -28,8 +28,7 @@ export function Header({ title }: { title?: string }) {
           New Order
         </Button>
         <Avatar
-          name="Alex Merchant"
-          src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=120&q=80"
+          name={userName}
           className="h-11 w-11"
         />
       </div>

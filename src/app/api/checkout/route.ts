@@ -1,23 +1,17 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { company as fallbackCompany, customers as fallbackCustomers, products as fallbackProducts } from "@/lib/data/mock-data";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getTenantContext, tenantContextErrorStatus } from "@/lib/tenant-context";
 
 const checkoutSchema = z.object({
-  companyId: z.string().uuid(),
   customerId: z.string().uuid().nullable(),
   paymentMethod: z.enum(["cash", "card"]),
   items: z.array(z.object({ productId: z.string(), quantity: z.number().int().positive() })).min(1),
 });
 
-type DbCompany = {
-  id: string;
-  tax_rate: number | string | null;
-};
-
 type DbProduct = {
   id: string;
-  company_id: string;
+  tenant_id: string;
   name: string;
   price: number | string;
   active: boolean;
@@ -28,30 +22,6 @@ type DbInventory = {
   product_id: string;
   quantity: number;
 };
-
-function normalizeSupabaseUrl(value?: string) {
-  if (!value) {
-    return value;
-  }
-
-  return new URL(value).origin;
-}
-
-function getSupabase() {
-  const url = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!url || !key) {
-    return null;
-  }
-
-  return createClient(url, key, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  });
-}
 
 function money(value: number | string | null | undefined) {
   return Number(value ?? 0);
@@ -64,7 +34,7 @@ function makeOrderNumber() {
 }
 
 export async function POST(request: Request) {
-  const parsed = checkoutSchema.safeParse(await request.json());
+  const parsed = checkoutSchema.safeParse(await request.json().catch(() => null));
 
   if (!parsed.success) {
     return NextResponse.json(
@@ -73,30 +43,30 @@ export async function POST(request: Request) {
     );
   }
 
-  const input = parsed.data;
-  const supabase = getSupabase();
-
-  if (!supabase) {
-    return checkoutWithFallback(input);
-  }
-
   try {
-    const { data: company, error: companyError } = await supabase
-      .from("companies")
-      .select("id,tax_rate")
-      .eq("id", input.companyId)
-      .single<DbCompany>();
+    const input = parsed.data;
+    const { tenant } = await getTenantContext();
+    const tenantId = tenant.id;
+    const supabase = createSupabaseAdminClient();
 
-    if (companyError || !company) {
-      console.error("[checkout] Company lookup failed", { companyId: input.companyId, companyError });
-      return NextResponse.json({ error: "Company not found for checkout" }, { status: 404 });
+    if (input.customerId) {
+      const { data: customer, error: customerError } = await supabase
+        .from("customers")
+        .select("id")
+        .eq("id", input.customerId)
+        .eq("tenant_id", tenantId)
+        .maybeSingle<{ id: string }>();
+
+      if (customerError || !customer) {
+        return NextResponse.json({ error: "Customer not found for this tenant" }, { status: 404 });
+      }
     }
 
     const productIds = input.items.map((item) => item.productId);
     const { data: products, error: productsError } = await supabase
       .from("products")
-      .select("id,company_id,name,price,active")
-      .eq("company_id", input.companyId)
+      .select("id,tenant_id,name,price,active")
+      .eq("tenant_id", tenantId)
       .in("id", productIds)
       .returns<DbProduct[]>();
 
@@ -110,7 +80,7 @@ export async function POST(request: Request) {
 
     if (missingProductIds.length > 0) {
       console.error("[checkout] Product IDs not found in Supabase", {
-        companyId: input.companyId,
+        tenantId,
         missingProductIds,
         receivedProductIds: productIds,
       });
@@ -134,7 +104,7 @@ export async function POST(request: Request) {
     const { data: inventoryRows, error: inventoryError } = await supabase
       .from("inventory")
       .select("id,product_id,quantity")
-      .eq("company_id", input.companyId)
+      .eq("tenant_id", tenantId)
       .in("product_id", productIds)
       .returns<DbInventory[]>();
 
@@ -173,14 +143,14 @@ export async function POST(request: Request) {
       const product = productsById.get(item.productId);
       return sum + money(product?.price) * item.quantity;
     }, 0);
-    const taxTotal = subtotal * money(company.tax_rate);
+    const taxTotal = subtotal * tenant.taxRate;
     const total = subtotal + taxTotal;
     const orderNumber = makeOrderNumber();
 
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .insert({
-        company_id: input.companyId,
+        tenant_id: tenantId,
         customer_id: input.customerId,
         order_number: orderNumber,
         status: "completed",
@@ -201,7 +171,7 @@ export async function POST(request: Request) {
       const product = productsById.get(item.productId);
       const unitPrice = money(product?.price);
       return {
-        company_id: input.companyId,
+        tenant_id: tenantId,
         order_id: order.id,
         product_id: item.productId,
         product_name: product?.name ?? "Product",
@@ -218,7 +188,7 @@ export async function POST(request: Request) {
     }
 
     const { error: paymentError } = await supabase.from("payments").insert({
-      company_id: input.companyId,
+      tenant_id: tenantId,
       order_id: order.id,
       method: input.paymentMethod,
       amount: total,
@@ -255,7 +225,7 @@ export async function POST(request: Request) {
       order: {
         id: order.id,
         orderNumber: order.order_number,
-        companyId: input.companyId,
+        companyId: tenantId,
         customerId: input.customerId,
         paymentMethod: input.paymentMethod,
         subtotal,
@@ -267,51 +237,9 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("[checkout] Unexpected checkout failure", error);
-    return NextResponse.json({ error: "Unexpected checkout failure" }, { status: 500 });
-  }
-}
-
-function checkoutWithFallback(input: z.infer<typeof checkoutSchema>) {
-  if (input.companyId !== fallbackCompany.id) {
-    return NextResponse.json({ error: "Company not found in fallback checkout" }, { status: 404 });
-  }
-
-  const productIds = input.items.map((item) => item.productId);
-  const productsById = new Map(fallbackProducts.map((product) => [product.id, product]));
-  const missingProductIds = productIds.filter((productId) => !productsById.has(productId));
-
-  if (missingProductIds.length > 0) {
-    console.error("[checkout:fallback] Product IDs not found in fallback data", {
-      missingProductIds,
-      receivedProductIds: productIds,
-    });
     return NextResponse.json(
-      { error: "One or more checkout products were not found in fallback data", missingProductIds },
-      { status: 400 },
+      { error: error instanceof Error ? error.message : "Unexpected checkout failure" },
+      { status: tenantContextErrorStatus(error) },
     );
   }
-
-  const subtotal = input.items.reduce((sum, item) => {
-    const product = productsById.get(item.productId);
-    return sum + (product?.price ?? 0) * item.quantity;
-  }, 0);
-  const taxTotal = subtotal * fallbackCompany.taxRate;
-  const customer = input.customerId ? fallbackCustomers.find((item) => item.id === input.customerId) : null;
-
-  return NextResponse.json({
-    order: {
-      id: crypto.randomUUID(),
-      orderNumber: makeOrderNumber(),
-      companyId: input.companyId,
-      customerId: input.customerId,
-      customerName: customer?.name ?? "Walk-in Customer",
-      paymentMethod: input.paymentMethod,
-      subtotal,
-      taxTotal,
-      total: subtotal + taxTotal,
-      status: "completed",
-      paymentStatus: "paid",
-      fallbackMode: true,
-    },
-  });
 }

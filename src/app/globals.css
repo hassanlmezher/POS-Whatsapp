@@ -47,3 +47,9 @@ textarea {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+.login-hero-reference {
+  background-image: url("/inchouf-login-hero.png");
+  background-position: left top;
+  background-size: 219.5% 100%;
+}

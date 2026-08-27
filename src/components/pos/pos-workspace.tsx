@@ -51,7 +51,6 @@ export function POSWorkspace({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        companyId: company.id,
         customerId,
         paymentMethod,
         items: items.map((item) => ({ productId: item.product.id, quantity: item.quantity })),

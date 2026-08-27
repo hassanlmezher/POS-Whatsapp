@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getPreferredWebhookVerifyToken } from "@/lib/whatsapp";
 
-const SEEDED_COMPANY_ID = process.env.NEXT_PUBLIC_SEEDED_COMPANY_ID ?? "11111111-1111-4111-8111-111111111111";
-
 type WebhookEvent =
   | {
       type: "message";
@@ -32,9 +30,6 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const payload = await request.json();
-  console.log("WhatsApp webhook POST received");
-  console.log(payload);
-
   const serviceRoleKeyConfigured = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
   const supabaseUrlConfigured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
 
@@ -64,7 +59,7 @@ export async function POST(request: Request) {
   const { data: insertResult, error: insertError } = await supabase
     .from("whatsapp_webhook_events")
     .insert({
-      company_id: null,
+      tenant_id: null,
       phone_number_id: phoneNumberId,
       event_type: eventType,
       whatsapp_message_id: whatsappMessageId,
@@ -194,29 +189,25 @@ function getMessageBody(message: Record<string, unknown>) {
   return type ? `[${type} message]` : null;
 }
 
-async function resolveWhatsAppAccount(
+async function resolveTenant(
   supabase: ReturnType<typeof createSupabaseAdminClient>,
   phoneNumberId: string | null,
 ) {
   if (!phoneNumberId) {
-    return { companyId: SEEDED_COMPANY_ID, whatsappAccountId: null };
+    return null;
   }
 
-  const { data: account, error } = await supabase
-    .from("whatsapp_accounts")
-    .select("id,company_id")
-    .eq("phone_number_id", phoneNumberId)
-    .eq("active", true)
-    .maybeSingle<{ id: string; company_id: string }>();
+  const { data: tenant, error } = await supabase
+    .from("tenants")
+    .select("id")
+    .eq("whatsapp_phone_number_id", phoneNumberId)
+    .maybeSingle<{ id: string }>();
 
   if (error) {
-    console.error("[whatsapp/webhook] WhatsApp account lookup failed", { phoneNumberId, error });
+    console.error("[whatsapp/webhook] Tenant lookup failed", { phoneNumberId, error });
   }
 
-  return {
-    companyId: account?.company_id ?? SEEDED_COMPANY_ID,
-    whatsappAccountId: account?.id ?? null,
-  };
+  return tenant?.id ?? null;
 }
 
 async function persistInboundMessage(
@@ -238,7 +229,13 @@ async function persistInboundMessage(
   }
 
   const phoneNumberId = getPhoneNumberId(value);
-  const { companyId, whatsappAccountId } = await resolveWhatsAppAccount(supabase, phoneNumberId);
+  const tenantId = await resolveTenant(supabase, phoneNumberId);
+
+  if (!tenantId) {
+    console.warn("[whatsapp/webhook] No tenant matches metadata.phone_number_id", { phoneNumberId });
+    return false;
+  }
+
   const contact = getContact(value, from);
   const customerName = getContactName(contact, from);
   const createdAt = getMessageCreatedAt(message);
@@ -247,12 +244,12 @@ async function persistInboundMessage(
     .from("customers")
     .upsert(
       {
-        company_id: companyId,
+        tenant_id: tenantId,
         name: customerName,
         phone: `+${from}`,
         whatsapp_phone: from,
       },
-      { onConflict: "company_id,whatsapp_phone" },
+      { onConflict: "tenant_id,whatsapp_phone" },
     )
     .select("id")
     .single<{ id: string }>();
@@ -262,16 +259,12 @@ async function persistInboundMessage(
     return false;
   }
 
-  let conversationQuery = supabase
+  const conversationQuery = supabase
     .from("conversations")
     .select("id,unread_count")
-    .eq("company_id", companyId)
+    .eq("tenant_id", tenantId)
     .eq("customer_id", customer.id)
     .limit(1);
-
-  conversationQuery = whatsappAccountId
-    ? conversationQuery.eq("whatsapp_account_id", whatsappAccountId)
-    : conversationQuery.is("whatsapp_account_id", null);
 
   const { data: existingConversations, error: conversationLookupError } =
     await conversationQuery.returns<{ id: string; unread_count: number | null }[]>();
@@ -290,9 +283,8 @@ async function persistInboundMessage(
     const { data: insertedConversation, error: conversationInsertError } = await supabase
       .from("conversations")
       .insert({
-        company_id: companyId,
+        tenant_id: tenantId,
         customer_id: customer.id,
-        whatsapp_account_id: whatsappAccountId,
         status: "open",
         last_message: body,
         last_message_at: createdAt,
@@ -317,7 +309,7 @@ async function persistInboundMessage(
     .from("messages")
     .upsert(
       {
-        company_id: companyId,
+        tenant_id: tenantId,
         conversation_id: conversation.id,
         customer_id: customer.id,
         direction: "inbound",
@@ -326,7 +318,7 @@ async function persistInboundMessage(
         whatsapp_message_id: whatsappMessageId,
         created_at: createdAt,
       },
-      { onConflict: "company_id,whatsapp_message_id", ignoreDuplicates: true },
+      { onConflict: "tenant_id,whatsapp_message_id", ignoreDuplicates: true },
     )
     .select("id");
 
@@ -356,13 +348,13 @@ async function persistInboundMessage(
     }
   }
 
-  const { error: eventCompanyError } = await supabase
+  const { error: eventTenantError } = await supabase
     .from("whatsapp_webhook_events")
-    .update({ company_id: companyId })
+    .update({ tenant_id: tenantId })
     .eq("whatsapp_message_id", whatsappMessageId);
 
-  if (eventCompanyError) {
-    console.error("[whatsapp/webhook] Webhook event company update failed", { whatsappMessageId, eventCompanyError });
+  if (eventTenantError) {
+    console.error("[whatsapp/webhook] Webhook event tenant update failed", { whatsappMessageId, eventTenantError });
   }
 
   return true;
@@ -405,11 +397,17 @@ async function persistMessageStatus(
   }
 
   const phoneNumberId = getPhoneNumberId(value);
-  const { companyId } = await resolveWhatsAppAccount(supabase, phoneNumberId);
+  const tenantId = await resolveTenant(supabase, phoneNumberId);
+
+  if (!tenantId) {
+    console.warn("[whatsapp/webhook] No tenant matches status metadata.phone_number_id", { phoneNumberId });
+    return false;
+  }
+
   const { error: updateError } = await supabase
     .from("messages")
     .update(updates)
-    .eq("company_id", companyId)
+    .eq("tenant_id", tenantId)
     .eq("whatsapp_message_id", whatsappMessageId);
 
   if (updateError) {
@@ -417,13 +415,13 @@ async function persistMessageStatus(
     return false;
   }
 
-  const { error: eventCompanyError } = await supabase
+  const { error: eventTenantError } = await supabase
     .from("whatsapp_webhook_events")
-    .update({ company_id: companyId })
+    .update({ tenant_id: tenantId })
     .eq("whatsapp_message_id", whatsappMessageId);
 
-  if (eventCompanyError) {
-    console.error("[whatsapp/webhook] Status event company update failed", { whatsappMessageId, eventCompanyError });
+  if (eventTenantError) {
+    console.error("[whatsapp/webhook] Status event tenant update failed", { whatsappMessageId, eventTenantError });
   }
 
   return true;

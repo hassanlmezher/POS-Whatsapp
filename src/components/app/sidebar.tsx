@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   CircleHelp,
   ClipboardList,
@@ -14,6 +14,7 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -24,8 +25,15 @@ const nav = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-export function Sidebar() {
+export function Sidebar({ tenantName }: { tenantName: string }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function signOut() {
+    await createSupabaseBrowserClient().auth.signOut();
+    router.replace("/login");
+    router.refresh();
+  }
 
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-[300px] flex-col border-r border-[#d9deea] bg-white lg:flex">
@@ -34,7 +42,7 @@ export function Sidebar() {
           <Store className="h-5 w-5" />
         </div>
         <div>
-          <div className="text-[25px] font-black leading-6 tracking-[-0.04em] text-[#080c1a]">Merchant OS</div>
+          <div className="max-w-[190px] truncate text-[21px] font-black leading-6 text-[#080c1a]">{tenantName}</div>
           <div className="mt-2 text-[11px] font-black uppercase tracking-[0.24em] text-[#95a0b5]">Enterprise Portal</div>
         </div>
       </Link>
@@ -65,7 +73,7 @@ export function Sidebar() {
           <CircleHelp className="h-[22px] w-[22px]" />
           Help Support
         </button>
-        <button className="flex h-12 w-full items-center gap-4 rounded-lg px-4 text-left text-[17px] font-medium text-[#536884] hover:bg-[#f4f7fb]">
+        <button onClick={signOut} className="flex h-12 w-full items-center gap-4 rounded-lg px-4 text-left text-[17px] font-medium text-[#536884] hover:bg-[#f4f7fb]">
           <LogOut className="h-[22px] w-[22px]" />
           Sign Out
         </button>

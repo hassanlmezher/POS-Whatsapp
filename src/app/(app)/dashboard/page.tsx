@@ -21,7 +21,7 @@ export default async function DashboardPage() {
     <div className="space-y-8 p-8">
       <section className="flex flex-wrap items-start justify-between gap-5">
         <div>
-          <h1 className="text-[38px] font-black leading-tight tracking-[-0.04em] text-[#080c1a]">Good Morning, Alexander</h1>
+          <h1 className="text-[38px] font-black leading-tight tracking-[-0.04em] text-[#080c1a]">Business overview</h1>
           <p className="mt-1 text-[19px] text-[#1f2937]">Here&apos;s what&apos;s happening with your store today.</p>
         </div>
         <button className="inline-flex h-12 items-center gap-3 rounded-xl border border-[#d9deea] bg-white px-5 text-[15px] font-medium text-[#172033] shadow-sm">

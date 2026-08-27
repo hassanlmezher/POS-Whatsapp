@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import type { Message } from "@/lib/types/domain";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
-export function useRealtimeMessages(companyId: string, onMessage: (message: Message) => void) {
+export function useRealtimeMessages(tenantId: string, onMessage: (message: Message) => void) {
   const onMessageRef = useRef(onMessage);
 
   useEffect(() => {
@@ -18,20 +18,20 @@ export function useRealtimeMessages(companyId: string, onMessage: (message: Mess
 
     const supabase = createSupabaseBrowserClient();
     const channel = supabase
-      .channel(`messages:${companyId}`)
+      .channel(`messages:${tenantId}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "messages",
-          filter: `company_id=eq.${companyId}`,
+          filter: `tenant_id=eq.${tenantId}`,
         },
         (payload) => {
           const record = payload.new as Record<string, unknown>;
           onMessageRef.current({
             id: String(record.id),
-            companyId: String(record.company_id),
+            companyId: String(record.tenant_id),
             conversationId: String(record.conversation_id),
             customerId: String(record.customer_id),
             direction: record.direction as Message["direction"],
@@ -47,5 +47,5 @@ export function useRealtimeMessages(companyId: string, onMessage: (message: Mess
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [companyId]);
+  }, [tenantId]);
 }

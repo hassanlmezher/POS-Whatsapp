@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getInboxData } from "@/lib/data/repository";
+import { tenantContextErrorStatus } from "@/lib/tenant-context";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
       {
         error: error instanceof Error ? error.message : "Failed to load inbox data",
       },
-      { status: 500 },
+      { status: tenantContextErrorStatus(error) },
     );
   }
 }

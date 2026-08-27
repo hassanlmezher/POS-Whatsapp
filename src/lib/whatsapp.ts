@@ -40,13 +40,12 @@ export function getPreferredWebhookVerifyToken() {
   return process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN ?? process.env.WHATSAPP_VERIFY_TOKEN ?? null;
 }
 
-export function validateWhatsAppSendEnv(): WhatsAppEnvCheck {
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID?.trim() || null;
+export function validateWhatsAppSendEnv(phoneNumberId: string | null): WhatsAppEnvCheck {
   const accessToken = process.env.WHATSAPP_ACCESS_TOKEN?.trim() || null;
   const errors: string[] = [];
 
   if (!phoneNumberId) {
-    errors.push("Missing WHATSAPP_PHONE_NUMBER_ID");
+    errors.push("The tenant does not have a WhatsApp phone_number_id configured");
   }
 
   if (!accessToken) {

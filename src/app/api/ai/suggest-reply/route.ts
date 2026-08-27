@@ -1,7 +1,8 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { AiConfigurationError, AiProviderError, suggestReply, type SuggestReplyInput } from "@/lib/ai";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getTenantContext, tenantContextErrorStatus } from "@/lib/tenant-context";
 
 export const dynamic = "force-dynamic";
 
@@ -15,15 +16,8 @@ const acceptSchema = z.object({
 
 type DbConversation = {
   id: string;
-  company_id: string;
+  tenant_id: string;
   customer_id: string;
-};
-
-type DbCompany = {
-  id: string;
-  name: string;
-  currency: string | null;
-  timezone: string | null;
 };
 
 type DbCustomer = {
@@ -65,30 +59,6 @@ type DbOrder = {
   created_at: string;
 };
 
-function normalizeSupabaseUrl(value?: string) {
-  if (!value) {
-    return value;
-  }
-
-  return new URL(value).origin;
-}
-
-function getSupabase() {
-  const url = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!url || !key) {
-    return null;
-  }
-
-  return createClient(url, key, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  });
-}
-
 function money(value: number | string | null | undefined) {
   return Number(value ?? 0);
 }
@@ -103,29 +73,22 @@ export async function POST(request: Request) {
     );
   }
 
-  const supabase = getSupabase();
-
-  if (!supabase) {
-    return NextResponse.json(
-      { error: "Supabase is not configured, so the AI suggestion context cannot be loaded." },
-      { status: 500 },
-    );
-  }
-
   try {
-    // Production note: add per-company/user rate limiting here before calling any AI provider.
+    const { tenant } = await getTenantContext();
+    const supabase = createSupabaseAdminClient();
+    // Production note: add per-tenant/user rate limiting here before calling any AI provider.
     const { data: conversation, error: conversationError } = await supabase
       .from("conversations")
-      .select("id,company_id,customer_id")
+      .select("id,tenant_id,customer_id")
       .eq("id", parsed.data.conversationId)
-      .single<DbConversation>();
+      .eq("tenant_id", tenant.id)
+      .maybeSingle<DbConversation>();
 
     if (conversationError || !conversation) {
       return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
     }
 
     const [
-      companyResult,
       customerResult,
       messagesResult,
       categoriesResult,
@@ -134,18 +97,15 @@ export async function POST(request: Request) {
       ordersResult,
     ] = await Promise.all([
       supabase
-        .from("companies")
-        .select("id,name,currency,timezone")
-        .eq("id", conversation.company_id)
-        .single<DbCompany>(),
-      supabase
         .from("customers")
         .select("id,name,notes,tags")
         .eq("id", conversation.customer_id)
+        .eq("tenant_id", tenant.id)
         .single<DbCustomer>(),
       supabase
         .from("messages")
         .select("direction,body,created_at")
+        .eq("tenant_id", tenant.id)
         .eq("conversation_id", conversation.id)
         .order("created_at", { ascending: false })
         .limit(8)
@@ -153,12 +113,12 @@ export async function POST(request: Request) {
       supabase
         .from("product_categories")
         .select("id,name")
-        .eq("company_id", conversation.company_id)
+        .eq("tenant_id", tenant.id)
         .returns<DbCategory[]>(),
       supabase
         .from("products")
         .select("id,category_id,name,price,active")
-        .eq("company_id", conversation.company_id)
+        .eq("tenant_id", tenant.id)
         .eq("active", true)
         .order("name")
         .limit(40)
@@ -166,21 +126,17 @@ export async function POST(request: Request) {
       supabase
         .from("inventory")
         .select("product_id,quantity")
-        .eq("company_id", conversation.company_id)
+        .eq("tenant_id", tenant.id)
         .returns<DbInventory[]>(),
       supabase
         .from("orders")
         .select("order_number,status,payment_status,total,created_at")
-        .eq("company_id", conversation.company_id)
+        .eq("tenant_id", tenant.id)
         .eq("customer_id", conversation.customer_id)
         .order("created_at", { ascending: false })
         .limit(5)
         .returns<DbOrder[]>(),
     ]);
-
-    if (companyResult.error || !companyResult.data) {
-      return NextResponse.json({ error: "Business context could not be loaded" }, { status: 500 });
-    }
 
     if (customerResult.error || !customerResult.data) {
       return NextResponse.json({ error: "Customer context could not be loaded" }, { status: 500 });
@@ -206,9 +162,9 @@ export async function POST(request: Request) {
 
     const input: SuggestReplyInput = {
       business: {
-        name: companyResult.data.name,
-        currency: companyResult.data.currency ?? "USD",
-        timezone: companyResult.data.timezone ?? undefined,
+        name: tenant.name,
+        currency: tenant.currency,
+        timezone: tenant.timezone ?? undefined,
       },
       customer: {
         name: customerResult.data.name,
@@ -240,7 +196,7 @@ export async function POST(request: Request) {
     const { data: suggestionLog, error: logError } = await supabase
       .from("ai_suggestions")
       .insert({
-        company_id: conversation.company_id,
+        tenant_id: tenant.id,
         conversation_id: conversation.id,
         suggestion_text: result.suggestion,
         provider: result.provider,
@@ -268,7 +224,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unexpected AI suggestion failure" },
-      { status: 500 },
+      { status: tenantContextErrorStatus(error) },
     );
   }
 }
@@ -283,24 +239,25 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const supabase = getSupabase();
+  try {
+    const { tenant } = await getTenantContext();
+    const supabase = createSupabaseAdminClient();
+    const { error } = await supabase
+      .from("ai_suggestions")
+      .update({ accepted: true })
+      .eq("id", parsed.data.suggestionId)
+      .eq("tenant_id", tenant.id);
 
-  if (!supabase) {
+    if (error) {
+      console.warn("[ai/suggest-reply] Suggestion accept logging skipped", error);
+      return NextResponse.json({ ok: false }, { status: 200 });
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
     return NextResponse.json(
-      { error: "Supabase is not configured, so the AI suggestion cannot be updated." },
-      { status: 500 },
+      { error: error instanceof Error ? error.message : "Unexpected AI suggestion failure" },
+      { status: tenantContextErrorStatus(error) },
     );
   }
-
-  const { error } = await supabase
-    .from("ai_suggestions")
-    .update({ accepted: true })
-    .eq("id", parsed.data.suggestionId);
-
-  if (error) {
-    console.warn("[ai/suggest-reply] Suggestion accept logging skipped", error);
-    return NextResponse.json({ ok: false }, { status: 200 });
-  }
-
-  return NextResponse.json({ ok: true });
 }
