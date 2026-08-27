@@ -16,6 +16,7 @@ import {
   ShoppingCart,
   Smartphone,
 } from "lucide-react";
+import { LoadingScreen } from "@/components/app/loading-screen";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type LoginFormProps = {
@@ -63,6 +64,7 @@ export function LoginForm({ initialError, year }: LoginFormProps) {
   const [error, setError] = useState<string | null>(initialError);
   const [notice, setNotice] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
 
   async function login(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -74,6 +76,7 @@ export function LoginForm({ initialError, year }: LoginFormProps) {
     setError(null);
     setNotice(null);
     setIsSubmitting(true);
+    setLoadingMessage("Signing you in...");
 
     const supabase = createSupabaseBrowserClient();
 
@@ -85,6 +88,7 @@ export function LoginForm({ initialError, year }: LoginFormProps) {
 
       if (signInError) {
         setError("The email or password you entered is incorrect.");
+        setLoadingMessage(null);
         return;
       }
 
@@ -100,13 +104,16 @@ export function LoginForm({ initialError, year }: LoginFormProps) {
             ? "This account is not linked to a business workspace. Contact your administrator."
             : "We could not load your business workspace. Please try again.",
         );
+        setLoadingMessage(null);
         return;
       }
 
+      setLoadingMessage("Opening your dashboard...");
       router.replace("/dashboard");
       router.refresh();
     } catch {
       setError("Unable to sign in right now. Check your connection and try again.");
+      setLoadingMessage(null);
     } finally {
       setIsSubmitting(false);
     }
@@ -118,55 +125,61 @@ export function LoginForm({ initialError, year }: LoginFormProps) {
   }
 
   return (
-    <main className="grid min-h-dvh overflow-hidden bg-[#f3f5f9] lg:grid-cols-[46%_54%]">
+    <main className="grid min-h-dvh overflow-hidden bg-white lg:grid-cols-[46%_54%]">
+      {loadingMessage ? <LoadingScreen message={loadingMessage} /> : null}
       <section
         aria-label="InChouf POS business management features"
-        className="relative hidden min-h-dvh overflow-hidden bg-[#020a18] lg:block"
+        className="relative hidden min-h-dvh overflow-hidden bg-black lg:block"
       >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_38%,rgba(10,105,238,0.30),transparent_34%),radial-gradient(circle_at_26%_96%,rgba(12,139,255,0.22),transparent_30%),linear-gradient(135deg,#020711_0%,#03172f_48%,#051d43_100%)]" />
-        <div className="absolute -right-28 top-[14%] h-[520px] w-[520px] rounded-full border border-[#136cff]/20" />
-        <div className="absolute -right-16 top-[19%] h-[390px] w-[390px] rounded-full border border-[#136cff]/15" />
-        <div className="absolute right-12 top-[24%] h-[265px] w-[265px] rounded-full border border-[#136cff]/10" />
-        <div className="absolute bottom-0 left-0 right-0 h-[34%] bg-gradient-to-t from-[#020711] via-[#061a34]/72 to-transparent" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_22%,rgba(34,245,255,0.20),transparent_28%),linear-gradient(135deg,#000_0%,#031116_56%,#000_100%)]" />
+        <div className="absolute -right-28 top-[12%] h-[520px] w-[520px] rounded-full border border-[#22f5ff]/20" />
+        <div className="absolute -right-8 top-[21%] h-[330px] w-[330px] rounded-full border border-[#22f5ff]/12" />
+        <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black to-transparent" />
+        <div className="absolute left-0 top-0 h-px w-full bg-gradient-to-r from-transparent via-[#22f5ff]/70 to-transparent" />
 
-        <div className="relative z-10 flex min-h-dvh flex-col px-[7.8%] pb-6 pt-8">
-          <Image
-            src="/inchouf-pos-logo.png"
-            alt="InChouf POS"
-            width={300}
-            height={106}
-            priority
-            className="h-[92px] w-[260px] rounded-lg object-cover object-center drop-shadow-[0_18px_28px_rgba(0,0,0,0.36)]"
-          />
+        <div className="relative z-10 flex min-h-dvh flex-col px-[7.8%] py-10">
+          <div className="flex items-center">
+            <Image
+              src="/inchouf-pos-logo.png"
+              alt="InChouf POS"
+              width={340}
+              height={255}
+              priority
+              className="h-auto w-[260px] object-contain drop-shadow-[0_18px_34px_rgba(34,245,255,0.18)]"
+            />
+          </div>
 
-          <div className="mt-7 max-w-[560px]">
-            <p className="text-[14px] font-medium text-[#c8d3e7]">Smart POS. Smarter Business.</p>
-            <h1 className="mt-7 text-[42px] font-bold leading-[1.15] text-white xl:text-[48px]">
+          <div className="mt-8 max-w-[600px]">
+            <p className="text-[14px] font-semibold uppercase tracking-[0.18em] text-[#22f5ff]">
+              Smart POS. Smarter Business.
+            </p>
+            <h1 className="mt-6 text-[44px] font-bold leading-[1.08] text-white xl:text-[56px]">
               Run your business{" "}
-              <span className="text-[#2387ff]">smarter</span>, faster, better.
+              <span className="text-[#22f5ff]">smarter</span>, faster, better.
             </h1>
-            <p className="mt-5 max-w-[520px] text-[18px] leading-[1.5] text-[#c8d2e4]">
+            <p className="mt-6 max-w-[540px] text-[18px] leading-[1.55] text-white/72">
               Manage sales, WhatsApp orders, inventory, employees and customers - all in one
               powerful POS system.
             </p>
           </div>
 
-          <div className="mt-8 grid max-w-[530px] gap-5">
+          <div className="mt-9 grid max-w-[560px] gap-4">
             {features.map((feature) => {
               const Icon = feature.icon;
 
               return (
-                <div key={feature.title} className="flex items-start gap-4">
-                  <div
-                    className={`flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-lg ${feature.background} ${feature.color} shadow-[0_12px_30px_rgba(0,0,0,0.22)]`}
-                  >
-                    <Icon aria-hidden="true" className="h-7 w-7" strokeWidth={2.15} />
+                <div
+                  key={feature.title}
+                  className="flex items-start gap-4 rounded-lg border border-white/10 bg-white/[0.035] p-4 backdrop-blur-sm"
+                >
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-[#22f5ff]/25 bg-[#22f5ff]/10 text-[#22f5ff]">
+                    <Icon aria-hidden="true" className="h-6 w-6" strokeWidth={2.15} />
                   </div>
                   <div>
-                    <h2 className="text-[17px] font-bold leading-tight text-white">
+                    <h2 className="text-[16px] font-bold leading-tight text-white">
                       {feature.title}
                     </h2>
-                    <p className="mt-1 text-[14px] leading-5 text-[#d3d9e5]">
+                    <p className="mt-1 text-[14px] leading-5 text-white/64">
                       {feature.description}
                     </p>
                   </div>
@@ -175,31 +188,51 @@ export function LoginForm({ initialError, year }: LoginFormProps) {
             })}
           </div>
 
-          <div className="relative mt-auto h-[190px]">
-            <div className="absolute bottom-1 left-[11%] h-20 w-28 rounded-lg bg-[#050a12] shadow-[0_24px_42px_rgba(0,0,0,0.45)]">
-              <div className="mx-auto mt-3 h-9 w-16 rounded-sm bg-white">
-                <div className="mx-auto h-full w-12 bg-[repeating-linear-gradient(to_bottom,#c8d0dc_0,#c8d0dc_2px,transparent_2px,transparent_8px)]" />
-              </div>
-            </div>
-            <div className="absolute bottom-0 left-[30%] h-16 w-[270px] rounded-lg bg-[#050a12] shadow-[0_30px_55px_rgba(0,0,0,0.55)]" />
-            <div className="absolute bottom-[58px] left-[27%] h-[124px] w-[315px] rounded-xl border border-white/20 bg-[#0a1020] p-3 shadow-[0_32px_60px_rgba(0,0,0,0.55)]">
-              <div className="h-full rounded-md bg-[#f7f9fd] p-4">
-                <div className="flex gap-2">
-                  <div className="h-6 flex-1 rounded-md bg-[#eaf1ff]" />
-                  <div className="h-6 flex-1 rounded-md bg-[#eaf8f0]" />
-                  <div className="h-6 flex-1 rounded-md bg-[#fff4e2]" />
+          <div className="mt-auto pt-8">
+            <div className="max-w-[560px] rounded-lg border border-[#22f5ff]/20 bg-white/[0.045] p-5 shadow-[0_28px_70px_rgba(0,0,0,0.42)] backdrop-blur-md">
+              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                <div>
+                  <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#22f5ff]">
+                    Live Dashboard
+                  </p>
+                  <p className="mt-1 text-[20px] font-bold text-white">$12,540.00</p>
                 </div>
-                <div className="mt-4 h-12 rounded-md bg-[linear-gradient(120deg,transparent_0_12%,#56a3ff_12%_14%,transparent_14%_26%,#56a3ff_26%_28%,transparent_28%_42%,#56a3ff_42%_44%,transparent_44%_100%),linear-gradient(#eef3fb,#eef3fb)]" />
-                <div className="mt-3 grid grid-cols-4 gap-2">
-                  <span className="h-3 rounded bg-[#dce5f2]" />
-                  <span className="h-3 rounded bg-[#dce5f2]" />
-                  <span className="h-3 rounded bg-[#dce5f2]" />
-                  <span className="h-3 rounded bg-[#dce5f2]" />
+                <div className="rounded-full border border-[#22f5ff]/30 px-3 py-1 text-[12px] font-semibold text-[#22f5ff]">
+                  Online
                 </div>
               </div>
-            </div>
-            <div className="absolute bottom-2 right-[8%] h-28 w-14 rounded-[28px] bg-[#050a12] shadow-[0_24px_45px_rgba(0,0,0,0.45)]">
-              <div className="mx-auto mt-4 h-8 w-14 rounded-full bg-[#121c2d]" />
+
+              <div className="mt-5 grid grid-cols-3 gap-3">
+                {["Sales", "Orders", "Stock"].map((label, index) => (
+                  <div key={label} className="rounded-lg border border-white/10 bg-black/35 p-3">
+                    <p className="text-[12px] text-white/55">{label}</p>
+                    <p className="mt-2 text-[18px] font-bold text-white">
+                      {index === 0 ? "$8.2k" : index === 1 ? "148" : "96%"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 flex h-20 items-end gap-2 rounded-lg bg-black/30 p-3">
+                {[42, 64, 38, 72, 55, 84, 68].map((height, index) => (
+                  <div
+                    key={index}
+                    className="flex-1 rounded-t bg-[#22f5ff]"
+                    style={{ height: `${height}%` }}
+                  />
+                ))}
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="rounded-lg border border-white/10 bg-black/30 p-3">
+                  <p className="text-[12px] text-white/55">Checkout</p>
+                  <p className="mt-1 text-[15px] font-semibold text-white">Ready for orders</p>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-black/30 p-3">
+                  <p className="text-[12px] text-white/55">WhatsApp</p>
+                  <p className="mt-1 text-[15px] font-semibold text-white">Messages synced</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

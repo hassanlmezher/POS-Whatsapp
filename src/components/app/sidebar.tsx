@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import {
   CircleHelp,
   ClipboardList,
@@ -13,6 +14,7 @@ import {
   Settings,
   Users,
 } from "lucide-react";
+import { LoadingScreen } from "@/components/app/loading-screen";
 import { cn } from "@/lib/utils";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -30,62 +32,85 @@ const nav = [
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   async function signOut() {
-    await createSupabaseBrowserClient().auth.signOut();
-    router.replace("/login");
-    router.refresh();
+    if (isSigningOut) {
+      return;
+    }
+
+    setIsSigningOut(true);
+
+    try {
+      const { error } = await createSupabaseBrowserClient().auth.signOut();
+
+      if (error) {
+        throw error;
+      }
+
+      router.replace("/login");
+      router.refresh();
+    } catch {
+      setIsSigningOut(false);
+    }
   }
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 hidden w-[300px] flex-col border-r border-[#d9deea] bg-white lg:flex">
-      <Link href="/dashboard" className="flex h-[112px] items-center gap-4 px-6">
-        <Image
-          src="/inchouf-pos-mark.png"
-          alt={APP_NAME}
-          width={64}
-          height={64}
-          priority
-          className="h-16 w-16 shrink-0 rounded-lg bg-black object-cover shadow-[0_8px_18px_rgba(11,78,219,0.18)]"
-        />
-        <div className="min-w-0">
-          <div className="max-w-[190px] truncate text-[21px] font-black leading-6 text-[#080c1a]">{APP_NAME}</div>
-          <div className="mt-2 text-[11px] font-black uppercase tracking-[0.24em] text-[#95a0b5]">Enterprise Portal</div>
+    <>
+      {isSigningOut ? <LoadingScreen message="Signing you out..." /> : null}
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[300px] flex-col border-r border-[#d9deea] bg-white lg:flex">
+        <Link href="/dashboard" className="flex h-[112px] items-center gap-4 px-6">
+          <Image
+            src="/inchouf-pos-mark.png"
+            alt={APP_NAME}
+            width={64}
+            height={64}
+            priority
+            className="h-16 w-16 shrink-0 rounded-lg bg-black object-cover shadow-[0_8px_18px_rgba(11,78,219,0.18)]"
+          />
+          <div className="min-w-0">
+            <div className="max-w-[190px] truncate text-[21px] font-black leading-6 text-[#080c1a]">{APP_NAME}</div>
+            <div className="mt-2 text-[11px] font-black uppercase tracking-[0.24em] text-[#95a0b5]">Enterprise Portal</div>
+          </div>
+        </Link>
+
+        <nav className="mt-5 flex-1 space-y-1 px-5">
+          {nav.map((item) => {
+            const Icon = item.icon;
+            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex h-[52px] items-center gap-4 rounded-lg px-4 text-[17px] font-medium text-[#536884] transition hover:bg-[#f4f7fb] hover:text-[#0b4edb]",
+                  active && "bg-[#f5f7fb] text-[#0052ff]",
+                )}
+              >
+                <Icon className="h-[22px] w-[22px]" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="mx-5 border-t border-[#e6ebf3] py-6">
+          <button className="flex h-12 w-full items-center gap-4 rounded-lg px-4 text-left text-[17px] font-medium text-[#536884] hover:bg-[#f4f7fb]">
+            <CircleHelp className="h-[22px] w-[22px]" />
+            Help Support
+          </button>
+          <button
+            onClick={signOut}
+            disabled={isSigningOut}
+            className="flex h-12 w-full items-center gap-4 rounded-lg px-4 text-left text-[17px] font-medium text-[#536884] hover:bg-[#f4f7fb] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <LogOut className="h-[22px] w-[22px]" />
+            Sign Out
+          </button>
         </div>
-      </Link>
-
-      <nav className="mt-5 flex-1 space-y-1 px-5">
-        {nav.map((item) => {
-          const Icon = item.icon;
-          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex h-[52px] items-center gap-4 rounded-lg px-4 text-[17px] font-medium text-[#536884] transition hover:bg-[#f4f7fb] hover:text-[#0b4edb]",
-                active && "bg-[#f5f7fb] text-[#0052ff]",
-              )}
-            >
-              <Icon className="h-[22px] w-[22px]" />
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="mx-5 border-t border-[#e6ebf3] py-6">
-        <button className="flex h-12 w-full items-center gap-4 rounded-lg px-4 text-left text-[17px] font-medium text-[#536884] hover:bg-[#f4f7fb]">
-          <CircleHelp className="h-[22px] w-[22px]" />
-          Help Support
-        </button>
-        <button onClick={signOut} className="flex h-12 w-full items-center gap-4 rounded-lg px-4 text-left text-[17px] font-medium text-[#536884] hover:bg-[#f4f7fb]">
-          <LogOut className="h-[22px] w-[22px]" />
-          Sign Out
-        </button>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }
 

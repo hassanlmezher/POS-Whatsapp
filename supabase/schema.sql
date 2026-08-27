@@ -119,15 +119,17 @@ begin
       'InChouf Test Business',
       'inchouf-test-business',
       '+15556288392',
-      null,
-      null
+      '1187894504402965',
+      '947626701589920'
     )
     returning id into development_tenant_id;
   else
     update public.tenants
     set name = 'InChouf Test Business',
         slug = 'inchouf-test-business',
-        whatsapp_phone_number = '+15556288392'
+        whatsapp_phone_number = '+15556288392',
+        whatsapp_phone_number_id = '1187894504402965',
+        whatsapp_business_account_id = '947626701589920'
     where id = development_tenant_id;
   end if;
 end $$;

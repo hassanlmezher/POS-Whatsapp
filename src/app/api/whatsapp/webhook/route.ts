@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createHmac, timingSafeEqual } from "crypto";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getPreferredWebhookVerifyToken } from "@/lib/whatsapp";
 
@@ -29,7 +30,24 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const payload = await request.json();
+  console.info("[WhatsApp] webhook received");
+
+  const rawBody = await request.text();
+
+  if (!verifyWebhookSignature(request.headers, rawBody)) {
+    console.error("[WhatsApp] webhook signature verification failed");
+    return NextResponse.json({ error: "Invalid webhook signature" }, { status: 401 });
+  }
+
+  let payload: unknown;
+
+  try {
+    payload = JSON.parse(rawBody);
+  } catch (error) {
+    console.error("[WhatsApp] webhook JSON parse failed", error);
+    return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+  }
+
   const serviceRoleKeyConfigured = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
   const supabaseUrlConfigured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
 
@@ -55,6 +73,12 @@ export async function POST(request: Request) {
   const eventType = firstMessage.id ? "message" : firstStatus.id ? "status" : "unknown";
   const whatsappMessageId = asOptionalString(firstMessage.id ?? firstStatus.id);
 
+  if (!phoneNumberId) {
+    console.error("[WhatsApp] phone number ID is missing");
+  }
+
+  console.info("[WhatsApp] phone_number_id:", phoneNumberId ?? "missing");
+
   const supabase = createSupabaseAdminClient();
   const { data: insertResult, error: insertError } = await supabase
     .from("whatsapp_webhook_events")
@@ -68,10 +92,14 @@ export async function POST(request: Request) {
     })
     .select("id, event_type, phone_number_id, whatsapp_message_id, created_at");
 
-  console.log("[whatsapp/webhook] Raw event insert result", insertResult);
-  console.error("[whatsapp/webhook] Raw event insert error", insertError);
-
   if (insertError) {
+    console.error("[WhatsApp] webhook event insert failed", {
+      phoneNumberId,
+      eventType,
+      whatsappMessageId,
+      error: insertError,
+    });
+
     return NextResponse.json(
       {
         error: "Failed to persist WhatsApp webhook event",
@@ -91,6 +119,13 @@ export async function POST(request: Request) {
       ];
     }),
   );
+
+  if (events.length === 0) {
+    console.info("[WhatsApp] webhook payload is not a message/status event", {
+      phoneNumberId,
+      eventType,
+    });
+  }
 
   const processed = {
     messages: 0,
@@ -140,6 +175,36 @@ function asArray(value: unknown): unknown[] {
 
 function asOptionalString(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function getWebhookAppSecret() {
+  return process.env.WHATSAPP_APP_SECRET ?? process.env.META_APP_SECRET ?? null;
+}
+
+function verifyWebhookSignature(headers: Headers, rawBody: string) {
+  const appSecret = getWebhookAppSecret();
+
+  if (!appSecret) {
+    console.warn("[WhatsApp] webhook signature validation skipped: no app secret configured");
+    return true;
+  }
+
+  const signatureHeader = headers.get("x-hub-signature-256");
+
+  if (!signatureHeader) {
+    console.error("[WhatsApp] webhook signature header is missing");
+    return false;
+  }
+
+  const expected = `sha256=${createHmac("sha256", appSecret).update(rawBody).digest("hex")}`;
+  const actualBuffer = Buffer.from(signatureHeader);
+  const expectedBuffer = Buffer.from(expected);
+
+  if (actualBuffer.length !== expectedBuffer.length) {
+    return false;
+  }
+
+  return timingSafeEqual(actualBuffer, expectedBuffer);
 }
 
 function normalizePhone(value: string | null) {
@@ -194,6 +259,7 @@ async function resolveTenant(
   phoneNumberId: string | null,
 ) {
   if (!phoneNumberId) {
+    console.error("[WhatsApp] phone number ID is missing");
     return null;
   }
 
@@ -207,7 +273,14 @@ async function resolveTenant(
     console.error("[whatsapp/webhook] Tenant lookup failed", { phoneNumberId, error });
   }
 
-  return tenant?.id ?? null;
+  if (!tenant?.id) {
+    console.error("[WhatsApp] tenant not found:", phoneNumberId);
+    return null;
+  }
+
+  console.info("[WhatsApp] tenant found:", tenant.id);
+
+  return tenant.id;
 }
 
 async function persistInboundMessage(
@@ -218,6 +291,10 @@ async function persistInboundMessage(
   const whatsappMessageId = asOptionalString(message.id);
   const from = normalizePhone(asOptionalString(message.from));
   const body = getMessageBody(message);
+  const phoneNumberId = getPhoneNumberId(value);
+
+  console.info("[WhatsApp] message id:", whatsappMessageId ?? "missing");
+  console.info("[WhatsApp] sender:", from ?? "missing");
 
   if (!whatsappMessageId || !from || !body) {
     console.warn("[whatsapp/webhook] Skipping inbound message with missing id/from/body", {
@@ -228,7 +305,6 @@ async function persistInboundMessage(
     return false;
   }
 
-  const phoneNumberId = getPhoneNumberId(value);
   const tenantId = await resolveTenant(supabase, phoneNumberId);
 
   if (!tenantId) {
@@ -255,7 +331,7 @@ async function persistInboundMessage(
     .single<{ id: string }>();
 
   if (customerError || !customer) {
-    console.error("[whatsapp/webhook] Customer upsert failed", { from, customerError });
+    console.error("[WhatsApp] customer upsert failed", { from, error: customerError });
     return false;
   }
 
@@ -270,9 +346,9 @@ async function persistInboundMessage(
     await conversationQuery.returns<{ id: string; unread_count: number | null }[]>();
 
   if (conversationLookupError) {
-    console.error("[whatsapp/webhook] Conversation lookup failed", {
+    console.error("[WhatsApp] conversation lookup failed", {
       customerId: customer.id,
-      conversationLookupError,
+      error: conversationLookupError,
     });
     return false;
   }
@@ -295,15 +371,17 @@ async function persistInboundMessage(
       .single<{ id: string; unread_count: number | null }>();
 
     if (conversationInsertError || !insertedConversation) {
-      console.error("[whatsapp/webhook] Conversation insert failed", {
+      console.error("[WhatsApp] conversation insert failed", {
         customerId: customer.id,
-        conversationInsertError,
+        error: conversationInsertError,
       });
       return false;
     }
 
     conversation = insertedConversation;
   }
+
+  console.info("[WhatsApp] conversation:", conversation.id);
 
   const { data: insertedMessages, error: messageError } = await supabase
     .from("messages")
@@ -323,11 +401,16 @@ async function persistInboundMessage(
     .select("id");
 
   if (messageError) {
-    console.error("[whatsapp/webhook] Inbound message insert failed", { whatsappMessageId, messageError });
+    console.error("[WhatsApp] message insert failed", { whatsappMessageId, error: messageError });
     return false;
   }
 
   const insertedNewMessage = (insertedMessages?.length ?? 0) > 0;
+  console.info("[WhatsApp] message saved:", {
+    whatsappMessageId,
+    inserted: insertedNewMessage,
+    messageId: insertedMessages?.[0]?.id ?? null,
+  });
 
   if (insertedNewMessage) {
     const { error: updateError } = await supabase
@@ -343,7 +426,7 @@ async function persistInboundMessage(
       .eq("id", conversation.id);
 
     if (updateError) {
-      console.error("[whatsapp/webhook] Conversation update failed", { conversationId: conversation.id, updateError });
+      console.error("[WhatsApp] conversation update failed", { conversationId: conversation.id, error: updateError });
       return false;
     }
   }

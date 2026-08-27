@@ -11,12 +11,14 @@ values (
   'InChouf Test Business',
   'inchouf-test-business',
   '+15556288392',
-  null,
-  null
+  '1187894504402965',
+  '947626701589920'
 )
 on conflict (slug) do update
 set name = excluded.name,
-    whatsapp_phone_number = excluded.whatsapp_phone_number;
+    whatsapp_phone_number = excluded.whatsapp_phone_number,
+    whatsapp_phone_number_id = excluded.whatsapp_phone_number_id,
+    whatsapp_business_account_id = excluded.whatsapp_business_account_id;
 
 insert into public.tenant_users (auth_user_id, tenant_id, name, role)
 select '1403bae7-dacc-4844-b4ff-032bde8296d7'::uuid, id, 'Test Admin', 'owner'::public.app_role
