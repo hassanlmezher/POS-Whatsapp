@@ -89,7 +89,8 @@ begin
 end $$;
 
 -- Reuse the existing development company UUID when present. Otherwise create
--- a normal generated UUID. Unknown Meta identifiers intentionally remain NULL.
+-- a normal generated UUID. WhatsApp identifiers are tenant configuration and
+-- are never seeded or overwritten by the structural schema.
 do $$
 declare
   development_tenant_id uuid;
@@ -110,26 +111,17 @@ begin
   if development_tenant_id is null then
     insert into public.tenants (
       name,
-      slug,
-      whatsapp_phone_number,
-      whatsapp_phone_number_id,
-      whatsapp_business_account_id
+      slug
     )
     values (
       'InChouf Test Business',
-      'inchouf-test-business',
-      '+15556288392',
-      '1187894504402965',
-      '947626701589920'
+      'inchouf-test-business'
     )
     returning id into development_tenant_id;
   else
     update public.tenants
     set name = 'InChouf Test Business',
-        slug = 'inchouf-test-business',
-        whatsapp_phone_number = '+15556288392',
-        whatsapp_phone_number_id = '1187894504402965',
-        whatsapp_business_account_id = '947626701589920'
+        slug = 'inchouf-test-business'
     where id = development_tenant_id;
   end if;
 end $$;
@@ -503,6 +495,7 @@ create unique index if not exists ux_product_categories_tenant_name on public.pr
 create unique index if not exists ux_products_tenant_sku on public.products(tenant_id, sku);
 create unique index if not exists ux_inventory_tenant_branch_product on public.inventory(tenant_id, branch_id, product_id);
 create unique index if not exists ux_customers_tenant_whatsapp on public.customers(tenant_id, whatsapp_phone);
+create unique index if not exists ux_conversations_tenant_customer on public.conversations(tenant_id, customer_id);
 create unique index if not exists ux_messages_tenant_whatsapp_id on public.messages(tenant_id, whatsapp_message_id);
 create unique index if not exists ux_orders_tenant_order_number on public.orders(tenant_id, order_number);
 create unique index if not exists ux_receipts_tenant_receipt_number on public.receipts(tenant_id, receipt_number);
@@ -588,6 +581,83 @@ begin
 
     if not has_orphans then
       execute format('alter table public.%I validate constraint %I', owned_table, constraint_name);
+    end if;
+  end loop;
+end $$;
+
+-- Tenant-aware relationship keys prevent a child row from naming one tenant
+-- while referencing a parent row owned by another tenant. The primary-key id
+-- is already globally unique; these indexes additionally make (tenant_id, id)
+-- available as a composite foreign-key target.
+create unique index if not exists ux_branches_tenant_id_id on public.branches(tenant_id, id);
+create unique index if not exists ux_product_categories_tenant_id_id on public.product_categories(tenant_id, id);
+create unique index if not exists ux_products_tenant_id_id on public.products(tenant_id, id);
+create unique index if not exists ux_customers_tenant_id_id on public.customers(tenant_id, id);
+create unique index if not exists ux_conversations_tenant_id_id on public.conversations(tenant_id, id);
+create unique index if not exists ux_orders_tenant_id_id on public.orders(tenant_id, id);
+
+do $$
+declare
+  relation record;
+  has_mismatches boolean;
+begin
+  for relation in
+    select *
+    from (values
+      ('terminals', 'branch_id', 'branches', 'terminals_branch_tenant_fkey', 'cascade'),
+      ('products', 'category_id', 'product_categories', 'products_category_tenant_fkey', 'no action'),
+      ('inventory', 'branch_id', 'branches', 'inventory_branch_tenant_fkey', 'cascade'),
+      ('inventory', 'product_id', 'products', 'inventory_product_tenant_fkey', 'cascade'),
+      ('conversations', 'customer_id', 'customers', 'conversations_customer_tenant_fkey', 'cascade'),
+      ('messages', 'conversation_id', 'conversations', 'messages_conversation_tenant_fkey', 'cascade'),
+      ('messages', 'customer_id', 'customers', 'messages_customer_tenant_fkey', 'cascade'),
+      ('orders', 'customer_id', 'customers', 'orders_customer_tenant_fkey', 'no action'),
+      ('orders', 'conversation_id', 'conversations', 'orders_conversation_tenant_fkey', 'no action'),
+      ('order_items', 'order_id', 'orders', 'order_items_order_tenant_fkey', 'cascade'),
+      ('order_items', 'product_id', 'products', 'order_items_product_tenant_fkey', 'no action'),
+      ('payments', 'order_id', 'orders', 'payments_order_tenant_fkey', 'cascade'),
+      ('receipts', 'order_id', 'orders', 'receipts_order_tenant_fkey', 'cascade'),
+      ('ai_suggestions', 'conversation_id', 'conversations', 'ai_suggestions_conversation_tenant_fkey', 'cascade')
+    ) as relationships(child_table, child_column, parent_table, constraint_name, delete_action)
+  loop
+    if not exists (
+      select 1
+      from pg_constraint
+      where conrelid = to_regclass('public.' || relation.child_table)
+        and conname = relation.constraint_name
+    ) then
+      execute format(
+        'alter table public.%I add constraint %I foreign key (tenant_id, %I) references public.%I(tenant_id, id) on delete %s not valid',
+        relation.child_table,
+        relation.constraint_name,
+        relation.child_column,
+        relation.parent_table,
+        relation.delete_action
+      );
+    end if;
+
+    execute format(
+      'select exists (
+         select 1
+         from public.%I child
+         left join public.%I parent
+           on parent.tenant_id = child.tenant_id
+          and parent.id = child.%I
+         where child.%I is not null
+           and parent.id is null
+       )',
+      relation.child_table,
+      relation.parent_table,
+      relation.child_column,
+      relation.child_column
+    ) into has_mismatches;
+
+    if not has_mismatches then
+      execute format(
+        'alter table public.%I validate constraint %I',
+        relation.child_table,
+        relation.constraint_name
+      );
     end if;
   end loop;
 end $$;

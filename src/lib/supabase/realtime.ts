@@ -1,22 +1,31 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Message } from "@/lib/types/domain";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export function useRealtimeMessages(tenantId: string, onMessage: (message: Message) => void) {
   const onMessageRef = useRef(onMessage);
+  const hasRealtimeConfig = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  );
+  const [status, setStatus] = useState<"connecting" | "live" | "fallback">(
+    hasRealtimeConfig ? "connecting" : "fallback",
+  );
 
   useEffect(() => {
     onMessageRef.current = onMessage;
   }, [onMessage]);
 
   useEffect(() => {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    if (!hasRealtimeConfig) {
       return;
     }
 
     const supabase = createSupabaseBrowserClient();
+    const fallbackTimer = window.setTimeout(() => {
+      setStatus((current) => (current === "connecting" ? "fallback" : current));
+    }, 8000);
     const channel = supabase
       .channel(`messages:${tenantId}`)
       .on(
@@ -42,10 +51,28 @@ export function useRealtimeMessages(tenantId: string, onMessage: (message: Messa
           });
         },
       )
-      .subscribe();
+      .subscribe((subscriptionStatus) => {
+        if (subscriptionStatus === "SUBSCRIBED") {
+          window.clearTimeout(fallbackTimer);
+          setStatus("live");
+          return;
+        }
+
+        if (
+          subscriptionStatus === "CHANNEL_ERROR" ||
+          subscriptionStatus === "TIMED_OUT" ||
+          subscriptionStatus === "CLOSED"
+        ) {
+          window.clearTimeout(fallbackTimer);
+          setStatus("fallback");
+        }
+      });
 
     return () => {
+      window.clearTimeout(fallbackTimer);
       void supabase.removeChannel(channel);
     };
-  }, [tenantId]);
+  }, [hasRealtimeConfig, tenantId]);
+
+  return status;
 }
