@@ -6,7 +6,7 @@ const tones = {
   yellow: "bg-[#fff7ed] text-[#c2410c] ring-[#fed7aa]",
   red: "bg-[#ffe4e6] text-[#e11d48] ring-[#fecdd3]",
   slate: "bg-[#eef2f7] text-[#536884] ring-[#d9deea]",
-  blue: "bg-[#eaf2ff] text-[#0b4edb] ring-[#d6e6ff]",
+  cyan: "bg-[#eaffff] text-[#008d99] ring-[#a5f3fc]",
 };
 
 export function Badge({

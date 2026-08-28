@@ -4,6 +4,12 @@ export type PaymentStatus = "pending" | "paid" | "refunded" | "failed";
 export type MessageDirection = "inbound" | "outbound";
 export type MessageStatus = "sent" | "delivered" | "read" | "failed" | "received";
 
+export type WhatsAppConnection = {
+  phoneNumber: string | null;
+  phoneNumberId: string | null;
+  isConnected: boolean;
+};
+
 export type Company = {
   id: string;
   name: string;

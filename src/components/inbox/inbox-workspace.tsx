@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MoreVertical, Paperclip, Phone, RefreshCw, Send, ShoppingCart, Smile, Sparkles, Video, X } from "lucide-react";
-import type { Company, Conversation, Customer, Message, Order } from "@/lib/types/domain";
+import type { Company, Conversation, Customer, Message, Order, WhatsAppConnection } from "@/lib/types/domain";
 import { useInboxStore } from "@/lib/stores/inbox-store";
 import { useRealtimeMessages } from "@/lib/supabase/realtime";
 import { formatCurrency } from "@/lib/utils";
@@ -35,6 +35,7 @@ function formatSendError(payload: unknown) {
 
 export function InboxWorkspace({
   company,
+  whatsappConnection,
   conversations,
   selectedConversation,
   selectedCustomer,
@@ -42,6 +43,7 @@ export function InboxWorkspace({
   recentOrders,
 }: {
   company: Company;
+  whatsappConnection: WhatsAppConnection;
   conversations: Conversation[];
   selectedConversation: Conversation | null;
   selectedCustomer?: Customer | null;
@@ -182,7 +184,7 @@ export function InboxWorkspace({
     }, delayMs);
   }, [syncInbox]);
 
-  useRealtimeMessages(company.id, (message) => {
+  const realtimeStatus = useRealtimeMessages(company.id, (message) => {
     appendMessage(message);
     scheduleSync("realtime");
   });
@@ -323,7 +325,7 @@ export function InboxWorkspace({
       <aside className="flex h-full min-h-0 flex-col border-r border-[#d9deea] bg-white">
         <div className="flex h-20 items-center justify-between border-b border-[#d9deea] px-6">
           <h2 className="text-xl font-semibold text-[#080c1a]">Messages</h2>
-          <Button variant="ghost" size="icon" aria-label="Compose"><Send className="h-5 w-5 rotate-[-35deg] text-[#0b4edb]" /></Button>
+          <Button variant="ghost" size="icon" aria-label="Compose"><Send className="h-5 w-5 rotate-[-35deg] text-[#008d99]" /></Button>
         </div>
         <div className="p-4"><Input icon placeholder="Search conversations..." /></div>
         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -359,7 +361,7 @@ export function InboxWorkspace({
               <Avatar name={activeConversation.customerName} src={activeConversation.avatarUrl} />
               <div>
                 <div className="text-lg font-semibold text-[#080c1a]">{activeConversation.customerName}</div>
-                <div className="text-sm text-[#0b4edb]">Online</div>
+                <div className="text-sm text-[#008d99]">Online</div>
               </div>
             </div>
           ) : (
@@ -369,7 +371,12 @@ export function InboxWorkspace({
             </div>
           )}
           <div className="flex items-center gap-3 text-[#536884]">
-            {isSyncing ? <span className="text-xs font-semibold text-[#8090aa]">Syncing...</span> : null}
+            <span className="flex items-center gap-2 text-xs font-semibold text-[#8090aa]">
+              <span
+                className={`h-2 w-2 rounded-full ${realtimeStatus === "live" ? "bg-emerald-500" : "bg-amber-500"}`}
+              />
+              {isSyncing ? "Updating..." : realtimeStatus === "live" ? "Live" : realtimeStatus === "fallback" ? "Polling" : "Connecting..."}
+            </span>
             <Phone className="h-5 w-5" />
             <Video className="h-5 w-5" />
             <div className="h-8 w-px bg-[#d9deea]" />
@@ -383,11 +390,11 @@ export function InboxWorkspace({
             <div key={message.id} className={`flex ${message.direction === "outbound" ? "justify-end" : "justify-start"}`}>
               <div
                 className={`max-w-[70%] rounded-xl p-4 shadow-sm ${
-                  message.direction === "outbound" ? "bg-[#2f66ea] text-white" : "bg-white text-[#080c1a] ring-1 ring-[#d9deea]"
+                  message.direction === "outbound" ? "bg-[#22ddeb] text-black" : "bg-white text-[#080c1a] ring-1 ring-[#d9deea]"
                 }`}
               >
                 <p className="leading-7">{message.body}</p>
-                <div className={`mt-2 text-right text-xs ${message.direction === "outbound" ? "text-blue-100" : "text-[#8090aa]"}`}>
+                <div className={`mt-2 text-right text-xs ${message.direction === "outbound" ? "text-black/60" : "text-[#8090aa]"}`}>
                   {new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   {message.direction === "outbound" ? " ✓✓" : ""}
                 </div>
@@ -395,7 +402,23 @@ export function InboxWorkspace({
             </div>
           )) : (
             <div className="mx-auto mt-20 max-w-sm rounded-xl bg-[#f7f9fc] p-6 text-center text-[#536884] shadow-sm ring-1 ring-[#d9deea]">
-              Connect WhatsApp and receive a customer message to start a conversation.
+              {whatsappConnection.isConnected ? (
+                <>
+                  <p className="font-semibold text-[#080c1a]">No conversations yet</p>
+                  <p className="mt-2">
+                    New messages sent to {whatsappConnection.phoneNumber} will appear here.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="font-semibold text-[#080c1a]">WhatsApp setup required</p>
+                  <p className="mt-2">
+                    {whatsappConnection.phoneNumber && !whatsappConnection.phoneNumberId
+                      ? "Add this tenant's Meta Phone Number ID to finish connecting WhatsApp."
+                      : "Add this tenant's WhatsApp number and Meta Phone Number ID in the database."}
+                  </p>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -409,9 +432,9 @@ export function InboxWorkspace({
               disabled={!activeConversation || isSuggesting}
             >
               {isSuggesting ? (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#8090aa]/40 border-t-[#0b4edb]" />
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#8090aa]/40 border-t-[#22ddeb]" />
               ) : (
-                <Sparkles className="h-4 w-4 text-[#0b4edb]" />
+                <Sparkles className="h-4 w-4 text-[#008d99]" />
               )}
               {isSuggesting ? "Suggesting..." : "AI Suggest Reply"}
             </Button>
@@ -501,7 +524,7 @@ export function InboxWorkspace({
         <div className="mt-8">
           <div className="mb-4 flex items-center justify-between">
             <div className="text-sm font-black uppercase tracking-[0.18em] text-[#8090aa]">Recent Orders</div>
-            <button className="text-sm font-bold text-[#0b4edb]">View All</button>
+            <button className="text-sm font-bold text-[#008d99]">View All</button>
           </div>
           <div className="space-y-3">
             {activeRecentOrders.slice(0, 2).map((order) => (
@@ -512,7 +535,7 @@ export function InboxWorkspace({
                 </div>
                 <div className="mt-3 flex justify-between text-sm text-[#8090aa]">
                   <span>{new Date(order.createdAt).toLocaleDateString()}</span>
-                  <span className="font-black text-[#0b4edb]">{formatCurrency(order.total)}</span>
+                  <span className="font-black text-[#008d99]">{formatCurrency(order.total)}</span>
                 </div>
               </div>
             ))}

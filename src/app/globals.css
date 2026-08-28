@@ -30,7 +30,7 @@ body {
 }
 
 ::selection {
-  background: rgba(37, 99, 235, 0.2);
+  background: rgba(34, 221, 235, 0.24);
   color: #080c1a;
 }
 
@@ -39,16 +39,6 @@ input,
 select,
 textarea {
   font: inherit;
-}
-
-@keyframes loading-bar {
-  0% {
-    transform: translateX(-110%);
-  }
-
-  100% {
-    transform: translateX(160%);
-  }
 }
 
 .line-clamp-2 {

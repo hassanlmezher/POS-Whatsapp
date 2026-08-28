@@ -13,13 +13,13 @@ export function Header({ title, userName }: { title?: string; userName: string }
       </div>
 
       <div className="flex items-center gap-5 text-[#536884]">
-        <button className="rounded-lg p-2 transition hover:bg-[#f4f7fb] hover:text-[#0b4edb]" aria-label="Notifications">
+        <button className="rounded-lg p-2 transition hover:bg-[#f4f7fb] hover:text-[#008d99]" aria-label="Notifications">
           <Bell className="h-6 w-6" />
         </button>
-        <button className="rounded-lg p-2 transition hover:bg-[#f4f7fb] hover:text-[#0b4edb]" aria-label="Help">
+        <button className="rounded-lg p-2 transition hover:bg-[#f4f7fb] hover:text-[#008d99]" aria-label="Help">
           <CircleHelp className="h-6 w-6" />
         </button>
-        <button className="rounded-lg p-2 transition hover:bg-[#f4f7fb] hover:text-[#0b4edb]" aria-label="Applications">
+        <button className="rounded-lg p-2 transition hover:bg-[#f4f7fb] hover:text-[#008d99]" aria-label="Applications">
           <Grid3X3 className="h-6 w-6" />
         </button>
         <div className="h-14 w-px bg-[#d9deea]" />

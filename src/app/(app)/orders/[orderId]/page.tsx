@@ -14,13 +14,13 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ o
 
   return (
     <div className="space-y-6 p-5 lg:p-8">
-      <Link href="/orders" className="text-sm font-bold text-[#0b4edb]">Back to orders</Link>
+      <Link href="/orders" className="text-sm font-bold text-[#008d99]">Back to orders</Link>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-[#080c1a]">#{order.orderNumber}</h1>
           <p className="mt-1 text-[#536884]">{new Date(order.createdAt).toLocaleString()}</p>
         </div>
-        <div className="flex gap-2"><Badge tone="blue">{order.status}</Badge><Badge tone={order.paymentStatus === "paid" ? "green" : "yellow"}>{order.paymentStatus}</Badge></div>
+        <div className="flex gap-2"><Badge tone="cyan">{order.status}</Badge><Badge tone={order.paymentStatus === "paid" ? "green" : "yellow"}>{order.paymentStatus}</Badge></div>
       </div>
       <div className="grid gap-6 xl:grid-cols-[1fr_320px]">
         <Card className="overflow-hidden">
@@ -28,7 +28,7 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ o
           {items.map((item) => (
             <div key={item.id} className="flex justify-between border-b border-[#d9deea] p-6 last:border-b-0">
               <div><div className="font-semibold text-[#080c1a]">{item.productName}</div><div className="text-sm text-[#8090aa]">Qty {item.quantity} x {formatCurrency(item.unitPrice)}</div></div>
-              <div className="font-black text-[#0b4edb]">{formatCurrency(item.lineTotal)}</div>
+              <div className="font-black text-[#008d99]">{formatCurrency(item.lineTotal)}</div>
             </div>
           ))}
         </Card>
@@ -36,11 +36,11 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ o
           <h2 className="text-lg font-semibold text-[#080c1a]">Customer</h2>
           <div className="mt-4 font-medium text-[#080c1a]">{customer?.name ?? order.customerName}</div>
           <div className="mt-1 text-[#536884]">{customer?.phone ?? "Walk-in customer"}</div>
-          {conversation ? <Link href="/inbox" className="mt-5 inline-block font-bold text-[#0b4edb]">Open WhatsApp conversation</Link> : null}
+          {conversation ? <Link href="/inbox" className="mt-5 inline-block font-bold text-[#008d99]">Open WhatsApp conversation</Link> : null}
           <div className="mt-8 space-y-3 border-t border-[#d9deea] pt-6">
             <div className="flex justify-between text-[#536884]"><span>Subtotal</span><span>{formatCurrency(order.subtotal)}</span></div>
             <div className="flex justify-between text-[#536884]"><span>Tax</span><span>{formatCurrency(order.taxTotal)}</span></div>
-            <div className="flex justify-between text-xl font-black text-[#080c1a]"><span>Total</span><span className="text-[#0b4edb]">{formatCurrency(order.total)}</span></div>
+            <div className="flex justify-between text-xl font-black text-[#080c1a]"><span>Total</span><span className="text-[#008d99]">{formatCurrency(order.total)}</span></div>
           </div>
         </Card>
       </div>

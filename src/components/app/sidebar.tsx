@@ -66,7 +66,7 @@ export function Sidebar() {
             width={64}
             height={64}
             priority
-            className="h-16 w-16 shrink-0 rounded-lg bg-black object-cover shadow-[0_8px_18px_rgba(11,78,219,0.18)]"
+            className="h-16 w-16 shrink-0 rounded-lg bg-black object-cover shadow-[0_8px_18px_rgba(34,221,235,0.22)]"
           />
           <div className="min-w-0">
             <div className="max-w-[190px] truncate text-[21px] font-black leading-6 text-[#080c1a]">{APP_NAME}</div>
@@ -84,8 +84,8 @@ export function Sidebar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex h-[52px] items-center gap-4 rounded-lg px-4 text-[17px] font-medium text-[#536884] transition hover:bg-[#f4f7fb] hover:text-[#0b4edb]",
-                  active && "bg-[#f5f7fb] text-[#0052ff]",
+                  "flex h-[52px] items-center gap-4 rounded-lg px-4 text-[17px] font-medium text-[#536884] transition hover:bg-[#f4f7fb] hover:text-[#008d99]",
+                  active && "bg-[#f5f7fb] text-[#008d99]",
                 )}
               >
                 <Icon className="h-[22px] w-[22px]" />
@@ -129,7 +129,7 @@ export function MobileNav() {
             href={item.href}
             className={cn(
               "flex flex-col items-center gap-1 py-2 text-[10px] text-[#536884]",
-              active && "bg-[#f5f7fb] text-[#0052ff]",
+              active && "bg-[#f5f7fb] text-[#008d99]",
             )}
           >
             <Icon className="h-4 w-4" />

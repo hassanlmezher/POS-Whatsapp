@@ -31,7 +31,7 @@ export default async function OrdersPage() {
         <div className="flex flex-wrap items-center gap-4 border-b border-[#d9deea] p-5">
           <label className="relative min-w-[260px] flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8090aa]" />
-            <input className="h-11 w-full rounded-lg border border-[#d9deea] bg-[#f7f9fc] pl-10 text-[#080c1a] outline-none placeholder:text-[#8090aa] focus:border-[#0b4edb]" placeholder="Filter by ID or Name" />
+            <input className="h-11 w-full rounded-lg border border-[#d9deea] bg-[#f7f9fc] pl-10 text-[#080c1a] outline-none placeholder:text-[#8090aa] focus:border-[#22ddeb]" placeholder="Filter by ID or Name" />
           </label>
           <Button variant="outline">All Status</Button>
           <Button className="ml-auto"><Plus className="h-4 w-4" /> New Order</Button>
@@ -60,9 +60,9 @@ export default async function OrdersPage() {
                     </div>
                   </td>
                   <td className="px-6 py-5 text-[#536884]">{new Date(order.createdAt).toLocaleDateString()}</td>
-                  <td className="px-6 py-5 font-black text-[#0b4edb]">{formatCurrency(order.total)}</td>
+                  <td className="px-6 py-5 font-black text-[#008d99]">{formatCurrency(order.total)}</td>
                   <td className="px-6 py-5"><Badge tone={order.paymentStatus === "paid" ? "green" : order.paymentStatus === "failed" ? "red" : "yellow"}>{order.paymentStatus}</Badge></td>
-                  <td className="px-6 py-5 text-right"><Link className="font-bold text-[#0b4edb]" href={`/orders/${order.id}`}>View Details</Link></td>
+                  <td className="px-6 py-5 text-right"><Link className="font-bold text-[#008d99]" href={`/orders/${order.id}`}>View Details</Link></td>
                 </tr>
               ))}
             </tbody>

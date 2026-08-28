@@ -3,6 +3,9 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getPreferredWebhookVerifyToken } from "@/lib/whatsapp";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 type WebhookEvent =
   | {
       type: "message";
@@ -77,13 +80,14 @@ export async function POST(request: Request) {
     console.error("[WhatsApp] phone number ID is missing");
   }
 
-  console.info("[WhatsApp] phone_number_id:", phoneNumberId ?? "missing");
+  console.info(`[WhatsApp] receiving phone_number_id = ${phoneNumberId ?? "missing"}`);
 
   const supabase = createSupabaseAdminClient();
+  const initialTenantId = await resolveTenant(supabase, phoneNumberId);
   const { data: insertResult, error: insertError } = await supabase
     .from("whatsapp_webhook_events")
     .insert({
-      tenant_id: null,
+      tenant_id: initialTenantId,
       phone_number_id: phoneNumberId,
       event_type: eventType,
       whatsapp_message_id: whatsappMessageId,
@@ -211,6 +215,14 @@ function normalizePhone(value: string | null) {
   return value?.replace(/[^\d]/g, "") ?? null;
 }
 
+function maskPhoneForLogs(value: string | null) {
+  if (!value) {
+    return "missing";
+  }
+
+  return `***${value.slice(-4)}`;
+}
+
 function getPhoneNumberId(value: Record<string, unknown>) {
   return asOptionalString(asRecord(value.metadata).phone_number_id);
 }
@@ -278,7 +290,7 @@ async function resolveTenant(
     return null;
   }
 
-  console.info("[WhatsApp] tenant found:", tenant.id);
+  console.info(`[WhatsApp] tenant resolved = ${tenant.id}`);
 
   return tenant.id;
 }
@@ -293,8 +305,8 @@ async function persistInboundMessage(
   const body = getMessageBody(message);
   const phoneNumberId = getPhoneNumberId(value);
 
-  console.info("[WhatsApp] message id:", whatsappMessageId ?? "missing");
-  console.info("[WhatsApp] sender:", from ?? "missing");
+  console.info("[WhatsApp] message id =", whatsappMessageId ?? "missing");
+  console.info(`[WhatsApp] sender = ${maskPhoneForLogs(from)}`);
 
   if (!whatsappMessageId || !from || !body) {
     console.warn("[whatsapp/webhook] Skipping inbound message with missing id/from/body", {
@@ -381,7 +393,7 @@ async function persistInboundMessage(
     conversation = insertedConversation;
   }
 
-  console.info("[WhatsApp] conversation:", conversation.id);
+  console.info(`[WhatsApp] conversation created/found = ${conversation.id}`);
 
   const { data: insertedMessages, error: messageError } = await supabase
     .from("messages")
@@ -406,11 +418,10 @@ async function persistInboundMessage(
   }
 
   const insertedNewMessage = (insertedMessages?.length ?? 0) > 0;
-  console.info("[WhatsApp] message saved:", {
-    whatsappMessageId,
-    inserted: insertedNewMessage,
-    messageId: insertedMessages?.[0]?.id ?? null,
-  });
+  console.info(
+    `[WhatsApp] message saved = ${insertedMessages?.[0]?.id ?? "duplicate"}`,
+    { whatsappMessageId, inserted: insertedNewMessage },
+  );
 
   if (insertedNewMessage) {
     const { error: updateError } = await supabase

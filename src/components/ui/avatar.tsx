@@ -22,7 +22,7 @@ export function Avatar({
   return (
     <div
       className={cn(
-        "flex h-11 w-11 items-center justify-center rounded-full bg-[#eaf2ff] text-sm font-bold text-[#0b4edb] ring-4 ring-[#f3f6fb]",
+        "flex h-11 w-11 items-center justify-center rounded-full bg-[#eaffff] text-sm font-bold text-[#008d99] ring-4 ring-[#f3f6fb]",
         className,
       )}
     >

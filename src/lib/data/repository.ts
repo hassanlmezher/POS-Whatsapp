@@ -11,6 +11,7 @@ import type {
   Order,
   OrderItem,
   Product,
+  WhatsAppConnection,
 } from "@/lib/types/domain";
 
 type DbCategory = { id: string; tenant_id: string; name: string; icon: string | null };
@@ -358,6 +359,11 @@ export async function getInboxData(activeConversationId?: string) {
   ]);
   return {
     company: mapTenant(tenant),
+    whatsappConnection: {
+      phoneNumber: tenant.whatsappPhoneNumber,
+      phoneNumberId: tenant.whatsappPhoneNumberId,
+      isConnected: Boolean(tenant.whatsappPhoneNumber && tenant.whatsappPhoneNumberId),
+    } satisfies WhatsAppConnection,
     conversations,
     selectedConversation,
     selectedCustomer,

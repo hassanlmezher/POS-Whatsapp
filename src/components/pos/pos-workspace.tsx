@@ -81,7 +81,7 @@ export function POSWorkspace({
                 key={category.id}
                 onClick={() => setCategoryId(category.id)}
                 className={`h-12 shrink-0 rounded-full px-8 text-base font-bold transition ${
-                  active ? "bg-[#0b4edb] text-white shadow-[0_8px_18px_rgba(11,78,219,0.22)]" : "bg-[#eef2f7] text-[#26384f] hover:bg-[#e6ebf3]"
+                  active ? "bg-[#22ddeb] text-black shadow-[0_8px_18px_rgba(34,221,235,0.24)]" : "bg-[#eef2f7] text-[#26384f] hover:bg-[#e6ebf3]"
                 }`}
               >
                 {category.name}
@@ -106,7 +106,7 @@ export function POSWorkspace({
               >
                 <div className="relative">
                   <img src={product.imageUrl} alt={product.name} className="h-52 w-full rounded-lg object-cover" />
-                  <span className="absolute bottom-2 right-2 rounded-md bg-white px-3 py-1 text-sm font-black text-[#0b4edb] shadow">{formatCurrency(product.price, company.currency)}</span>
+                  <span className="absolute bottom-2 right-2 rounded-md bg-white px-3 py-1 text-sm font-black text-[#008d99] shadow">{formatCurrency(product.price, company.currency)}</span>
                 </div>
                 <div className="pt-4">
                   <div className="line-clamp-1 text-xl font-medium text-[#080c1a]">{product.name}</div>

@@ -19,7 +19,7 @@ export default function SettingsPage() {
           const Icon = section.icon;
           return (
             <Card key={section.title} className="p-6">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#eef2f7] text-[#0b4edb] ring-1 ring-[#d9deea]"><Icon className="h-5 w-5" /></div>
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#eaffff] text-[#008d99] ring-1 ring-[#a5f3fc]"><Icon className="h-5 w-5" /></div>
               <h2 className="mt-5 text-lg font-semibold text-[#080c1a]">{section.title}</h2>
               <p className="mt-3 leading-7 text-[#536884]">{section.text}</p>
             </Card>

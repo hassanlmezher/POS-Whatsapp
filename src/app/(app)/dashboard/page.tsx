@@ -11,10 +11,10 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   const data = await getDashboardData();
   const stats = [
-    ["Total Revenue", formatCurrency(data.stats.revenue), "vs. last week", "+12.5%", "blue"],
+    ["Total Revenue", formatCurrency(data.stats.revenue), "vs. last week", "+12.5%", "cyan"],
     ["Orders Today", data.stats.orders.toLocaleString(), "pending pickup", "Static", "slate"],
     ["New Conversations", data.stats.activeChats.toLocaleString(), "unread", "+4.2%", "orange"],
-    ["Response Rate", "98.4%", "Avg. 4m 20s", "-1.2%", "blue"],
+    ["Response Rate", "98.4%", "Avg. 4m 20s", "-1.2%", "cyan"],
   ] as const;
 
   return (
@@ -35,7 +35,7 @@ export default async function DashboardPage() {
           <Card key={label} className="relative min-h-[178px] overflow-hidden p-7">
             <div className="flex items-start justify-between">
               <div className="max-w-[150px] text-xs font-black uppercase tracking-[0.14em] text-[#5d6e88]">{label}</div>
-              <Badge tone={tone === "orange" ? "yellow" : tone === "blue" ? "blue" : "slate"}>{trend}</Badge>
+              <Badge tone={tone === "orange" ? "yellow" : tone === "cyan" ? "cyan" : "slate"}>{trend}</Badge>
             </div>
             <div className="mt-7 text-[30px] font-black tracking-[-0.04em] text-[#080c1a]">{value}</div>
             <div className="mt-1 text-sm text-[#8090aa]">{helper}</div>
@@ -43,7 +43,7 @@ export default async function DashboardPage() {
               {[0, 1, 2, 3, 4].map((bar) => (
                 <span
                   key={bar}
-                  className={tone === "orange" ? "w-1.5 rounded-full bg-[#bc4800]" : "w-1.5 rounded-full bg-[#0b4edb]"}
+                  className={tone === "orange" ? "w-1.5 rounded-full bg-[#bc4800]" : "w-1.5 rounded-full bg-[#22ddeb]"}
                   style={{ height: `${14 + bar * 5}px`, opacity: 0.2 + bar * 0.16 }}
                 />
               ))}
@@ -59,7 +59,7 @@ export default async function DashboardPage() {
             <p className="mt-1 text-[#536884]">Correlating customer engagement with transaction volume.</p>
           </div>
           <div className="flex items-center gap-6 text-sm text-[#172033]">
-            <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-[#0b4edb]" />Sales ($)</span>
+            <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-[#22ddeb]" />Sales ($)</span>
             <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-[#bc4800]" />Messages</span>
           </div>
         </div>
@@ -70,7 +70,7 @@ export default async function DashboardPage() {
         <Card className="overflow-hidden">
           <div className="flex items-center justify-between">
             <h2 className="p-6 text-xl font-medium text-[#080c1a]">Recent Orders</h2>
-            <button className="p-6 text-sm font-bold text-[#0b4edb]">View All</button>
+            <button className="p-6 text-sm font-bold text-[#008d99]">View All</button>
           </div>
           <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr] bg-[#f7f9fc] px-8 py-4 text-xs font-black uppercase tracking-[0.12em] text-[#5d6e88]">
             <span>Order ID</span><span>Customer</span><span>Status</span><span>Total</span>
