@@ -393,6 +393,18 @@ export async function markConversationRead(conversationId: string) {
   return data ? { conversationId: data.id, unreadCount: data.unread_count } : null;
 }
 
+export async function getUnreadInboxCount() {
+  const { supabase, tenant } = await getAuthenticatedTenantContext();
+  const { count, error } = await supabase
+    .from("conversations")
+    .select("id", { count: "exact", head: true })
+    .eq("tenant_id", tenant.id)
+    .gt("unread_count", 0);
+
+  assertNoError(error, "unread inbox count failed");
+  return count ?? 0;
+}
+
 export async function getOrdersData() {
   const { supabase, tenant } = await getAuthenticatedTenantContext();
   const customers = await fetchCustomers(supabase, tenant.id);

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   CircleHelp,
   ClipboardList,
@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const APP_NAME = "InChouf POS";
+const UNREAD_POLL_INTERVAL_MS = 5000;
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -29,10 +30,72 @@ const nav = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
+function useUnreadInboxCount(isInboxActive: boolean) {
+  const [unreadInboxCount, setUnreadInboxCount] = useState(0);
+
+  const refreshUnreadInboxCount = useCallback(async () => {
+    try {
+      const response = await fetch("/api/inbox/unread", { cache: "no-store" });
+
+      if (!response.ok) {
+        return;
+      }
+
+      const payload = await response.json() as { unreadConversationCount?: number };
+      setUnreadInboxCount(Number(payload.unreadConversationCount ?? 0));
+    } catch {
+      // Keep the last known count if the lightweight background refresh fails.
+    }
+  }, []);
+
+  useEffect(() => {
+    const initialRefreshId = window.setTimeout(() => {
+      void refreshUnreadInboxCount();
+    }, 0);
+    const intervalId = window.setInterval(() => {
+      void refreshUnreadInboxCount();
+    }, UNREAD_POLL_INTERVAL_MS);
+
+    function handleVisibilityRefresh() {
+      if (document.visibilityState === "visible") {
+        void refreshUnreadInboxCount();
+      }
+    }
+
+    window.addEventListener("focus", refreshUnreadInboxCount);
+    document.addEventListener("visibilitychange", handleVisibilityRefresh);
+
+    return () => {
+      window.clearTimeout(initialRefreshId);
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refreshUnreadInboxCount);
+      document.removeEventListener("visibilitychange", handleVisibilityRefresh);
+    };
+  }, [refreshUnreadInboxCount]);
+
+  useEffect(() => {
+    if (isInboxActive) {
+      return;
+    }
+
+    const routeRefreshId = window.setTimeout(() => {
+      void refreshUnreadInboxCount();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(routeRefreshId);
+    };
+  }, [isInboxActive, refreshUnreadInboxCount]);
+
+  return isInboxActive ? 0 : unreadInboxCount;
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const isInboxActive = pathname === "/inbox" || pathname.startsWith("/inbox/");
+  const unreadInboxCount = useUnreadInboxCount(isInboxActive);
 
   async function signOut() {
     if (isSigningOut) {
@@ -89,7 +152,12 @@ export function Sidebar() {
                 )}
               >
                 <Icon className="h-[22px] w-[22px]" />
-                {item.label}
+                <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                {item.href === "/inbox" && !isInboxActive && unreadInboxCount > 0 ? (
+                  <span className="ml-auto inline-flex min-w-6 items-center justify-center rounded-full bg-[#22ddeb] px-2 py-0.5 text-xs font-black text-black shadow-[0_0_16px_rgba(34,221,235,0.35)]">
+                    {unreadInboxCount > 99 ? "99+" : unreadInboxCount}
+                  </span>
+                ) : null}
               </Link>
             );
           })}
@@ -116,6 +184,8 @@ export function Sidebar() {
 
 export function MobileNav() {
   const pathname = usePathname();
+  const isInboxActive = pathname === "/inbox" || pathname.startsWith("/inbox/");
+  const unreadInboxCount = useUnreadInboxCount(isInboxActive);
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-6 border-t border-[#1d3038] bg-[#050809] lg:hidden">
@@ -132,7 +202,14 @@ export function MobileNav() {
               active && "bg-[#0d1519] text-[#22ddeb]",
             )}
           >
-            <Icon className="h-4 w-4" />
+            <span className="relative">
+              <Icon className="h-4 w-4" />
+              {item.href === "/inbox" && !isInboxActive && unreadInboxCount > 0 ? (
+                <span className="absolute -right-3 -top-2 inline-flex min-w-4 items-center justify-center rounded-full bg-[#22ddeb] px-1 text-[9px] font-black leading-4 text-black">
+                  {unreadInboxCount > 99 ? "99+" : unreadInboxCount}
+                </span>
+              ) : null}
+            </span>
             {item.label}
           </Link>
         );
