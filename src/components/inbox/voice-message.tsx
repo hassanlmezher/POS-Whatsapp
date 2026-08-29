@@ -26,7 +26,7 @@ export function VoiceMessage({ message }: { message: Message }) {
   const [duration, setDuration] = useState(message.audio?.durationSeconds ?? 0);
   const [speedIndex, setSpeedIndex] = useState(0);
   const progress = duration > 0 ? Math.min(currentTime / duration, 1) : 0;
-  const bars = useMemo(() => Array.from({ length: 28 }, (_, index) => 8 + ((index * 7) % 22)), []);
+  const bars = useMemo(() => Array.from({ length: 34 }, (_, index) => 8 + ((index * 7) % 22)), []);
   const canPlay = Boolean(message.audio?.url) && !error;
   const isOutbound = message.direction === "outbound";
 
@@ -75,7 +75,7 @@ export function VoiceMessage({ message }: { message: Message }) {
   }
 
   return (
-    <div className="min-w-[260px] max-w-[360px]">
+    <div className="w-[340px] max-w-full sm:w-[430px]">
       <audio
         ref={audioRef}
         src={message.audio?.url ?? undefined}

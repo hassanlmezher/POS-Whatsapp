@@ -446,7 +446,7 @@ export function InboxWorkspace({
           {activeConversation ? activeMessages.map((message) => (
             <div key={message.id} className={`flex ${message.direction === "outbound" ? "justify-end" : "justify-start"}`}>
               <div
-                className={`max-w-[70%] rounded-xl p-4 shadow-sm ${
+                className={`${message.messageType === "audio" ? "max-w-[82%]" : "max-w-[70%]"} rounded-xl p-4 shadow-sm ${
                   message.direction === "outbound" ? "bg-[#22ddeb] text-black" : "bg-[#070b0d] text-[#f8fbff] ring-1 ring-[#1d3038]"
                 }`}
               >
