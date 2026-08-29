@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getTenantContext as getAuthenticatedTenantContext, type Tenant } from "@/lib/tenant-context";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type {
   Category,
   Company,
@@ -372,6 +373,24 @@ export async function getInboxData(activeConversationId?: string) {
       ? orders.filter((order) => order.customerId === selectedConversation.customerId)
       : [],
   };
+}
+
+export async function markConversationRead(conversationId: string) {
+  const { tenant } = await getAuthenticatedTenantContext();
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("conversations")
+    .update({
+      unread_count: 0,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", conversationId)
+    .eq("tenant_id", tenant.id)
+    .select("id,unread_count")
+    .maybeSingle<{ id: string; unread_count: number }>();
+
+  assertNoError(error, "conversation mark-read update failed");
+  return data ? { conversationId: data.id, unreadCount: data.unread_count } : null;
 }
 
 export async function getOrdersData() {

@@ -9,6 +9,7 @@ type InboxState = {
   messages: Message[];
   setInitialState: (conversations: Conversation[], messages: Message[], activeConversationId: string) => void;
   setActiveConversation: (conversationId: string) => void;
+  markConversationRead: (conversationId: string) => void;
   appendMessage: (message: Message) => void;
 };
 
@@ -17,12 +18,26 @@ export const useInboxStore = create<InboxState>((set) => ({
   conversations: [],
   messages: [],
   setInitialState: (conversations, messages, activeConversationId) =>
-    set((state) => ({
-      conversations,
-      messages,
-      activeConversationId: activeConversationId || state.activeConversationId,
-    })),
+    set((state) => {
+      const nextActiveConversationId = activeConversationId || state.activeConversationId;
+
+      return {
+        conversations: conversations.map((conversation) =>
+          conversation.id === nextActiveConversationId
+            ? { ...conversation, unreadCount: 0 }
+            : conversation,
+        ),
+        messages,
+        activeConversationId: nextActiveConversationId,
+      };
+    }),
   setActiveConversation: (activeConversationId) => set({ activeConversationId }),
+  markConversationRead: (conversationId) =>
+    set((state) => ({
+      conversations: state.conversations.map((conversation) =>
+        conversation.id === conversationId ? { ...conversation, unreadCount: 0 } : conversation,
+      ),
+    })),
   appendMessage: (message) =>
     set((state) => {
       const messages = state.messages.some((item) => item.id === message.id)
@@ -37,7 +52,9 @@ export const useInboxStore = create<InboxState>((set) => ({
                 lastMessageAt: message.createdAt,
                 unreadCount:
                   message.direction === "inbound"
-                    ? conversation.unreadCount + 1
+                    ? state.activeConversationId === message.conversationId
+                      ? 0
+                      : conversation.unreadCount + 1
                     : conversation.unreadCount,
               }
             : conversation,

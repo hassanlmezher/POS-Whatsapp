@@ -61,6 +61,7 @@ export function InboxWorkspace({
   const [activeCustomer, setActiveCustomer] = useState<Customer | null>(selectedCustomer ?? null);
   const [activeRecentOrders, setActiveRecentOrders] = useState<Order[]>(recentOrders);
   const draftTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const latestMessageRef = useRef<HTMLDivElement | null>(null);
   const activeConversationIdRef = useRef<string | null>(selectedConversation?.id ?? conversations[0]?.id ?? null);
   const syncAbortControllerRef = useRef<AbortController | null>(null);
   const syncSequenceRef = useRef(0);
@@ -70,6 +71,7 @@ export function InboxWorkspace({
     conversations: storeConversations,
     setInitialState,
     setActiveConversation,
+    markConversationRead,
     appendMessage,
     messages,
   } = useInboxStore();
@@ -87,6 +89,7 @@ export function InboxWorkspace({
   const activeMessages = activeConversation
     ? messages.filter((message) => message.conversationId === activeConversation.id)
     : [];
+  const latestMessageId = activeMessages[activeMessages.length - 1]?.id ?? "";
   const activeSuggestion = suggestionConversationId === activeConversation?.id ? suggestion : null;
   const activeSuggestionError = suggestionConversationId === activeConversation?.id ? suggestionError : null;
 
@@ -184,8 +187,40 @@ export function InboxWorkspace({
     }, delayMs);
   }, [syncInbox]);
 
+  const markConversationAsRead = useCallback(async (conversationId: string) => {
+    markConversationRead(conversationId);
+
+    try {
+      const response = await fetch("/api/inbox", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text().catch(() => "");
+        console.warn("[inbox] Mark conversation read failed", {
+          conversationId,
+          status: response.status,
+          body: errorBody,
+        });
+        return;
+      }
+    } catch (error) {
+      console.warn("[inbox] Mark conversation read request failed", {
+        conversationId,
+        error,
+      });
+    } finally {
+      scheduleSync("mark-read");
+    }
+  }, [markConversationRead, scheduleSync]);
+
   const realtimeStatus = useRealtimeMessages(company.id, (message) => {
     appendMessage(message);
+    if (message.direction === "inbound" && activeConversationIdRef.current === message.conversationId) {
+      void markConversationAsRead(message.conversationId);
+    }
     scheduleSync("realtime");
   });
 
@@ -218,8 +253,26 @@ export function InboxWorkspace({
   }, [scheduleSync, syncInbox]);
 
   useEffect(() => {
-    scheduleSync("conversation-change");
-  }, [activeConversationId, scheduleSync]);
+    if (!activeConversationId) {
+      return;
+    }
+
+    void markConversationAsRead(activeConversationId);
+  }, [activeConversationId, markConversationAsRead]);
+
+  useEffect(() => {
+    if (!activeConversation?.id) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      latestMessageRef.current?.scrollIntoView({ block: "end" });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [activeConversation?.id, latestMessageId]);
 
   const customer = activeCustomer;
 
@@ -332,7 +385,10 @@ export function InboxWorkspace({
           {visibleConversations.map((conversation) => (
             <button
               key={conversation.id}
-              onClick={() => setActiveConversation(conversation.id)}
+              onClick={() => {
+                setActiveConversation(conversation.id);
+                markConversationRead(conversation.id);
+              }}
               className={`relative flex w-full items-center gap-4 border-b border-[#1d3038] p-5 text-left transition hover:bg-[#0d1519] ${
                 conversation.id === activeConversation?.id ? "bg-[#10181c]" : ""
               }`}
@@ -421,6 +477,7 @@ export function InboxWorkspace({
               )}
             </div>
           )}
+          <div ref={latestMessageRef} aria-hidden="true" />
         </div>
 
         <div className="bg-[#070b0d] p-5 backdrop-blur">
