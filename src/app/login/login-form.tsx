@@ -6,15 +6,11 @@ import { useRouter } from "next/navigation";
 import {
   AlertCircle,
   ArrowRight,
-  BarChart3,
-  Box,
   Eye,
   EyeOff,
   LockKeyhole,
   Mail,
-  MessageCircle,
   ShieldCheck,
-  ShoppingCart,
 } from "lucide-react";
 import { LoadingScreen } from "@/components/app/loading-screen";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -23,29 +19,6 @@ type LoginFormProps = {
   initialError: string | null;
   year: number;
 };
-
-const features = [
-  {
-    title: "WhatsApp Integration",
-    description: "Manage customer conversations and orders from one inbox.",
-    icon: MessageCircle,
-  },
-  {
-    title: "Fast Checkout",
-    description: "Create clean sales flows built for busy retail counters.",
-    icon: ShoppingCart,
-  },
-  {
-    title: "Inventory Control",
-    description: "Keep products, stock, and reorder signals in sync.",
-    icon: Box,
-  },
-  {
-    title: "Live Reporting",
-    description: "See sales, order volume, and performance at a glance.",
-    icon: BarChart3,
-  },
-];
 
 export function LoginForm({ initialError, year }: LoginFormProps) {
   const router = useRouter();
@@ -117,79 +90,22 @@ export function LoginForm({ initialError, year }: LoginFormProps) {
   }
 
   return (
-    <main className="fixed inset-0 grid overflow-hidden bg-[#030607] lg:grid-cols-[46%_54%]">
+    <main className="relative flex min-h-dvh overflow-x-hidden bg-[#030607]">
       {loadingMessage ? <LoadingScreen message={loadingMessage} /> : null}
 
-      <section
-        aria-label="InChouf POS business management features"
-        className="relative hidden h-dvh overflow-hidden bg-black lg:block"
-      >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_18%,rgba(34,245,255,0.12),transparent_30%),linear-gradient(145deg,#000_0%,#020809_48%,#000_100%)]" />
-        <div className="absolute -right-40 top-10 h-[520px] w-[520px] rounded-full border border-[#22f5ff]/12" />
-        <div className="absolute -right-14 top-36 h-[310px] w-[310px] rounded-full border border-[#22f5ff]/10" />
-        <div className="absolute left-0 top-0 h-px w-full bg-gradient-to-r from-transparent via-[#22f5ff]/80 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(34,221,235,0.13),transparent_34%),linear-gradient(145deg,#000_0%,#030607_52%,#000_100%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#22ddeb]/70 to-transparent" />
 
-        <div className="relative z-10 flex h-full flex-col justify-center px-10 py-6 xl:px-14">
-          <Image
-            src="/inchouf-pos-logo.png"
-            alt="InChouf POS"
-            width={320}
-            height={240}
-            priority
-            className="h-auto w-[140px] shrink-0 object-contain drop-shadow-[0_18px_34px_rgba(34,245,255,0.20)] xl:w-[165px]"
-          />
-
-          <div className="mt-5 max-w-[620px]">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#22f5ff]">
-              Smart POS. Smarter Business.
-            </p>
-            <h1 className="mt-4 text-[36px] font-bold leading-[1.05] text-white xl:text-[44px]">
-              Run your business{" "}
-              <span className="text-[#22f5ff]">smarter</span>, faster, better.
-            </h1>
-            <p className="mt-4 max-w-[520px] text-[14px] leading-[1.5] text-white/68 xl:text-[15px]">
-              Manage sales, WhatsApp orders, inventory, employees and customers in one powerful POS
-              workspace.
-            </p>
-          </div>
-
-          <div className="mt-6 grid max-w-[620px] grid-cols-2 gap-3">
-            {features.map((feature) => {
-              const Icon = feature.icon;
-
-              return (
-                <div
-                  key={feature.title}
-                  className="rounded-lg border border-white/10 bg-white/[0.045] p-3 shadow-[0_18px_48px_rgba(0,0,0,0.22)] backdrop-blur-sm"
-                >
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#22f5ff]/35 bg-[#22f5ff]/10 text-[#22f5ff]">
-                    <Icon aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={2.1} />
-                  </div>
-                  <h2 className="mt-2 text-[14px] font-bold leading-tight text-white">
-                    {feature.title}
-                  </h2>
-                  <p className="mt-1 text-[12px] leading-[1.35] text-white/58">
-                    {feature.description}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-6 h-px max-w-[620px] bg-gradient-to-r from-[#22f5ff]/80 via-white/20 to-transparent" />
-        </div>
-      </section>
-
-      <section className="flex h-dvh min-w-0 flex-col items-center justify-center overflow-hidden border-l border-white/10 bg-[#050809] px-5 py-5 sm:px-8 lg:px-12">
-        <div className="my-auto w-full max-w-[540px] rounded-lg border border-white/10 bg-[#070b0d] px-6 py-7 shadow-[0_24px_70px_rgba(0,0,0,0.36)] sm:px-10 sm:py-9">
+      <section className="relative z-10 flex min-h-dvh w-full flex-col items-center justify-center px-5 py-8 sm:px-8">
+        <div className="w-full max-w-[540px] rounded-lg border border-white/10 bg-[#070b0d]/95 px-6 py-7 shadow-[0_24px_70px_rgba(0,0,0,0.36)] backdrop-blur sm:px-10 sm:py-9">
           <div className="text-center">
             <Image
               src="/inchouf-pos-logo.png"
               alt="InChouf POS"
-              width={120}
-              height={120}
+              width={148}
+              height={148}
               priority
-              className="mx-auto mb-5 h-20 w-20 rounded-lg object-cover ring-1 ring-[#22ddeb]/25 shadow-[0_14px_30px_rgba(34,221,235,0.14)] lg:hidden"
+              className="mx-auto mb-6 h-24 w-24 rounded-lg object-cover ring-1 ring-[#22ddeb]/25 shadow-[0_14px_30px_rgba(34,221,235,0.14)]"
             />
             <h1 className="text-[27px] font-bold leading-tight text-white sm:text-[30px]">
               Welcome Back!
