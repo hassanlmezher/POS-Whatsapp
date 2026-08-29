@@ -26,7 +26,7 @@ const nav = [
   { href: "/inbox", label: "Inbox", icon: Inbox },
   { href: "/customers", label: "Customers", icon: Users },
   { href: "/orders", label: "Orders", icon: ClipboardList },
-  { href: "/pos", label: "Products", icon: Package },
+  { href: "/inventory", label: "Inventory", icon: Package },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -140,7 +140,10 @@ export function Sidebar() {
         <nav className="mt-5 flex-1 space-y-1 px-5">
           {nav.map((item) => {
             const Icon = item.icon;
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const active =
+              pathname === item.href ||
+              pathname.startsWith(`${item.href}/`) ||
+              (item.href === "/inventory" && pathname === "/pos");
 
             return (
               <Link
@@ -191,7 +194,10 @@ export function MobileNav() {
     <div className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-6 border-t border-[#1d3038] bg-[#050809] lg:hidden">
       {nav.map((item) => {
         const Icon = item.icon;
-        const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        const active =
+          pathname === item.href ||
+          pathname.startsWith(`${item.href}/`) ||
+          (item.href === "/inventory" && pathname === "/pos");
 
         return (
           <Link

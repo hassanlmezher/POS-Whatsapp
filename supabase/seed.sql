@@ -26,36 +26,6 @@ from public.tenants
 where slug = 'inchouf-test-business'
 on conflict (tenant_id, name) do nothing;
 
-insert into public.product_categories (tenant_id, name, icon, sort_order)
-select id, 'Test Products', 'Package', 0
-from public.tenants
-where slug = 'inchouf-test-business'
-on conflict (tenant_id, name) do nothing;
-
-insert into public.products (tenant_id, category_id, name, sku, price, active)
-select tenant.id, category.id, 'Isolation Test Product A', 'TEST-A-001', 10.00, true
-from public.tenants tenant
-join public.product_categories category
-  on category.tenant_id = tenant.id and category.name = 'Test Products'
-where tenant.slug = 'inchouf-test-business'
-on conflict (tenant_id, sku) do update
-set name = excluded.name,
-    category_id = excluded.category_id,
-    price = excluded.price,
-    active = excluded.active;
-
-insert into public.inventory (tenant_id, branch_id, product_id, quantity, reorder_level)
-select tenant.id, branch.id, product.id, 25, 5
-from public.tenants tenant
-join public.branches branch
-  on branch.tenant_id = tenant.id and branch.name = 'Main Branch'
-join public.products product
-  on product.tenant_id = tenant.id and product.sku = 'TEST-A-001'
-where tenant.slug = 'inchouf-test-business'
-on conflict (tenant_id, branch_id, product_id) do update
-set quantity = excluded.quantity,
-    reorder_level = excluded.reorder_level;
-
 commit;
 
 select

@@ -1,8 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { Bell, CircleHelp, Grid3X3, Plus } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export function Header({ title, userName }: { title?: string; userName: string }) {
@@ -23,10 +23,13 @@ export function Header({ title, userName }: { title?: string; userName: string }
           <Grid3X3 className="h-6 w-6" />
         </button>
         <div className="hidden h-14 w-px bg-[#1d3038] md:block" />
-        <Button className="h-12 rounded-lg px-4 text-sm sm:px-6 sm:text-base">
+        <Link
+          href="/pos"
+          className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-[#22ddeb] px-4 text-sm font-semibold text-black shadow-[0_6px_14px_rgba(34,221,235,0.24)] transition hover:bg-[#2ff4ff] sm:px-6 sm:text-base"
+        >
           <Plus className="h-4 w-4" />
           New Order
-        </Button>
+        </Link>
         <Avatar
           name={userName}
           className="h-11 w-11"

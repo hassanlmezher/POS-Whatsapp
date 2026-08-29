@@ -7,6 +7,7 @@ import {
   Banknote,
   CreditCard,
   Minus,
+  Package,
   Plus,
   Trash2,
   User,
@@ -98,23 +99,49 @@ export function POSWorkspace({
           <div className="grid grid-cols-2 gap-8 md:grid-cols-3 2xl:grid-cols-4">
           {filteredProducts.map((product) => {
             const category = categories.find((item) => item.id === product.categoryId);
+            const unavailable = !product.active || product.stock <= 0;
             return (
               <button
                 key={product.id}
-                onClick={() => addItem(product)}
-                className="overflow-hidden rounded-xl bg-[#070b0d] p-4 text-left shadow-[0_2px_8px_rgba(15,23,42,0.05)] ring-1 ring-[#1d3038] transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(15,23,42,0.10)]"
+                onClick={() => {
+                  if (!unavailable) {
+                    addItem(product);
+                  }
+                }}
+                disabled={unavailable}
+                className="overflow-hidden rounded-xl bg-[#070b0d] p-4 text-left shadow-[0_2px_8px_rgba(15,23,42,0.05)] ring-1 ring-[#1d3038] transition hover:-translate-y-0.5 hover:ring-[#22ddeb]/45 hover:shadow-[0_12px_28px_rgba(0,0,0,0.28)] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0 disabled:hover:ring-[#1d3038]"
               >
                 <div className="relative">
-                  <img src={product.imageUrl} alt={product.name} className="h-52 w-full rounded-lg object-cover" />
+                  {product.imageUrl ? (
+                    <img src={product.imageUrl} alt={product.name} className="h-52 w-full rounded-lg object-cover" />
+                  ) : (
+                    <div className="flex h-52 w-full items-center justify-center rounded-lg border border-[#1d3038] bg-[#0b1114] text-[#6f858f]">
+                      <Package className="h-10 w-10" aria-hidden="true" />
+                    </div>
+                  )}
                   <span className="absolute bottom-2 right-2 rounded-md bg-[#070b0d] px-3 py-1 text-sm font-black text-[#22ddeb] shadow">{formatCurrency(product.price, company.currency)}</span>
+                  {unavailable ? (
+                    <span className="absolute left-2 top-2 rounded-md bg-black/80 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-white ring-1 ring-white/10">
+                      {product.active ? "Out of stock" : "Inactive"}
+                    </span>
+                  ) : null}
                 </div>
                 <div className="pt-4">
                   <div className="line-clamp-1 text-xl font-medium text-[#f8fbff]">{product.name}</div>
-                  <div className="mt-1 text-base text-[#8fa3ad]">{category?.name}</div>
+                  <div className="mt-1 text-base text-[#8fa3ad]">{category?.name ?? "Uncategorized"}</div>
                 </div>
               </button>
             );
           })}
+          {!filteredProducts.length ? (
+            <div className="col-span-full rounded-xl border border-[#1d3038] bg-[#070b0d] px-6 py-12 text-center">
+              <Package className="mx-auto h-10 w-10 text-[#22ddeb]" aria-hidden="true" />
+              <h2 className="mt-4 text-xl font-semibold text-white">No products found</h2>
+              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#8fa3ad]">
+                Products created for this tenant in Supabase will appear here automatically.
+              </p>
+            </div>
+          ) : null}
           </div>
         </div>
       </section>
@@ -146,7 +173,13 @@ export function POSWorkspace({
           {items.map((item) => (
             <div key={item.product.id} className="rounded-xl bg-[#070b0d] p-3 shadow-sm ring-1 ring-[#1d3038]">
               <div className="flex gap-4">
-                <img src={item.product.imageUrl} alt={item.product.name} className="h-16 w-16 rounded-lg object-cover" />
+                {item.product.imageUrl ? (
+                  <img src={item.product.imageUrl} alt={item.product.name} className="h-16 w-16 rounded-lg object-cover" />
+                ) : (
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-[#1d3038] bg-[#0b1114] text-[#6f858f]">
+                    <Package className="h-6 w-6" aria-hidden="true" />
+                  </div>
+                )}
                 <div className="min-w-0 flex-1">
                   <div className="flex justify-between gap-3">
                     <div className="font-bold text-[#f8fbff]">{item.product.name}</div>
