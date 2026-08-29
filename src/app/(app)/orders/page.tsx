@@ -66,61 +66,44 @@ export default async function OrdersPage() {
           <Button variant="ghost" size="icon" aria-label="Download orders"><Download className="h-5 w-5" /></Button>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] text-left">
+          <table className="w-full min-w-[1120px] text-left">
             <thead className="bg-[#0b1114] text-xs uppercase tracking-[0.12em] text-[#6f858f]">
               <tr>
-                <th className="px-6 py-5">Order ID</th>
-                <th className="px-6 py-5">Customer Name</th>
-                <th className="px-6 py-5">Items</th>
-                <th className="px-6 py-5">Date</th>
-                <th className="px-6 py-5">Amount</th>
-                <th className="px-6 py-5">Status</th>
-                <th className="px-6 py-5 text-right">Action</th>
+                <th className="whitespace-nowrap px-6 py-5">Order ID</th>
+                <th className="whitespace-nowrap px-6 py-5">Customer Name</th>
+                <th className="whitespace-nowrap px-6 py-5">Items</th>
+                <th className="whitespace-nowrap px-6 py-5">Date</th>
+                <th className="whitespace-nowrap px-6 py-5">Amount</th>
+                <th className="whitespace-nowrap px-6 py-5">Status</th>
+                <th className="whitespace-nowrap px-6 py-5 text-right">Action</th>
               </tr>
             </thead>
             <tbody>
               {orders.map((order) => (
                 <tr key={order.id} className="border-t border-[#1d3038] text-[#f8fbff] transition hover:bg-[#0b1114]">
-                  <td className="px-6 py-5 align-middle font-semibold text-[#f8fbff]">#{order.orderNumber}</td>
+                  <td className="whitespace-nowrap px-6 py-5 align-middle font-semibold text-[#f8fbff]">#{order.orderNumber}</td>
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-3">
                       <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#10181c] text-xs font-bold text-[#f8fbff] ring-1 ring-[#1d3038]">{initials(order.customerName)}</span>
-                      {order.customerName}
+                      <span className="whitespace-nowrap">{order.customerName}</span>
                     </div>
                   </td>
                   <td className="px-6 py-5">
-                    <div className="flex min-w-[220px] items-center gap-3">
-                      <div className="flex -space-x-3">
-                        {(order.items ?? []).slice(0, 3).map((item) => (
-                          <img
-                            key={item.id}
-                            src={item.productImageUrl}
-                            alt={item.productName}
-                            className="h-11 w-11 rounded-lg border border-[#1d3038] bg-[#030607] object-cover"
-                          />
-                        ))}
-                        {!(order.items ?? []).length ? (
-                          <span className="flex h-11 w-11 items-center justify-center rounded-lg border border-[#1d3038] bg-[#082529]">
-                            <Package className="h-5 w-5 text-[#22ddeb]" />
-                          </span>
-                        ) : null}
+                    <div className="min-w-0 max-w-[320px]">
+                      <div className="truncate text-sm font-semibold text-[#f8fbff]">
+                        {(order.items ?? [])[0]?.productName ?? "No items"}
                       </div>
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold text-[#f8fbff]">
-                          {(order.items ?? [])[0]?.productName ?? "No items"}
-                        </div>
-                        <div className="text-xs text-[#6f858f]">
-                          {(order.items ?? []).length
-                            ? `${(order.items ?? []).reduce((sum, item) => sum + item.quantity, 0)} item${(order.items ?? []).reduce((sum, item) => sum + item.quantity, 0) === 1 ? "" : "s"}`
-                            : "Empty order"}
-                        </div>
+                      <div className="whitespace-nowrap text-xs text-[#6f858f]">
+                        {(order.items ?? []).length
+                          ? `${(order.items ?? []).reduce((sum, item) => sum + item.quantity, 0)} item${(order.items ?? []).reduce((sum, item) => sum + item.quantity, 0) === 1 ? "" : "s"}`
+                          : "Empty order"}
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-5 text-[#8fa3ad]">{new Date(order.createdAt).toLocaleDateString()}</td>
-                  <td className="px-6 py-5 font-black text-[#22ddeb]">{formatCurrency(order.total)}</td>
-                  <td className="px-6 py-5"><Badge tone={order.paymentStatus === "paid" ? "green" : order.paymentStatus === "failed" ? "red" : "yellow"}>{order.paymentStatus}</Badge></td>
-                  <td className="px-6 py-5 text-right"><Link className="font-bold text-[#22ddeb]" href={`/orders/${order.id}`}>View Details</Link></td>
+                  <td className="whitespace-nowrap px-6 py-5 text-[#8fa3ad]">{new Date(order.createdAt).toLocaleDateString()}</td>
+                  <td className="whitespace-nowrap px-6 py-5 font-black text-[#22ddeb]">{formatCurrency(order.total)}</td>
+                  <td className="whitespace-nowrap px-6 py-5"><Badge tone={order.paymentStatus === "paid" ? "green" : order.paymentStatus === "failed" ? "red" : "yellow"}>{order.paymentStatus}</Badge></td>
+                  <td className="whitespace-nowrap px-6 py-5 text-right"><Link className="font-bold text-[#22ddeb]" href={`/orders/${order.id}`}>View Details</Link></td>
                 </tr>
               ))}
             </tbody>
