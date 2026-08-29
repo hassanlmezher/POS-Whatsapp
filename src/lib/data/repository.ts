@@ -72,12 +72,14 @@ type DbOrder = {
 };
 type DbOrderItem = {
   id: string;
+  tenant_id?: string;
   order_id: string;
   product_id: string | null;
   product_name: string;
   quantity: number;
   unit_price: number | string;
   line_total: number | string;
+  product?: { image_url: string | null } | null;
 };
 
 function assertNoError(error: unknown, context: string) {
@@ -119,7 +121,7 @@ function mapProduct(row: DbProduct, stockByProductId: Map<string, number>): Prod
     sku: row.sku,
     price: money(row.price),
     stock: stockByProductId.get(row.id) ?? 0,
-    imageUrl: row.image_url ?? "/window.svg",
+    imageUrl: row.image_url ?? "",
     active: row.active,
   };
 }
@@ -177,6 +179,7 @@ function mapOrderItem(row: DbOrderItem): OrderItem {
     orderId: row.order_id,
     productId: row.product_id ?? "",
     productName: row.product_name,
+    productImageUrl: row.product?.image_url ?? "/inchouf-pos-mark.png",
     quantity: row.quantity,
     unitPrice: money(row.unit_price),
     lineTotal: money(row.line_total),
@@ -204,7 +207,6 @@ async function fetchProducts(supabase: SupabaseClient, tenantId: string) {
         .from("products")
         .select("id,tenant_id,category_id,name,sku,price,image_url,active")
         .eq("tenant_id", tenantId)
-        .eq("active", true)
         .order("name")
         .returns<DbProduct[]>(),
       supabase
@@ -271,12 +273,33 @@ async function fetchMessages(supabase: SupabaseClient, tenantId: string, convers
 async function fetchOrderItems(supabase: SupabaseClient, tenantId: string, orderId: string) {
   const { data, error } = await supabase
     .from("order_items")
-    .select("id,order_id,product_id,product_name,quantity,unit_price,line_total")
+    .select("id,order_id,product_id,product_name,quantity,unit_price,line_total,product:products!order_items_product_tenant_fkey(image_url)")
     .eq("tenant_id", tenantId)
     .eq("order_id", orderId)
     .returns<DbOrderItem[]>();
   assertNoError(error, "order_items select failed");
   return (data ?? []).map(mapOrderItem);
+}
+
+async function fetchOrderItemsForOrders(supabase: SupabaseClient, tenantId: string, orderIds: string[]) {
+  if (!orderIds.length) {
+    return new Map<string, OrderItem[]>();
+  }
+
+  const { data, error } = await supabase
+    .from("order_items")
+    .select("id,order_id,product_id,product_name,quantity,unit_price,line_total,product:products!order_items_product_tenant_fkey(image_url)")
+    .eq("tenant_id", tenantId)
+    .in("order_id", orderIds)
+    .returns<DbOrderItem[]>();
+  assertNoError(error, "order_items preview select failed");
+
+  const itemsByOrderId = new Map<string, OrderItem[]>();
+  for (const item of (data ?? []).map(mapOrderItem)) {
+    itemsByOrderId.set(item.orderId, [...(itemsByOrderId.get(item.orderId) ?? []), item]);
+  }
+
+  return itemsByOrderId;
 }
 
 export async function getCompanyContext() {
@@ -346,6 +369,80 @@ export async function getPOSData() {
   return { company: mapTenant(tenant), categories, products, customers };
 }
 
+export async function getInventoryOverviewData() {
+  const { supabase, tenant } = await getAuthenticatedTenantContext();
+  const [categories, products] = await Promise.all([
+    fetchCategories(supabase, tenant.id),
+    fetchProducts(supabase, tenant.id),
+  ]);
+  const realCategories = categories.filter((category) => category.id !== "cat-all");
+
+  return {
+    company: mapTenant(tenant),
+    categories: realCategories,
+    products,
+    stats: {
+      totalProducts: products.length,
+      activeProducts: products.filter((product) => product.active).length,
+      outOfStock: products.filter((product) => product.stock <= 0).length,
+      categories: realCategories.length,
+    },
+  };
+}
+
+export async function getInventoryProductsData() {
+  const { supabase, tenant } = await getAuthenticatedTenantContext();
+  const [categories, products] = await Promise.all([
+    fetchCategories(supabase, tenant.id),
+    fetchProducts(supabase, tenant.id),
+  ]);
+
+  return {
+    company: mapTenant(tenant),
+    categories: categories.filter((category) => category.id !== "cat-all"),
+    products,
+  };
+}
+
+export async function getInventoryCategoriesData() {
+  const { supabase, tenant } = await getAuthenticatedTenantContext();
+  const [categories, products] = await Promise.all([
+    fetchCategories(supabase, tenant.id),
+    fetchProducts(supabase, tenant.id),
+  ]);
+  const realCategories = categories.filter((category) => category.id !== "cat-all");
+
+  return {
+    company: mapTenant(tenant),
+    categories: realCategories.map((category) => ({
+      ...category,
+      productCount: products.filter((product) => product.categoryId === category.id).length,
+    })),
+    uncategorizedCount: products.filter((product) => !product.categoryId).length,
+  };
+}
+
+export async function getNewProductData() {
+  const { supabase, tenant } = await getAuthenticatedTenantContext();
+  const [{ data: branchRows, error: branchError }, categories] = await Promise.all([
+    supabase
+      .from("branches")
+      .select("id,name")
+      .eq("tenant_id", tenant.id)
+      .eq("active", true)
+      .order("created_at")
+      .returns<{ id: string; name: string }[]>(),
+    fetchCategories(supabase, tenant.id),
+  ]);
+  assertNoError(branchError, "branches select failed");
+
+  return {
+    company: mapTenant(tenant),
+    categories: categories.filter((category) => category.id !== "cat-all"),
+    branches: branchRows ?? [],
+  };
+}
+
 export async function getInboxData(activeConversationId?: string) {
   const { supabase, tenant } = await getAuthenticatedTenantContext();
   const customers = await fetchCustomers(supabase, tenant.id);
@@ -393,12 +490,33 @@ export async function markConversationRead(conversationId: string) {
   return data ? { conversationId: data.id, unreadCount: data.unread_count } : null;
 }
 
+export async function getUnreadInboxCount() {
+  const { supabase, tenant } = await getAuthenticatedTenantContext();
+  const { count, error } = await supabase
+    .from("conversations")
+    .select("id", { count: "exact", head: true })
+    .eq("tenant_id", tenant.id)
+    .gt("unread_count", 0);
+
+  assertNoError(error, "unread inbox count failed");
+  return count ?? 0;
+}
+
 export async function getOrdersData() {
   const { supabase, tenant } = await getAuthenticatedTenantContext();
   const customers = await fetchCustomers(supabase, tenant.id);
   const customersById = new Map(customers.map((customer) => [customer.id, customer]));
   const orders = await fetchOrders(supabase, tenant.id, customersById);
-  return { company: mapTenant(tenant), orders, customers };
+  const itemsByOrderId = await fetchOrderItemsForOrders(
+    supabase,
+    tenant.id,
+    orders.map((order) => order.id),
+  );
+  return {
+    company: mapTenant(tenant),
+    orders: orders.map((order) => ({ ...order, items: itemsByOrderId.get(order.id) ?? [] })),
+    customers,
+  };
 }
 
 export async function getOrderDetails(orderId: string) {

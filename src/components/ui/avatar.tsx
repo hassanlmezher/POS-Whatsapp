@@ -14,7 +14,7 @@ export function Avatar({
       <img
         src={src}
         alt={name}
-        className={cn("h-11 w-11 rounded-full object-cover ring-4 ring-[#f3f6fb]", className)}
+        className={cn("h-11 w-11 rounded-full object-cover ring-4 ring-[#0b1114]", className)}
       />
     );
   }
@@ -22,7 +22,7 @@ export function Avatar({
   return (
     <div
       className={cn(
-        "flex h-11 w-11 items-center justify-center rounded-full bg-[#eaffff] text-sm font-bold text-[#008d99] ring-4 ring-[#f3f6fb]",
+        "flex h-11 w-11 items-center justify-center rounded-full bg-[#082529] text-sm font-bold text-[#22ddeb] ring-4 ring-[#0b1114]",
         className,
       )}
     >

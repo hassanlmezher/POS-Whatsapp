@@ -119,7 +119,6 @@ export async function POST(request: Request) {
         .from("products")
         .select("id,category_id,name,price,active")
         .eq("tenant_id", tenant.id)
-        .eq("active", true)
         .order("name")
         .limit(40)
         .returns<DbProduct[]>(),

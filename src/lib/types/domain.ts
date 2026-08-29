@@ -86,6 +86,7 @@ export type Order = {
   taxTotal: number;
   total: number;
   createdAt: string;
+  items?: OrderItem[];
 };
 
 export type OrderItem = {
@@ -93,6 +94,7 @@ export type OrderItem = {
   orderId: string;
   productId: string;
   productName: string;
+  productImageUrl: string;
   quantity: number;
   unitPrice: number;
   lineTotal: number;
