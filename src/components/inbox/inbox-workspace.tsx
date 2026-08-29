@@ -10,6 +10,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { VoiceMessage } from "@/components/inbox/voice-message";
 
 const INBOX_SYNC_INTERVAL_MS = 5000;
 const INBOX_SYNC_DEBOUNCE_MS = 250;
@@ -449,7 +450,11 @@ export function InboxWorkspace({
                   message.direction === "outbound" ? "bg-[#22ddeb] text-black" : "bg-[#070b0d] text-[#f8fbff] ring-1 ring-[#1d3038]"
                 }`}
               >
-                <p className="leading-7">{message.body}</p>
+                {message.messageType === "audio" ? (
+                  <VoiceMessage message={message} />
+                ) : (
+                  <p className="leading-7">{message.body}</p>
+                )}
                 <div className={`mt-2 text-right text-xs ${message.direction === "outbound" ? "text-black/60" : "text-[#6f858f]"}`}>
                   {new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   {message.direction === "outbound" ? " ✓✓" : ""}

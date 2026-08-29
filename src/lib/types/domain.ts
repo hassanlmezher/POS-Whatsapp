@@ -3,6 +3,21 @@ export type OrderStatus = "draft" | "processing" | "completed" | "cancelled" | "
 export type PaymentStatus = "pending" | "paid" | "refunded" | "failed";
 export type MessageDirection = "inbound" | "outbound";
 export type MessageStatus = "sent" | "delivered" | "read" | "failed" | "received";
+export type MessageType = "text" | "audio" | "unsupported";
+
+export type MessageAudio = {
+  mediaId: string | null;
+  mimeType: string | null;
+  sha256: string | null;
+  isVoice: boolean;
+  durationSeconds: number | null;
+  fileSize: number | null;
+  fileName: string | null;
+  storageBucket: string | null;
+  storagePath: string | null;
+  error: string | null;
+  url: string | null;
+};
 
 export type WhatsAppConnection = {
   phoneNumber: string | null;
@@ -66,10 +81,12 @@ export type Message = {
   companyId: string;
   conversationId: string;
   customerId: string;
+  messageType: MessageType;
   direction: MessageDirection;
   body: string;
   status: MessageStatus;
   whatsappMessageId?: string | null;
+  audio?: MessageAudio | null;
   createdAt: string;
 };
 

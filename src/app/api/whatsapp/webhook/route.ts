@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "crypto";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { getPreferredWebhookVerifyToken } from "@/lib/whatsapp";
+import {
+  downloadWhatsAppMedia,
+  fetchWhatsAppMediaMetadata,
+  getPreferredWebhookVerifyToken,
+  getWhatsAppAccessToken,
+} from "@/lib/whatsapp";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+const WHATSAPP_AUDIO_BUCKET = process.env.WHATSAPP_AUDIO_BUCKET ?? "whatsapp-audio";
 
 type WebhookEvent =
   | {
@@ -181,6 +188,23 @@ function asOptionalString(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
+function isMissingMessageMediaSchema(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const record = error as { code?: unknown; message?: unknown };
+  const message = typeof record.message === "string" ? record.message : "";
+
+  return (
+    record.code === "PGRST204" ||
+    record.code === "42703" ||
+    message.includes("message_type") ||
+    message.includes("media_") ||
+    message.includes("schema cache")
+  );
+}
+
 function getWebhookAppSecret() {
   return process.env.WHATSAPP_APP_SECRET ?? process.env.META_APP_SECRET ?? null;
 }
@@ -263,7 +287,161 @@ function getMessageBody(message: Record<string, unknown>) {
     );
   }
 
+  if (type === "audio") {
+    return "🎤 Voice message";
+  }
+
   return type ? `[${type} message]` : null;
+}
+
+function getMessageType(message: Record<string, unknown>) {
+  const type = asOptionalString(message.type);
+
+  if (type === "audio") {
+    return "audio";
+  }
+
+  if (type === "text" || type === "button" || type === "interactive") {
+    return "text";
+  }
+
+  return "unsupported";
+}
+
+function getAudioPayload(message: Record<string, unknown>) {
+  if (asOptionalString(message.type) !== "audio") {
+    return null;
+  }
+
+  const audio = asRecord(message.audio);
+  return {
+    mediaId: asOptionalString(audio.id),
+    mimeType: asOptionalString(audio.mime_type),
+    sha256: asOptionalString(audio.sha256),
+    isVoice: audio.voice === true,
+  };
+}
+
+function getAudioExtension(mimeType: string | null) {
+  if (!mimeType) {
+    return "ogg";
+  }
+
+  if (mimeType.includes("mpeg")) return "mp3";
+  if (mimeType.includes("mp4")) return "m4a";
+  if (mimeType.includes("aac")) return "aac";
+  if (mimeType.includes("amr")) return "amr";
+  if (mimeType.includes("webm")) return "webm";
+  if (mimeType.includes("ogg") || mimeType.includes("opus")) return "ogg";
+
+  return "audio";
+}
+
+async function uploadAudioMedia({
+  supabase,
+  tenantId,
+  conversationId,
+  whatsappMessageId,
+  mediaId,
+  webhookMimeType,
+  webhookSha256,
+}: {
+  supabase: ReturnType<typeof createSupabaseAdminClient>;
+  tenantId: string;
+  conversationId: string;
+  whatsappMessageId: string;
+  mediaId: string;
+  webhookMimeType: string | null;
+  webhookSha256: string | null;
+}) {
+  const accessToken = getWhatsAppAccessToken();
+
+  if (!accessToken) {
+      return {
+        mediaId,
+        mimeType: webhookMimeType,
+        sha256: webhookSha256,
+        fileSize: null,
+        storageBucket: null,
+        storagePath: null,
+        fileName: null,
+      error: "Missing WHATSAPP_ACCESS_TOKEN",
+    };
+  }
+
+  try {
+    const metadata = await fetchWhatsAppMediaMetadata(mediaId, accessToken);
+    const downloaded = await downloadWhatsAppMedia(metadata.url, accessToken);
+    const mimeType = metadata.mimeType ?? downloaded.mimeType ?? webhookMimeType ?? "audio/ogg";
+    const fileName = `${whatsappMessageId}.${getAudioExtension(mimeType)}`;
+    const storagePath = `${tenantId}/${conversationId}/${fileName}`;
+    const { error: uploadError } = await supabase.storage
+      .from(WHATSAPP_AUDIO_BUCKET)
+      .upload(storagePath, downloaded.buffer, {
+        contentType: mimeType,
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error("[WhatsApp] audio upload failed", {
+        tenantId,
+        conversationId,
+        whatsappMessageId,
+        storagePath,
+        error: uploadError,
+      });
+
+      return {
+        mediaId: metadata.id,
+        mimeType,
+        sha256: metadata.sha256 ?? webhookSha256,
+        fileSize: metadata.fileSize,
+        storageBucket: null,
+        storagePath: null,
+        fileName,
+        error: uploadError.message,
+      };
+    }
+
+    console.info("[WhatsApp] audio stored", {
+      tenantId,
+      conversationId,
+      whatsappMessageId,
+      storagePath,
+      mimeType,
+      fileSize: metadata.fileSize,
+    });
+
+    return {
+      mediaId: metadata.id,
+      mimeType,
+      sha256: metadata.sha256 ?? webhookSha256,
+      fileSize: metadata.fileSize,
+      storageBucket: WHATSAPP_AUDIO_BUCKET,
+      storagePath,
+      fileName,
+      error: null,
+    };
+  } catch (error) {
+    console.error("[WhatsApp] audio retrieval failed", {
+      tenantId,
+      conversationId,
+      whatsappMessageId,
+      mediaId,
+      error,
+    });
+
+    return {
+      mediaId,
+      mimeType: webhookMimeType,
+      sha256: webhookSha256,
+      fileSize: null,
+      storageBucket: null,
+      storagePath: null,
+      fileName: null,
+      error: error instanceof Error ? error.message : "Audio retrieval failed",
+    };
+  }
 }
 
 async function resolveTenant(
@@ -303,6 +481,8 @@ async function persistInboundMessage(
   const whatsappMessageId = asOptionalString(message.id);
   const from = normalizePhone(asOptionalString(message.from));
   const body = getMessageBody(message);
+  const messageType = getMessageType(message);
+  const audioPayload = getAudioPayload(message);
   const phoneNumberId = getPhoneNumberId(value);
 
   console.info("[WhatsApp] message id =", whatsappMessageId ?? "missing");
@@ -322,6 +502,23 @@ async function persistInboundMessage(
   if (!tenantId) {
     console.warn("[whatsapp/webhook] No tenant matches metadata.phone_number_id", { phoneNumberId });
     return false;
+  }
+
+  const { data: existingMessage, error: existingMessageError } = await supabase
+    .from("messages")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("whatsapp_message_id", whatsappMessageId)
+    .maybeSingle<{ id: string }>();
+
+  if (existingMessageError) {
+    console.error("[WhatsApp] existing message lookup failed", { whatsappMessageId, error: existingMessageError });
+    return false;
+  }
+
+  if (existingMessage) {
+    console.info(`[WhatsApp] message saved = duplicate`, { whatsappMessageId, inserted: false });
+    return true;
   }
 
   const contact = getContact(value, from);
@@ -395,22 +592,69 @@ async function persistInboundMessage(
 
   console.info(`[WhatsApp] conversation created/found = ${conversation.id}`);
 
-  const { data: insertedMessages, error: messageError } = await supabase
+  const audioMedia = audioPayload?.mediaId
+    ? await uploadAudioMedia({
+        supabase,
+        tenantId,
+        conversationId: conversation.id,
+        whatsappMessageId,
+        mediaId: audioPayload.mediaId,
+        webhookMimeType: audioPayload.mimeType,
+        webhookSha256: audioPayload.sha256,
+      })
+    : null;
+
+  const messagePayload = {
+    tenant_id: tenantId,
+    conversation_id: conversation.id,
+    customer_id: customer.id,
+    message_type: messageType,
+    direction: "inbound",
+    body,
+    status: "received",
+    whatsapp_message_id: whatsappMessageId,
+    media_id: audioMedia?.mediaId ?? audioPayload?.mediaId ?? null,
+    media_mime_type: audioMedia?.mimeType ?? audioPayload?.mimeType ?? null,
+    media_sha256: audioMedia?.sha256 ?? audioPayload?.sha256 ?? null,
+    media_is_voice: audioPayload?.isVoice ?? false,
+    media_duration_seconds: null,
+    media_file_size: audioMedia?.fileSize ?? null,
+    media_storage_bucket: audioMedia?.storageBucket ?? null,
+    media_storage_path: audioMedia?.storagePath ?? null,
+    media_file_name: audioMedia?.fileName ?? null,
+    media_error: audioMedia?.error ?? (!audioPayload?.mediaId && messageType === "audio" ? "Missing WhatsApp audio media ID" : null),
+    created_at: createdAt,
+  };
+
+  let insertResponse = await supabase
     .from("messages")
     .upsert(
-      {
-        tenant_id: tenantId,
-        conversation_id: conversation.id,
-        customer_id: customer.id,
-        direction: "inbound",
-        body,
-        status: "received",
-        whatsapp_message_id: whatsappMessageId,
-        created_at: createdAt,
-      },
+      messagePayload,
       { onConflict: "tenant_id,whatsapp_message_id", ignoreDuplicates: true },
     )
     .select("id");
+
+  if (insertResponse.error && isMissingMessageMediaSchema(insertResponse.error)) {
+    console.warn("[WhatsApp] message media columns missing; falling back to legacy message insert");
+    insertResponse = await supabase
+      .from("messages")
+      .upsert(
+        {
+          tenant_id: tenantId,
+          conversation_id: conversation.id,
+          customer_id: customer.id,
+          direction: "inbound",
+          body,
+          status: "received",
+          whatsapp_message_id: whatsappMessageId,
+          created_at: createdAt,
+        },
+        { onConflict: "tenant_id,whatsapp_message_id", ignoreDuplicates: true },
+      )
+      .select("id");
+  }
+
+  const { data: insertedMessages, error: messageError } = insertResponse;
 
   if (messageError) {
     console.error("[WhatsApp] message insert failed", { whatsappMessageId, error: messageError });
@@ -434,7 +678,8 @@ async function persistInboundMessage(
         status: "open",
         updated_at: createdAt,
       })
-      .eq("id", conversation.id);
+      .eq("id", conversation.id)
+      .eq("tenant_id", tenantId);
 
     if (updateError) {
       console.error("[WhatsApp] conversation update failed", { conversationId: conversation.id, error: updateError });

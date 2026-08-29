@@ -180,10 +180,12 @@ export async function POST(request: Request) {
         companyId: message.tenant_id,
         conversationId: message.conversation_id,
         customerId: message.customer_id,
+        messageType: "text",
         direction: message.direction,
         body: message.body,
         status: message.status,
         whatsappMessageId: message.whatsapp_message_id,
+        audio: null,
         createdAt: message.created_at,
       },
     });

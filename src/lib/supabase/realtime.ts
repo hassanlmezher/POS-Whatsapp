@@ -38,15 +38,38 @@ export function useRealtimeMessages(tenantId: string, onMessage: (message: Messa
         },
         (payload) => {
           const record = payload.new as Record<string, unknown>;
+          const messageType = record.message_type === "audio" || record.message_type === "unsupported"
+            ? record.message_type
+            : "text";
+          const hasAudioStorage = Boolean(record.media_storage_bucket && record.media_storage_path);
+          const duration = Number(record.media_duration_seconds);
+          const fileSize = Number(record.media_file_size);
+
           onMessageRef.current({
             id: String(record.id),
             companyId: String(record.tenant_id),
             conversationId: String(record.conversation_id),
             customerId: String(record.customer_id),
+            messageType,
             direction: record.direction as Message["direction"],
             body: String(record.body ?? ""),
             status: record.status as Message["status"],
             whatsappMessageId: record.whatsapp_message_id ? String(record.whatsapp_message_id) : null,
+            audio: messageType === "audio"
+              ? {
+                  mediaId: record.media_id ? String(record.media_id) : null,
+                  mimeType: record.media_mime_type ? String(record.media_mime_type) : null,
+                  sha256: record.media_sha256 ? String(record.media_sha256) : null,
+                  isVoice: record.media_is_voice === true,
+                  durationSeconds: Number.isFinite(duration) ? duration : null,
+                  fileSize: Number.isFinite(fileSize) ? fileSize : null,
+                  fileName: record.media_file_name ? String(record.media_file_name) : null,
+                  storageBucket: record.media_storage_bucket ? String(record.media_storage_bucket) : null,
+                  storagePath: record.media_storage_path ? String(record.media_storage_path) : null,
+                  error: record.media_error ? String(record.media_error) : null,
+                  url: hasAudioStorage ? `/api/messages/${record.id}/audio` : null,
+                }
+              : null,
             createdAt: String(record.created_at),
           });
         },

@@ -8,12 +8,19 @@ import type {
   Conversation,
   Customer,
   DashboardData,
+  MessageAudio,
   Message,
+  MessageType,
   Order,
   OrderItem,
   Product,
   WhatsAppConnection,
 } from "@/lib/types/domain";
+
+const MESSAGE_SELECT =
+  "id,tenant_id,conversation_id,customer_id,message_type,direction,body,status,whatsapp_message_id,media_id,media_mime_type,media_sha256,media_is_voice,media_duration_seconds,media_file_size,media_storage_bucket,media_storage_path,media_file_name,media_error,created_at";
+const LEGACY_MESSAGE_SELECT =
+  "id,tenant_id,conversation_id,customer_id,direction,body,status,whatsapp_message_id,created_at";
 
 type DbCategory = { id: string; tenant_id: string; name: string; icon: string | null };
 type DbProduct = {
@@ -51,10 +58,21 @@ type DbMessage = {
   tenant_id: string;
   conversation_id: string;
   customer_id: string;
+  message_type?: string | null;
   direction: "inbound" | "outbound";
   body: string;
   status: "received" | "sent" | "delivered" | "read" | "failed";
   whatsapp_message_id: string | null;
+  media_id?: string | null;
+  media_mime_type?: string | null;
+  media_sha256?: string | null;
+  media_is_voice?: boolean | null;
+  media_duration_seconds?: number | string | null;
+  media_file_size?: number | string | null;
+  media_storage_bucket?: string | null;
+  media_storage_path?: string | null;
+  media_file_name?: string | null;
+  media_error?: string | null;
   created_at: string;
 };
 type DbOrder = {
@@ -84,6 +102,23 @@ type DbOrderItem = {
 
 function assertNoError(error: unknown, context: string) {
   if (error) throw new Error(`${context}: ${JSON.stringify(error)}`);
+}
+
+function isMissingMessageMediaSchema(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const record = error as { code?: unknown; message?: unknown };
+  const message = typeof record.message === "string" ? record.message : "";
+
+  return (
+    record.code === "PGRST204" ||
+    record.code === "42703" ||
+    message.includes("message_type") ||
+    message.includes("media_") ||
+    message.includes("schema cache")
+  );
 }
 
 function money(value: number | string | null | undefined) {
@@ -152,23 +187,59 @@ function mapConversation(row: DbConversation, customersById: Map<string, Custome
     customerName: customer?.name ?? "Customer",
     customerPhone: customer?.phone ?? "",
     avatarUrl: customer?.avatarUrl,
-    lastMessage: row.last_message ?? "",
+    lastMessage: row.last_message === "[audio message]" ? "🎤 Voice message" : row.last_message ?? "",
     lastMessageAt: row.last_message_at ?? new Date(0).toISOString(),
     unreadCount: row.unread_count ?? 0,
     status: row.status,
   };
 }
 
+function mapMessageType(value: string | null | undefined): MessageType {
+  if (value === "audio" || value === "unsupported") {
+    return value;
+  }
+
+  return "text";
+}
+
+function mapAudio(row: DbMessage, messageId: string): MessageAudio | null {
+  if (mapMessageType(row.message_type) !== "audio") {
+    return null;
+  }
+
+  const duration = Number(row.media_duration_seconds);
+  const fileSize = Number(row.media_file_size);
+  const hasStorage = Boolean(row.media_storage_bucket && row.media_storage_path);
+
+  return {
+    mediaId: row.media_id ?? row.whatsapp_message_id,
+    mimeType: row.media_mime_type ?? null,
+    sha256: row.media_sha256 ?? null,
+    isVoice: row.media_is_voice ?? false,
+    durationSeconds: Number.isFinite(duration) ? duration : null,
+    fileSize: Number.isFinite(fileSize) ? fileSize : null,
+    fileName: row.media_file_name ?? null,
+    storageBucket: row.media_storage_bucket ?? null,
+    storagePath: row.media_storage_path ?? null,
+    error: row.media_error ?? null,
+    url: hasStorage ? `/api/messages/${messageId}/audio` : null,
+  };
+}
+
 function mapMessage(row: DbMessage): Message {
+  const messageType = row.body === "[audio message]" ? "audio" : mapMessageType(row.message_type);
+
   return {
     id: row.id,
     companyId: row.tenant_id,
     conversationId: row.conversation_id,
     customerId: row.customer_id,
+    messageType,
     direction: row.direction,
-    body: row.body,
+    body: messageType === "audio" && row.body === "[audio message]" ? "🎤 Voice message" : row.body,
     status: row.status,
     whatsappMessageId: row.whatsapp_message_id,
+    audio: mapAudio(row, row.id),
     createdAt: row.created_at,
   };
 }
@@ -261,11 +332,24 @@ async function fetchConversations(supabase: SupabaseClient, tenantId: string, cu
 async function fetchMessages(supabase: SupabaseClient, tenantId: string, conversationId: string) {
   const { data, error } = await supabase
     .from("messages")
-    .select("id,tenant_id,conversation_id,customer_id,direction,body,status,whatsapp_message_id,created_at")
+    .select(MESSAGE_SELECT)
     .eq("tenant_id", tenantId)
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: true })
     .returns<DbMessage[]>();
+  if (error && isMissingMessageMediaSchema(error)) {
+    console.warn("[repository] Message media columns missing; falling back to legacy message select");
+    const { data: legacyData, error: legacyError } = await supabase
+      .from("messages")
+      .select(LEGACY_MESSAGE_SELECT)
+      .eq("tenant_id", tenantId)
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: true })
+      .returns<DbMessage[]>();
+    assertNoError(legacyError, "legacy messages select failed");
+    return (legacyData ?? []).map(mapMessage);
+  }
+
   assertNoError(error, "messages select failed");
   return (data ?? []).map(mapMessage);
 }
@@ -488,6 +572,43 @@ export async function markConversationRead(conversationId: string) {
 
   assertNoError(error, "conversation mark-read update failed");
   return data ? { conversationId: data.id, unreadCount: data.unread_count } : null;
+}
+
+export async function getMessageAudioStorage(messageId: string) {
+  const { tenant } = await getAuthenticatedTenantContext();
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("messages")
+    .select("id,tenant_id,message_type,media_mime_type,media_storage_bucket,media_storage_path,media_file_name")
+    .eq("id", messageId)
+    .eq("tenant_id", tenant.id)
+    .eq("message_type", "audio")
+    .maybeSingle<{
+      id: string;
+      tenant_id: string;
+      message_type: string;
+      media_mime_type: string | null;
+      media_storage_bucket: string | null;
+      media_storage_path: string | null;
+      media_file_name: string | null;
+    }>();
+
+  if (error && isMissingMessageMediaSchema(error)) {
+    return null;
+  }
+
+  assertNoError(error, "message audio lookup failed");
+
+  if (!data?.media_storage_bucket || !data.media_storage_path) {
+    return null;
+  }
+
+  return {
+    bucket: data.media_storage_bucket,
+    path: data.media_storage_path,
+    mimeType: data.media_mime_type,
+    fileName: data.media_file_name,
+  };
 }
 
 export async function getUnreadInboxCount() {
