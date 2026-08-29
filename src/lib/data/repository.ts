@@ -72,12 +72,14 @@ type DbOrder = {
 };
 type DbOrderItem = {
   id: string;
+  tenant_id?: string;
   order_id: string;
   product_id: string | null;
   product_name: string;
   quantity: number;
   unit_price: number | string;
   line_total: number | string;
+  product?: { image_url: string | null } | null;
 };
 
 function assertNoError(error: unknown, context: string) {
@@ -177,6 +179,7 @@ function mapOrderItem(row: DbOrderItem): OrderItem {
     orderId: row.order_id,
     productId: row.product_id ?? "",
     productName: row.product_name,
+    productImageUrl: row.product?.image_url ?? "/inchouf-pos-mark.png",
     quantity: row.quantity,
     unitPrice: money(row.unit_price),
     lineTotal: money(row.line_total),
@@ -271,12 +274,33 @@ async function fetchMessages(supabase: SupabaseClient, tenantId: string, convers
 async function fetchOrderItems(supabase: SupabaseClient, tenantId: string, orderId: string) {
   const { data, error } = await supabase
     .from("order_items")
-    .select("id,order_id,product_id,product_name,quantity,unit_price,line_total")
+    .select("id,order_id,product_id,product_name,quantity,unit_price,line_total,product:products!order_items_product_tenant_fkey(image_url)")
     .eq("tenant_id", tenantId)
     .eq("order_id", orderId)
     .returns<DbOrderItem[]>();
   assertNoError(error, "order_items select failed");
   return (data ?? []).map(mapOrderItem);
+}
+
+async function fetchOrderItemsForOrders(supabase: SupabaseClient, tenantId: string, orderIds: string[]) {
+  if (!orderIds.length) {
+    return new Map<string, OrderItem[]>();
+  }
+
+  const { data, error } = await supabase
+    .from("order_items")
+    .select("id,order_id,product_id,product_name,quantity,unit_price,line_total,product:products!order_items_product_tenant_fkey(image_url)")
+    .eq("tenant_id", tenantId)
+    .in("order_id", orderIds)
+    .returns<DbOrderItem[]>();
+  assertNoError(error, "order_items preview select failed");
+
+  const itemsByOrderId = new Map<string, OrderItem[]>();
+  for (const item of (data ?? []).map(mapOrderItem)) {
+    itemsByOrderId.set(item.orderId, [...(itemsByOrderId.get(item.orderId) ?? []), item]);
+  }
+
+  return itemsByOrderId;
 }
 
 export async function getCompanyContext() {
@@ -410,7 +434,16 @@ export async function getOrdersData() {
   const customers = await fetchCustomers(supabase, tenant.id);
   const customersById = new Map(customers.map((customer) => [customer.id, customer]));
   const orders = await fetchOrders(supabase, tenant.id, customersById);
-  return { company: mapTenant(tenant), orders, customers };
+  const itemsByOrderId = await fetchOrderItemsForOrders(
+    supabase,
+    tenant.id,
+    orders.map((order) => order.id),
+  );
+  return {
+    company: mapTenant(tenant),
+    orders: orders.map((order) => ({ ...order, items: itemsByOrderId.get(order.id) ?? [] })),
+    customers,
+  };
 }
 
 export async function getOrderDetails(orderId: string) {
