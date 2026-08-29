@@ -7,11 +7,11 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const variants = {
-  primary: "bg-[#0b4edb] text-white shadow-[0_6px_14px_rgba(11,78,219,0.2)] hover:bg-[#0642c4]",
-  secondary: "bg-[#0f172a] text-white hover:bg-[#1f2937]",
-  ghost: "bg-transparent text-[#536884] hover:bg-[#f4f6fa] hover:text-[#0b4edb]",
-  outline: "border border-[#d9deea] bg-white text-[#0f172a] shadow-sm hover:bg-[#f8fafc]",
-  danger: "bg-[#fff1f2] text-[#be123c] hover:bg-[#ffe4e6]",
+  primary: "bg-[#22ddeb] text-black shadow-[0_6px_14px_rgba(34,221,235,0.24)] hover:bg-[#2ff4ff]",
+  secondary: "bg-[#f8fbff] text-[#030607] hover:bg-[#d7eef3]",
+  ghost: "bg-transparent text-[#8fa3ad] hover:bg-[#10181c] hover:text-[#22ddeb]",
+  outline: "border border-[#1d3038] bg-[#070b0d] text-[#f8fbff] shadow-sm hover:bg-[#0b1114]",
+  danger: "bg-[#351018] text-[#ff7a94] hover:bg-[#43131e]",
 };
 
 const sizes = {

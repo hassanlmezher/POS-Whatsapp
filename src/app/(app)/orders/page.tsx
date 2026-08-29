@@ -16,22 +16,22 @@ export default async function OrdersPage() {
   return (
     <div className="space-y-8 p-5 lg:p-8">
       <div>
-        <h1 className="text-2xl font-black text-[#080c1a]">Orders</h1>
-        <p className="mt-2 text-[#536884]">Review transaction history and customer relationships.</p>
+        <h1 className="text-2xl font-black text-[#f8fbff]">Orders</h1>
+        <p className="mt-2 text-[#8fa3ad]">Review transaction history and customer relationships.</p>
       </div>
 
       <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="p-6"><div className="text-xs font-black uppercase tracking-[0.18em] text-[#8090aa]">Total Orders</div><div className="mt-6 text-3xl font-black text-[#080c1a]">{orders.length.toLocaleString()}</div></Card>
-        <Card className="p-6"><div className="text-xs font-black uppercase tracking-[0.18em] text-[#8090aa]">Active Pending</div><div className="mt-6 text-3xl font-black text-[#080c1a]">{pending}</div></Card>
-        <Card className="p-6"><div className="text-xs font-black uppercase tracking-[0.18em] text-[#8090aa]">Net Revenue</div><div className="mt-6 text-3xl font-black text-[#080c1a]">{formatCurrency(paidRevenue)}</div></Card>
-        <Card className="p-6"><div className="text-xs font-black uppercase tracking-[0.18em] text-[#8090aa]">Customer Satisfaction</div><div className="mt-6 text-3xl font-black text-[#080c1a]">4.9/5 <span className="text-base text-[#bc4800]">★★★★★</span></div></Card>
+        <Card className="p-6"><div className="text-xs font-black uppercase tracking-[0.18em] text-[#6f858f]">Total Orders</div><div className="mt-6 text-3xl font-black text-[#f8fbff]">{orders.length.toLocaleString()}</div></Card>
+        <Card className="p-6"><div className="text-xs font-black uppercase tracking-[0.18em] text-[#6f858f]">Active Pending</div><div className="mt-6 text-3xl font-black text-[#f8fbff]">{pending}</div></Card>
+        <Card className="p-6"><div className="text-xs font-black uppercase tracking-[0.18em] text-[#6f858f]">Net Revenue</div><div className="mt-6 text-3xl font-black text-[#f8fbff]">{formatCurrency(paidRevenue)}</div></Card>
+        <Card className="p-6"><div className="text-xs font-black uppercase tracking-[0.18em] text-[#6f858f]">Customer Satisfaction</div><div className="mt-6 text-3xl font-black text-[#f8fbff]">4.9/5 <span className="text-base text-[#d59a3c]">★★★★★</span></div></Card>
       </section>
 
       <Card className="overflow-hidden">
-        <div className="flex flex-wrap items-center gap-4 border-b border-[#d9deea] p-5">
+        <div className="flex flex-wrap items-center gap-4 border-b border-[#1d3038] p-5">
           <label className="relative min-w-[260px] flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8090aa]" />
-            <input className="h-11 w-full rounded-lg border border-[#d9deea] bg-[#f7f9fc] pl-10 text-[#080c1a] outline-none placeholder:text-[#8090aa] focus:border-[#0b4edb]" placeholder="Filter by ID or Name" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6f858f]" />
+            <input className="h-11 w-full rounded-lg border border-[#1d3038] bg-[#0b1114] pl-10 text-[#f8fbff] outline-none placeholder:text-[#6f858f] focus:border-[#22ddeb]" placeholder="Filter by ID or Name" />
           </label>
           <Button variant="outline">All Status</Button>
           <Button className="ml-auto"><Plus className="h-4 w-4" /> New Order</Button>
@@ -39,7 +39,7 @@ export default async function OrdersPage() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left">
-            <thead className="bg-[#f7f9fc] text-xs uppercase tracking-[0.12em] text-[#8090aa]">
+            <thead className="bg-[#0b1114] text-xs uppercase tracking-[0.12em] text-[#6f858f]">
               <tr>
                 <th className="px-6 py-5">Order ID</th>
                 <th className="px-6 py-5">Customer Name</th>
@@ -51,18 +51,18 @@ export default async function OrdersPage() {
             </thead>
             <tbody>
               {orders.map((order) => (
-                <tr key={order.id} className="border-t border-[#d9deea] text-[#080c1a]">
-                  <td className="px-6 py-5 font-semibold text-[#080c1a]">#{order.orderNumber}</td>
+                <tr key={order.id} className="border-t border-[#1d3038] text-[#f8fbff]">
+                  <td className="px-6 py-5 font-semibold text-[#f8fbff]">#{order.orderNumber}</td>
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-3">
-                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#eef2f7] text-xs font-bold text-[#080c1a] ring-1 ring-[#d9deea]">{initials(order.customerName)}</span>
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#10181c] text-xs font-bold text-[#f8fbff] ring-1 ring-[#1d3038]">{initials(order.customerName)}</span>
                       {order.customerName}
                     </div>
                   </td>
-                  <td className="px-6 py-5 text-[#536884]">{new Date(order.createdAt).toLocaleDateString()}</td>
-                  <td className="px-6 py-5 font-black text-[#0b4edb]">{formatCurrency(order.total)}</td>
+                  <td className="px-6 py-5 text-[#8fa3ad]">{new Date(order.createdAt).toLocaleDateString()}</td>
+                  <td className="px-6 py-5 font-black text-[#22ddeb]">{formatCurrency(order.total)}</td>
                   <td className="px-6 py-5"><Badge tone={order.paymentStatus === "paid" ? "green" : order.paymentStatus === "failed" ? "red" : "yellow"}>{order.paymentStatus}</Badge></td>
-                  <td className="px-6 py-5 text-right"><Link className="font-bold text-[#0b4edb]" href={`/orders/${order.id}`}>View Details</Link></td>
+                  <td className="px-6 py-5 text-right"><Link className="font-bold text-[#22ddeb]" href={`/orders/${order.id}`}>View Details</Link></td>
                 </tr>
               ))}
             </tbody>

@@ -13,15 +13,15 @@ const sections = [
 export default function SettingsPage() {
   return (
     <div className="space-y-6 p-5 lg:p-8">
-      <div><h1 className="text-2xl font-black text-[#080c1a]">Settings</h1><p className="mt-2 text-[#536884]">Configure company, terminals, integrations, and operations.</p></div>
+      <div><h1 className="text-2xl font-black text-[#f8fbff]">Settings</h1><p className="mt-2 text-[#8fa3ad]">Configure company, terminals, integrations, and operations.</p></div>
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {sections.map((section) => {
           const Icon = section.icon;
           return (
             <Card key={section.title} className="p-6">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#eef2f7] text-[#0b4edb] ring-1 ring-[#d9deea]"><Icon className="h-5 w-5" /></div>
-              <h2 className="mt-5 text-lg font-semibold text-[#080c1a]">{section.title}</h2>
-              <p className="mt-3 leading-7 text-[#536884]">{section.text}</p>
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#082529] text-[#22ddeb] ring-1 ring-[#22ddeb]"><Icon className="h-5 w-5" /></div>
+              <h2 className="mt-5 text-lg font-semibold text-[#f8fbff]">{section.title}</h2>
+              <p className="mt-3 leading-7 text-[#8fa3ad]">{section.text}</p>
             </Card>
           );
         })}

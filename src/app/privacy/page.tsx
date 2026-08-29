@@ -87,8 +87,8 @@ const sections = [
 
 export default function PrivacyPage() {
   return (
-    <main className="min-h-screen bg-[#f7f6ff] text-[#080c1a]">
-      <header className="border-b border-black/8 bg-white/82 backdrop-blur">
+    <main className="min-h-screen bg-[#030607] text-[#f8fbff]">
+      <header className="border-b border-white/10 bg-[#050809]/92 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
           <Link href="/login" aria-label="InChouf POS sign in" className="flex items-center gap-3">
             <Image
@@ -100,13 +100,13 @@ export default function PrivacyPage() {
               className="h-11 w-11 rounded-lg object-contain"
             />
             <div>
-              <p className="text-[15px] font-bold leading-tight text-black">InChouf POS</p>
-              <p className="text-[12px] font-medium text-black/52">Privacy Policy</p>
+              <p className="text-[15px] font-bold leading-tight text-white">InChouf POS</p>
+              <p className="text-[12px] font-medium text-white/52">Privacy Policy</p>
             </div>
           </Link>
           <Link
             href="/login"
-            className="flex h-10 items-center justify-center rounded-lg border border-black/10 bg-white px-4 text-[14px] font-semibold text-black shadow-sm transition hover:border-black/18 hover:bg-black/[0.03] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#22ddeb]/25"
+            className="flex h-10 items-center justify-center rounded-lg border border-white/10 bg-[#070b0d] px-4 text-[14px] font-semibold text-white shadow-sm transition hover:border-[#22ddeb]/45 hover:bg-[#0b1114] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#22ddeb]/25"
           >
             Sign in
           </Link>
@@ -114,15 +114,15 @@ export default function PrivacyPage() {
       </header>
 
       <section className="mx-auto grid max-w-6xl gap-8 px-5 py-10 sm:px-8 sm:py-14 lg:grid-cols-[0.72fr_0.28fr] lg:gap-10">
-        <article className="min-w-0 rounded-lg border border-black/8 bg-white px-5 py-7 shadow-[0_18px_50px_rgba(0,0,0,0.06)] sm:px-8 sm:py-9 lg:px-10">
+        <article className="min-w-0 rounded-lg border border-white/10 bg-[#070b0d] px-5 py-7 shadow-[0_24px_70px_rgba(0,0,0,0.28)] sm:px-8 sm:py-9 lg:px-10">
           <div className="max-w-3xl">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#088e99]">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#22ddeb]">
               Effective {lastUpdated}
             </p>
-            <h1 className="mt-4 text-[34px] font-bold leading-[1.08] text-black sm:text-[44px]">
+            <h1 className="mt-4 text-[34px] font-bold leading-[1.08] text-white sm:text-[44px]">
               Privacy Policy
             </h1>
-            <p className="mt-5 text-[16px] leading-7 text-black/68">
+            <p className="mt-5 text-[16px] leading-7 text-white/64">
               This Privacy Policy explains how InChouf POS collects, uses, stores, shares, and
               protects information when businesses use the platform, including the WhatsApp Business
               inbox and related POS features.
@@ -131,11 +131,11 @@ export default function PrivacyPage() {
 
           <div className="mt-9 space-y-9">
             {sections.map((section) => (
-              <section key={section.title} className="border-t border-black/8 pt-7">
-                <h2 className="text-[22px] font-bold leading-tight text-black">{section.title}</h2>
+              <section key={section.title} className="border-t border-white/10 pt-7">
+                <h2 className="text-[22px] font-bold leading-tight text-white">{section.title}</h2>
                 <div className="mt-4 space-y-4">
                   {section.body.map((paragraph) => (
-                    <p key={paragraph} className="text-[15px] leading-7 text-black/68">
+                    <p key={paragraph} className="text-[15px] leading-7 text-white/64">
                       {paragraph}
                     </p>
                   ))}
@@ -143,14 +143,14 @@ export default function PrivacyPage() {
               </section>
             ))}
 
-            <section className="border-t border-black/8 pt-7">
-              <h2 className="text-[22px] font-bold leading-tight text-black">Contact</h2>
-              <p className="mt-4 text-[15px] leading-7 text-black/68">
+            <section className="border-t border-white/10 pt-7">
+              <h2 className="text-[22px] font-bold leading-tight text-white">Contact</h2>
+              <p className="mt-4 text-[15px] leading-7 text-white/64">
                 For privacy questions, data requests, or concerns about this policy, contact the
                 InChouf POS team at{" "}
                 <a
                   href="mailto:privacy@inchouf.com"
-                  className="font-semibold text-black underline decoration-[#22ddeb] decoration-2 underline-offset-4"
+                  className="font-semibold text-white underline decoration-[#22ddeb] decoration-2 underline-offset-4"
                 >
                   privacy@inchouf.com
                 </a>
@@ -161,7 +161,7 @@ export default function PrivacyPage() {
         </article>
 
         <aside className="lg:sticky lg:top-6 lg:self-start">
-          <div className="rounded-lg border border-black/8 bg-black px-5 py-6 text-white shadow-[0_18px_50px_rgba(0,0,0,0.12)]">
+          <div className="rounded-lg border border-[#22ddeb]/20 bg-black px-5 py-6 text-white shadow-[0_24px_70px_rgba(0,0,0,0.26)]">
             <Image
               src="/inchouf-pos-logo.png"
               alt="InChouf POS"
@@ -186,8 +186,8 @@ export default function PrivacyPage() {
         </aside>
       </section>
 
-      <footer className="border-t border-black/8 bg-white">
-        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-5 py-6 text-[13px] text-black/52 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+      <footer className="border-t border-white/10 bg-[#050809]">
+        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-5 py-6 text-[13px] text-white/48 sm:flex-row sm:items-center sm:justify-between sm:px-8">
           <p>&copy; 2026 InChouf POS. All rights reserved.</p>
           <p>Last updated: {lastUpdated}</p>
         </div>

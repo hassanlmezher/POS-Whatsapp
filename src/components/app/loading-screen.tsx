@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 type LoadingScreenProps = {
   message: string;
 };
@@ -10,20 +8,16 @@ export function LoadingScreen({ message }: LoadingScreenProps) {
       aria-live="polite"
       aria-busy="true"
       role="status"
-      className="fixed inset-0 z-[100] flex min-h-dvh items-center justify-center bg-[#07120f]/96 px-6 text-white"
+      className="fixed inset-0 z-[100] flex min-h-dvh items-center justify-center bg-black/80 px-6 text-[#f8fbff] backdrop-blur-sm"
     >
-      <div className="flex w-full max-w-[360px] flex-col items-center text-center">
-        <Image
-          src="/inchouf-pos-mark.png"
-          alt="InChouf POS"
-          width={112}
-          height={112}
-          priority
-          className="h-28 w-28 rounded-[22px] bg-black object-cover shadow-[0_24px_70px_rgba(21,224,238,0.20)]"
+      <div className="flex min-h-14 items-center gap-4 rounded-lg border border-[#1d3038] bg-[#070b0d] px-5 py-4 shadow-[0_18px_46px_rgba(0,0,0,0.28)]">
+        <div
+          aria-hidden="true"
+          className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-[#24404a] border-t-[#22ddeb]"
         />
-        <p className="mt-7 text-[22px] font-semibold leading-tight">{message}</p>
-        <div className="mt-7 h-1.5 w-full overflow-hidden rounded-full bg-white/12">
-          <div className="h-full w-2/3 rounded-full bg-[#24dce7] shadow-[0_0_24px_rgba(36,220,231,0.7)] animate-[loading-bar_1.2s_ease-in-out_infinite]" />
+        <div className="min-w-0">
+          <p className="text-[15px] font-semibold leading-5 text-[#f8fbff]">{message}</p>
+          <p className="mt-0.5 text-[13px] leading-5 text-[#7e929c]">Processing request.</p>
         </div>
       </div>
     </div>

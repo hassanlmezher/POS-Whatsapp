@@ -12,7 +12,7 @@ export function AppShell({
   userName: string;
 }) {
   return (
-    <div className="min-h-screen bg-[#f7f6ff] text-[#080c1a]">
+    <div className="min-h-screen bg-[#030607] text-[#f8fbff]">
       <Sidebar />
       <div className="min-h-screen lg:pl-[300px]">
         <Header title={title} userName={userName} />

@@ -9,23 +9,23 @@ export function SalesChart({ data }: { data: { label: string; revenue: number }[
         <AreaChart data={data} margin={{ left: 0, right: 10, top: 30, bottom: 0 }}>
           <defs>
             <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#2563eb" stopOpacity={0.16} />
-              <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
+              <stop offset="5%" stopColor="#22ddeb" stopOpacity={0.2} />
+              <stop offset="95%" stopColor="#22ddeb" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid stroke="#eef2f7" vertical={false} />
-          <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: "#8090aa", fontSize: 12 }} />
+          <CartesianGrid stroke="#1d3038" vertical={false} />
+          <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: "#7e929c", fontSize: 12 }} />
           <YAxis hide />
           <Tooltip
             contentStyle={{
-              background: "#ffffff",
-              border: "1px solid #d9deea",
+              background: "#070b0d",
+              border: "1px solid #1d3038",
               borderRadius: 12,
-              color: "#080c1a",
-              boxShadow: "0 12px 30px rgba(15, 23, 42, 0.08)",
+              color: "#f8fbff",
+              boxShadow: "0 18px 46px rgba(0, 0, 0, 0.28)",
             }}
           />
-          <Area type="monotone" dataKey="revenue" stroke="#0b4edb" strokeWidth={5} fill="url(#salesGradient)" />
+          <Area type="monotone" dataKey="revenue" stroke="#00a9b8" strokeWidth={5} fill="url(#salesGradient)" />
         </AreaChart>
       </ResponsiveContainer>
     </div>

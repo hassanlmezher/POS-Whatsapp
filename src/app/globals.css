@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7f6ff;
-  --foreground: #080c1a;
+  --background: #030607;
+  --foreground: #f8fbff;
   --font-geist-sans: Arial, Helvetica, sans-serif;
   --font-geist-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
@@ -30,8 +30,8 @@ body {
 }
 
 ::selection {
-  background: rgba(37, 99, 235, 0.2);
-  color: #080c1a;
+  background: rgba(34, 221, 235, 0.24);
+  color: #f8fbff;
 }
 
 button,
@@ -39,16 +39,6 @@ input,
 select,
 textarea {
   font: inherit;
-}
-
-@keyframes loading-bar {
-  0% {
-    transform: translateX(-110%);
-  }
-
-  100% {
-    transform: translateX(160%);
-  }
 }
 
 .line-clamp-2 {

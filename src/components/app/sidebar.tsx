@@ -58,7 +58,7 @@ export function Sidebar() {
   return (
     <>
       {isSigningOut ? <LoadingScreen message="Signing you out..." /> : null}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[300px] flex-col border-r border-[#d9deea] bg-white lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[300px] flex-col border-r border-[#1d3038] bg-[#050809] lg:flex">
         <Link href="/dashboard" className="flex h-[112px] items-center gap-4 px-6">
           <Image
             src="/inchouf-pos-mark.png"
@@ -66,10 +66,10 @@ export function Sidebar() {
             width={64}
             height={64}
             priority
-            className="h-16 w-16 shrink-0 rounded-lg bg-black object-cover shadow-[0_8px_18px_rgba(11,78,219,0.18)]"
+            className="h-16 w-16 shrink-0 rounded-lg bg-black object-cover ring-1 ring-[#22ddeb]/30 shadow-[0_12px_28px_rgba(34,221,235,0.16)]"
           />
           <div className="min-w-0">
-            <div className="max-w-[190px] truncate text-[21px] font-black leading-6 text-[#080c1a]">{APP_NAME}</div>
+            <div className="max-w-[190px] truncate text-[21px] font-black leading-6 text-[#f8fbff]">{APP_NAME}</div>
             <div className="mt-2 text-[11px] font-black uppercase tracking-[0.24em] text-[#95a0b5]">Enterprise Portal</div>
           </div>
         </Link>
@@ -84,8 +84,8 @@ export function Sidebar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex h-[52px] items-center gap-4 rounded-lg px-4 text-[17px] font-medium text-[#536884] transition hover:bg-[#f4f7fb] hover:text-[#0b4edb]",
-                  active && "bg-[#f5f7fb] text-[#0052ff]",
+                  "flex h-[52px] items-center gap-4 rounded-lg px-4 text-[17px] font-medium text-[#8fa3ad] transition hover:bg-[#10181c] hover:text-[#22ddeb]",
+                  active && "bg-[#0d1519] text-[#22ddeb]",
                 )}
               >
                 <Icon className="h-[22px] w-[22px]" />
@@ -95,15 +95,15 @@ export function Sidebar() {
           })}
         </nav>
 
-        <div className="mx-5 border-t border-[#e6ebf3] py-6">
-          <button className="flex h-12 w-full items-center gap-4 rounded-lg px-4 text-left text-[17px] font-medium text-[#536884] hover:bg-[#f4f7fb]">
+        <div className="mx-5 border-t border-[#18282e] py-6">
+          <button className="flex h-12 w-full items-center gap-4 rounded-lg px-4 text-left text-[17px] font-medium text-[#8fa3ad] hover:bg-[#10181c]">
             <CircleHelp className="h-[22px] w-[22px]" />
             Help Support
           </button>
           <button
             onClick={signOut}
             disabled={isSigningOut}
-            className="flex h-12 w-full items-center gap-4 rounded-lg px-4 text-left text-[17px] font-medium text-[#536884] hover:bg-[#f4f7fb] disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex h-12 w-full items-center gap-4 rounded-lg px-4 text-left text-[17px] font-medium text-[#8fa3ad] hover:bg-[#10181c] disabled:cursor-not-allowed disabled:opacity-60"
           >
             <LogOut className="h-[22px] w-[22px]" />
             Sign Out
@@ -118,7 +118,7 @@ export function MobileNav() {
   const pathname = usePathname();
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-6 border-t border-[#d9deea] bg-white lg:hidden">
+    <div className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-6 border-t border-[#1d3038] bg-[#050809] lg:hidden">
       {nav.map((item) => {
         const Icon = item.icon;
         const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -128,8 +128,8 @@ export function MobileNav() {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex flex-col items-center gap-1 py-2 text-[10px] text-[#536884]",
-              active && "bg-[#f5f7fb] text-[#0052ff]",
+              "flex flex-col items-center gap-1 py-2 text-[10px] text-[#8fa3ad]",
+              active && "bg-[#0d1519] text-[#22ddeb]",
             )}
           >
             <Icon className="h-4 w-4" />
