@@ -61,6 +61,7 @@ export function InboxWorkspace({
   const [activeCustomer, setActiveCustomer] = useState<Customer | null>(selectedCustomer ?? null);
   const [activeRecentOrders, setActiveRecentOrders] = useState<Order[]>(recentOrders);
   const draftTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const latestMessageRef = useRef<HTMLDivElement | null>(null);
   const activeConversationIdRef = useRef<string | null>(selectedConversation?.id ?? conversations[0]?.id ?? null);
   const syncAbortControllerRef = useRef<AbortController | null>(null);
   const syncSequenceRef = useRef(0);
@@ -70,6 +71,7 @@ export function InboxWorkspace({
     conversations: storeConversations,
     setInitialState,
     setActiveConversation,
+    markConversationRead,
     appendMessage,
     messages,
   } = useInboxStore();
@@ -87,6 +89,7 @@ export function InboxWorkspace({
   const activeMessages = activeConversation
     ? messages.filter((message) => message.conversationId === activeConversation.id)
     : [];
+  const latestMessageId = activeMessages[activeMessages.length - 1]?.id ?? "";
   const activeSuggestion = suggestionConversationId === activeConversation?.id ? suggestion : null;
   const activeSuggestionError = suggestionConversationId === activeConversation?.id ? suggestionError : null;
 
@@ -184,8 +187,40 @@ export function InboxWorkspace({
     }, delayMs);
   }, [syncInbox]);
 
+  const markConversationAsRead = useCallback(async (conversationId: string) => {
+    markConversationRead(conversationId);
+
+    try {
+      const response = await fetch("/api/inbox", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text().catch(() => "");
+        console.warn("[inbox] Mark conversation read failed", {
+          conversationId,
+          status: response.status,
+          body: errorBody,
+        });
+        return;
+      }
+    } catch (error) {
+      console.warn("[inbox] Mark conversation read request failed", {
+        conversationId,
+        error,
+      });
+    } finally {
+      scheduleSync("mark-read");
+    }
+  }, [markConversationRead, scheduleSync]);
+
   const realtimeStatus = useRealtimeMessages(company.id, (message) => {
     appendMessage(message);
+    if (message.direction === "inbound" && activeConversationIdRef.current === message.conversationId) {
+      void markConversationAsRead(message.conversationId);
+    }
     scheduleSync("realtime");
   });
 
@@ -218,8 +253,26 @@ export function InboxWorkspace({
   }, [scheduleSync, syncInbox]);
 
   useEffect(() => {
-    scheduleSync("conversation-change");
-  }, [activeConversationId, scheduleSync]);
+    if (!activeConversationId) {
+      return;
+    }
+
+    void markConversationAsRead(activeConversationId);
+  }, [activeConversationId, markConversationAsRead]);
+
+  useEffect(() => {
+    if (!activeConversation?.id) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      latestMessageRef.current?.scrollIntoView({ block: "end" });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [activeConversation?.id, latestMessageId]);
 
   const customer = activeCustomer;
 
@@ -321,32 +374,35 @@ export function InboxWorkspace({
   }
 
   return (
-    <div className="grid h-[calc(100vh-98px)] overflow-hidden bg-[#f7f6ff] xl:grid-cols-[405px_minmax(0,1fr)_320px]">
-      <aside className="flex h-full min-h-0 flex-col border-r border-[#d9deea] bg-white">
-        <div className="flex h-20 items-center justify-between border-b border-[#d9deea] px-6">
-          <h2 className="text-xl font-semibold text-[#080c1a]">Messages</h2>
-          <Button variant="ghost" size="icon" aria-label="Compose"><Send className="h-5 w-5 rotate-[-35deg] text-[#008d99]" /></Button>
+    <div className="grid h-[calc(100vh-98px)] overflow-hidden bg-[#030607] xl:grid-cols-[405px_minmax(0,1fr)_320px]">
+      <aside className="flex h-full min-h-0 flex-col border-r border-[#1d3038] bg-[#070b0d]">
+        <div className="flex h-20 items-center justify-between border-b border-[#1d3038] px-6">
+          <h2 className="text-xl font-semibold text-[#f8fbff]">Messages</h2>
+          <Button variant="ghost" size="icon" aria-label="Compose"><Send className="h-5 w-5 rotate-[-35deg] text-[#22ddeb]" /></Button>
         </div>
         <div className="p-4"><Input icon placeholder="Search conversations..." /></div>
         <div className="min-h-0 flex-1 overflow-y-auto">
           {visibleConversations.map((conversation) => (
             <button
               key={conversation.id}
-              onClick={() => setActiveConversation(conversation.id)}
-              className={`relative flex w-full items-center gap-4 border-b border-[#d9deea] p-5 text-left transition hover:bg-[#f5f7fb] ${
-                conversation.id === activeConversation?.id ? "bg-[#eef2f7]" : ""
+              onClick={() => {
+                setActiveConversation(conversation.id);
+                markConversationRead(conversation.id);
+              }}
+              className={`relative flex w-full items-center gap-4 border-b border-[#1d3038] p-5 text-left transition hover:bg-[#0d1519] ${
+                conversation.id === activeConversation?.id ? "bg-[#10181c]" : ""
               }`}
             >
-              {conversation.id === activeConversation?.id ? <span className="absolute right-0 h-full w-1 bg-slate-200" /> : null}
+              {conversation.id === activeConversation?.id ? <span className="absolute right-0 h-full w-1 bg-[#22ddeb]" /> : null}
               <Avatar name={conversation.customerName} src={conversation.avatarUrl} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
-                  <div className="truncate font-semibold text-[#080c1a]">{conversation.customerName}</div>
-                  <div className="text-xs font-semibold text-[#8090aa]">
+                  <div className="truncate font-semibold text-[#f8fbff]">{conversation.customerName}</div>
+                  <div className="text-xs font-semibold text-[#6f858f]">
                     {new Date(conversation.lastMessageAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </div>
                 </div>
-                <div className="mt-1 truncate text-[#536884]">{conversation.lastMessage}</div>
+                <div className="mt-1 truncate text-[#8fa3ad]">{conversation.lastMessage}</div>
               </div>
               {conversation.unreadCount ? <Badge tone="green">{conversation.unreadCount}</Badge> : null}
             </button>
@@ -354,24 +410,24 @@ export function InboxWorkspace({
         </div>
       </aside>
 
-      <section className="flex h-full min-w-0 min-h-0 flex-col bg-[#f7f6ff]">
-        <div className="flex h-20 items-center justify-between border-b border-[#d9deea] bg-white px-6 backdrop-blur">
+      <section className="flex h-full min-w-0 min-h-0 flex-col bg-[#030607]">
+        <div className="flex h-20 items-center justify-between border-b border-[#1d3038] bg-[#070b0d] px-6 backdrop-blur">
           {activeConversation ? (
             <div className="flex items-center gap-4">
               <Avatar name={activeConversation.customerName} src={activeConversation.avatarUrl} />
               <div>
-                <div className="text-lg font-semibold text-[#080c1a]">{activeConversation.customerName}</div>
-                <div className="text-sm text-[#008d99]">Online</div>
+                <div className="text-lg font-semibold text-[#f8fbff]">{activeConversation.customerName}</div>
+                <div className="text-sm text-[#22ddeb]">Online</div>
               </div>
             </div>
           ) : (
             <div>
-              <div className="text-lg font-semibold text-[#080c1a]">No conversations</div>
-              <div className="text-sm text-[#8090aa]">Incoming WhatsApp messages will appear here.</div>
+              <div className="text-lg font-semibold text-[#f8fbff]">No conversations</div>
+              <div className="text-sm text-[#6f858f]">Incoming WhatsApp messages will appear here.</div>
             </div>
           )}
-          <div className="flex items-center gap-3 text-[#536884]">
-            <span className="flex items-center gap-2 text-xs font-semibold text-[#8090aa]">
+          <div className="flex items-center gap-3 text-[#8fa3ad]">
+            <span className="flex items-center gap-2 text-xs font-semibold text-[#6f858f]">
               <span
                 className={`h-2 w-2 rounded-full ${realtimeStatus === "live" ? "bg-emerald-500" : "bg-amber-500"}`}
               />
@@ -379,39 +435,39 @@ export function InboxWorkspace({
             </span>
             <Phone className="h-5 w-5" />
             <Video className="h-5 w-5" />
-            <div className="h-8 w-px bg-[#d9deea]" />
+            <div className="h-8 w-px bg-[#1d3038]" />
             <MoreVertical className="h-5 w-5" />
           </div>
         </div>
 
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-6">
-          <div className="mx-auto w-fit rounded-lg bg-[#eef2f7] px-5 py-2 text-xs font-black uppercase text-[#536884] shadow-sm ring-1 ring-[#d9deea]">Today</div>
+          <div className="mx-auto w-fit rounded-lg bg-[#10181c] px-5 py-2 text-xs font-black uppercase text-[#8fa3ad] shadow-sm ring-1 ring-[#1d3038]">Today</div>
           {activeConversation ? activeMessages.map((message) => (
             <div key={message.id} className={`flex ${message.direction === "outbound" ? "justify-end" : "justify-start"}`}>
               <div
                 className={`max-w-[70%] rounded-xl p-4 shadow-sm ${
-                  message.direction === "outbound" ? "bg-[#22ddeb] text-black" : "bg-white text-[#080c1a] ring-1 ring-[#d9deea]"
+                  message.direction === "outbound" ? "bg-[#22ddeb] text-black" : "bg-[#070b0d] text-[#f8fbff] ring-1 ring-[#1d3038]"
                 }`}
               >
                 <p className="leading-7">{message.body}</p>
-                <div className={`mt-2 text-right text-xs ${message.direction === "outbound" ? "text-black/60" : "text-[#8090aa]"}`}>
+                <div className={`mt-2 text-right text-xs ${message.direction === "outbound" ? "text-black/60" : "text-[#6f858f]"}`}>
                   {new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   {message.direction === "outbound" ? " ✓✓" : ""}
                 </div>
               </div>
             </div>
           )) : (
-            <div className="mx-auto mt-20 max-w-sm rounded-xl bg-[#f7f9fc] p-6 text-center text-[#536884] shadow-sm ring-1 ring-[#d9deea]">
+            <div className="mx-auto mt-20 max-w-sm rounded-xl bg-[#0b1114] p-6 text-center text-[#8fa3ad] shadow-sm ring-1 ring-[#1d3038]">
               {whatsappConnection.isConnected ? (
                 <>
-                  <p className="font-semibold text-[#080c1a]">No conversations yet</p>
+                  <p className="font-semibold text-[#f8fbff]">No conversations yet</p>
                   <p className="mt-2">
                     New messages sent to {whatsappConnection.phoneNumber} will appear here.
                   </p>
                 </>
               ) : (
                 <>
-                  <p className="font-semibold text-[#080c1a]">WhatsApp setup required</p>
+                  <p className="font-semibold text-[#f8fbff]">WhatsApp setup required</p>
                   <p className="mt-2">
                     {whatsappConnection.phoneNumber && !whatsappConnection.phoneNumberId
                       ? "Add this tenant's Meta Phone Number ID to finish connecting WhatsApp."
@@ -421,9 +477,10 @@ export function InboxWorkspace({
               )}
             </div>
           )}
+          <div ref={latestMessageRef} aria-hidden="true" />
         </div>
 
-        <div className="bg-white p-5 backdrop-blur">
+        <div className="bg-[#070b0d] p-5 backdrop-blur">
           <div className="mb-3 flex flex-wrap items-center gap-3">
             <Button
               variant="outline"
@@ -432,16 +489,16 @@ export function InboxWorkspace({
               disabled={!activeConversation || isSuggesting}
             >
               {isSuggesting ? (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#8090aa]/40 border-t-[#22ddeb]" />
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#6f858f]/40 border-t-[#22ddeb]" />
               ) : (
-                <Sparkles className="h-4 w-4 text-[#008d99]" />
+                <Sparkles className="h-4 w-4 text-[#22ddeb]" />
               )}
               {isSuggesting ? "Suggesting..." : "AI Suggest Reply"}
             </Button>
           </div>
           {activeSuggestion ? (
-            <div className="mb-3 rounded-xl bg-[#f7f9fc] p-4 ring-1 ring-[#d9deea]">
-              <p className="text-sm leading-6 text-[#536884]">Suggestion added to the message input.</p>
+            <div className="mb-3 rounded-xl bg-[#0b1114] p-4 ring-1 ring-[#1d3038]">
+              <p className="text-sm leading-6 text-[#8fa3ad]">Suggestion added to the message input.</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" onClick={suggestMessageReply} disabled={isSuggesting}>
                   <RefreshCw className="h-4 w-4" /> Regenerate
@@ -459,13 +516,13 @@ export function InboxWorkspace({
             </div>
           ) : null}
           {activeSuggestionError ? (
-            <div className="mb-3 rounded-xl bg-[#fff7ed] px-4 py-3 text-sm font-medium text-[#9a3412] ring-1 ring-[#fed7aa]">
+            <div className="mb-3 rounded-xl bg-[#33240b] px-4 py-3 text-sm font-medium text-[#f6c76a] ring-1 ring-[#8a621f]">
               {activeSuggestionError}
             </div>
           ) : null}
-          <div className="flex items-end gap-3 rounded-xl bg-white p-3 shadow-lg ring-1 ring-[#d9deea]">
-            <Smile className="h-6 w-6 text-[#536884]" />
-            <Paperclip className="h-6 w-6 text-[#536884]" />
+          <div className="flex items-end gap-3 rounded-xl bg-[#070b0d] p-3 shadow-lg ring-1 ring-[#1d3038]">
+            <Smile className="h-6 w-6 text-[#8fa3ad]" />
+            <Paperclip className="h-6 w-6 text-[#8fa3ad]" />
             <textarea
               ref={draftTextareaRef}
               value={draft}
@@ -479,7 +536,7 @@ export function InboxWorkspace({
               placeholder="Type a message"
               disabled={!activeConversation || isSending}
               rows={1}
-              className="max-h-40 min-h-10 flex-1 resize-none overflow-y-auto bg-transparent px-3 py-2 text-[#080c1a] outline-none placeholder:text-[#8090aa]"
+              className="max-h-40 min-h-10 flex-1 resize-none overflow-y-auto bg-transparent px-3 py-2 text-[#f8fbff] outline-none placeholder:text-[#6f858f]"
             />
             <Button
               size="icon"
@@ -491,51 +548,51 @@ export function InboxWorkspace({
             </Button>
           </div>
           {sendError ? (
-            <div className="mt-3 rounded-xl bg-[#fff1f2] px-4 py-3 text-sm font-medium text-[#be123c] ring-1 ring-[#fecdd3]">
+            <div className="mt-3 rounded-xl bg-[#351018] px-4 py-3 text-sm font-medium text-[#ff7a94] ring-1 ring-[#8d2638]">
               {sendError}
             </div>
           ) : null}
         </div>
       </section>
 
-      <aside className="h-full overflow-y-auto border-l border-[#d9deea] bg-white p-7">
+      <aside className="h-full overflow-y-auto border-l border-[#1d3038] bg-[#070b0d] p-7">
         {customer ? (
           <div className="text-center">
             <Avatar name={customer.name} src={customer.avatarUrl} className="mx-auto h-24 w-24 shadow-xl" />
-            <h2 className="mt-5 text-xl font-semibold text-[#080c1a]">{customer.name}</h2>
-            <p className="mt-2 text-[#536884]">{customer.phone}</p>
+            <h2 className="mt-5 text-xl font-semibold text-[#f8fbff]">{customer.name}</h2>
+            <p className="mt-2 text-[#8fa3ad]">{customer.phone}</p>
             <Badge tone="green" className="mt-4 uppercase">{customer.tags[0] ?? "customer"}</Badge>
           </div>
         ) : null}
         <div className="mt-10">
-          <div className="text-sm font-black uppercase tracking-[0.18em] text-[#8090aa]">Status</div>
-          <p className="mt-4 leading-7 text-[#536884]">{customer?.notes}</p>
+          <div className="text-sm font-black uppercase tracking-[0.18em] text-[#6f858f]">Status</div>
+          <p className="mt-4 leading-7 text-[#8fa3ad]">{customer?.notes}</p>
         </div>
         <div className="mt-8 grid grid-cols-2 gap-4">
-          <div className="rounded-xl bg-[#f7f9fc] p-5 ring-1 ring-[#d9deea]">
-            <div className="text-xs font-black uppercase text-[#8090aa]">Total Spent</div>
-            <div className="mt-2 text-lg font-black text-[#080c1a]">{formatCurrency(totals.spent)}</div>
+          <div className="rounded-xl bg-[#0b1114] p-5 ring-1 ring-[#1d3038]">
+            <div className="text-xs font-black uppercase text-[#6f858f]">Total Spent</div>
+            <div className="mt-2 text-lg font-black text-[#f8fbff]">{formatCurrency(totals.spent)}</div>
           </div>
-          <div className="rounded-xl bg-[#f7f9fc] p-5 ring-1 ring-[#d9deea]">
-            <div className="text-xs font-black uppercase text-[#8090aa]">Total Orders</div>
-            <div className="mt-2 text-lg font-black text-[#080c1a]">{totals.orders}</div>
+          <div className="rounded-xl bg-[#0b1114] p-5 ring-1 ring-[#1d3038]">
+            <div className="text-xs font-black uppercase text-[#6f858f]">Total Orders</div>
+            <div className="mt-2 text-lg font-black text-[#f8fbff]">{totals.orders}</div>
           </div>
         </div>
         <div className="mt-8">
           <div className="mb-4 flex items-center justify-between">
-            <div className="text-sm font-black uppercase tracking-[0.18em] text-[#8090aa]">Recent Orders</div>
-            <button className="text-sm font-bold text-[#008d99]">View All</button>
+            <div className="text-sm font-black uppercase tracking-[0.18em] text-[#6f858f]">Recent Orders</div>
+            <button className="text-sm font-bold text-[#22ddeb]">View All</button>
           </div>
           <div className="space-y-3">
             {activeRecentOrders.slice(0, 2).map((order) => (
-              <div key={order.id} className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-[#d9deea]">
+              <div key={order.id} className="rounded-xl bg-[#070b0d] p-4 shadow-sm ring-1 ring-[#1d3038]">
                 <div className="flex items-center justify-between">
-                  <div className="font-semibold text-[#080c1a]">#{order.orderNumber}</div>
+                  <div className="font-semibold text-[#f8fbff]">#{order.orderNumber}</div>
                   <Badge tone={order.paymentStatus === "paid" ? "green" : "yellow"}>{order.status}</Badge>
                 </div>
-                <div className="mt-3 flex justify-between text-sm text-[#8090aa]">
+                <div className="mt-3 flex justify-between text-sm text-[#6f858f]">
                   <span>{new Date(order.createdAt).toLocaleDateString()}</span>
-                  <span className="font-black text-[#008d99]">{formatCurrency(order.total)}</span>
+                  <span className="font-black text-[#22ddeb]">{formatCurrency(order.total)}</span>
                 </div>
               </div>
             ))}
