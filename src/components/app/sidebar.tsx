@@ -5,13 +5,18 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import {
+  ChevronDown,
   CircleHelp,
   ClipboardList,
+  FolderTree,
   Inbox,
   LayoutDashboard,
   LogOut,
   Package,
+  PackagePlus,
   Settings,
+  ShoppingCart,
+  TableProperties,
   Users,
 } from "lucide-react";
 import { LoadingScreen } from "@/components/app/loading-screen";
@@ -26,8 +31,13 @@ const nav = [
   { href: "/inbox", label: "Inbox", icon: Inbox },
   { href: "/customers", label: "Customers", icon: Users },
   { href: "/orders", label: "Orders", icon: ClipboardList },
-  { href: "/inventory", label: "Inventory", icon: Package },
-  { href: "/settings", label: "Settings", icon: Settings },
+];
+
+const inventoryNav = [
+  { href: "/inventory/products", label: "Product Catalog", icon: TableProperties },
+  { href: "/inventory/products/new", label: "Add Product", icon: PackagePlus },
+  { href: "/inventory/categories", label: "Categories", icon: FolderTree },
+  { href: "/pos", label: "Make Order", icon: ShoppingCart },
 ];
 
 function useUnreadInboxCount(isInboxActive: boolean) {
@@ -94,7 +104,10 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [inventoryOpen, setInventoryOpen] = useState(false);
   const isInboxActive = pathname === "/inbox" || pathname.startsWith("/inbox/");
+  const isInventoryActive = pathname.startsWith("/inventory") || pathname === "/pos";
+  const showInventoryMenu = inventoryOpen || isInventoryActive;
   const unreadInboxCount = useUnreadInboxCount(isInboxActive);
 
   async function signOut() {
@@ -140,10 +153,7 @@ export function Sidebar() {
         <nav className="mt-5 flex-1 space-y-1 px-5">
           {nav.map((item) => {
             const Icon = item.icon;
-            const active =
-              pathname === item.href ||
-              pathname.startsWith(`${item.href}/`) ||
-              (item.href === "/inventory" && pathname === "/pos");
+            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
             return (
               <Link
@@ -164,6 +174,58 @@ export function Sidebar() {
               </Link>
             );
           })}
+          <div>
+            <button
+              type="button"
+              onClick={() => setInventoryOpen((open) => !open)}
+              aria-expanded={showInventoryMenu}
+              className={cn(
+                "flex h-[52px] w-full items-center gap-4 rounded-lg px-4 text-left text-[17px] font-medium text-[#8fa3ad] transition hover:bg-[#10181c] hover:text-[#22ddeb]",
+                isInventoryActive && "bg-[#0d1519] text-[#22ddeb]",
+              )}
+            >
+              <Package className="h-[22px] w-[22px]" />
+              <span className="min-w-0 flex-1 truncate">Inventory</span>
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 transition-transform",
+                  showInventoryMenu && "rotate-180",
+                )}
+              />
+            </button>
+            {showInventoryMenu ? (
+              <div className="mt-1 space-y-1 pl-8">
+                {inventoryNav.map((item) => {
+                  const Icon = item.icon;
+                  const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-semibold text-[#8fa3ad] transition hover:bg-[#10181c] hover:text-[#22ddeb]",
+                        active && "bg-[#082529] text-[#22ddeb]",
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+          <Link
+            href="/settings"
+            className={cn(
+              "flex h-[52px] items-center gap-4 rounded-lg px-4 text-[17px] font-medium text-[#8fa3ad] transition hover:bg-[#10181c] hover:text-[#22ddeb]",
+              (pathname === "/settings" || pathname.startsWith("/settings/")) && "bg-[#0d1519] text-[#22ddeb]",
+            )}
+          >
+            <Settings className="h-[22px] w-[22px]" />
+            <span className="min-w-0 flex-1 truncate">Settings</span>
+          </Link>
         </nav>
 
         <div className="mx-5 border-t border-[#18282e] py-6">
@@ -187,39 +249,87 @@ export function Sidebar() {
 
 export function MobileNav() {
   const pathname = usePathname();
+  const [inventoryOpen, setInventoryOpen] = useState(false);
   const isInboxActive = pathname === "/inbox" || pathname.startsWith("/inbox/");
+  const isInventoryActive = pathname.startsWith("/inventory") || pathname === "/pos";
   const unreadInboxCount = useUnreadInboxCount(isInboxActive);
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-6 border-t border-[#1d3038] bg-[#050809] lg:hidden">
-      {nav.map((item) => {
-        const Icon = item.icon;
-        const active =
-          pathname === item.href ||
-          pathname.startsWith(`${item.href}/`) ||
-          (item.href === "/inventory" && pathname === "/pos");
+    <>
+      {inventoryOpen ? (
+        <div className="fixed inset-x-3 bottom-[68px] z-40 rounded-lg border border-[#1d3038] bg-[#070b0d] p-2 shadow-[0_18px_46px_rgba(0,0,0,0.4)] lg:hidden">
+          <div className="grid grid-cols-2 gap-1">
+            {inventoryNav.map((item) => {
+              const Icon = item.icon;
+              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex flex-col items-center gap-1 py-2 text-[10px] text-[#8fa3ad]",
-              active && "bg-[#0d1519] text-[#22ddeb]",
-            )}
-          >
-            <span className="relative">
-              <Icon className="h-4 w-4" />
-              {item.href === "/inbox" && !isInboxActive && unreadInboxCount > 0 ? (
-                <span className="absolute -right-3 -top-2 inline-flex min-w-4 items-center justify-center rounded-full bg-[#22ddeb] px-1 text-[9px] font-black leading-4 text-black">
-                  {unreadInboxCount > 99 ? "99+" : unreadInboxCount}
-                </span>
-              ) : null}
-            </span>
-            {item.label}
-          </Link>
-        );
-      })}
-    </div>
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setInventoryOpen(false)}
+                  className={cn(
+                    "flex h-11 items-center gap-2 rounded-lg px-3 text-xs font-semibold text-[#8fa3ad]",
+                    active && "bg-[#082529] text-[#22ddeb]",
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="min-w-0 truncate">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+      <div className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-6 border-t border-[#1d3038] bg-[#050809] lg:hidden">
+        {nav.map((item) => {
+          const Icon = item.icon;
+          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex flex-col items-center gap-1 py-2 text-[10px] text-[#8fa3ad]",
+                active && "bg-[#0d1519] text-[#22ddeb]",
+              )}
+            >
+              <span className="relative">
+                <Icon className="h-4 w-4" />
+                {item.href === "/inbox" && !isInboxActive && unreadInboxCount > 0 ? (
+                  <span className="absolute -right-3 -top-2 inline-flex min-w-4 items-center justify-center rounded-full bg-[#22ddeb] px-1 text-[9px] font-black leading-4 text-black">
+                    {unreadInboxCount > 99 ? "99+" : unreadInboxCount}
+                  </span>
+                ) : null}
+              </span>
+              {item.label}
+            </Link>
+          );
+        })}
+        <button
+          type="button"
+          onClick={() => setInventoryOpen((open) => !open)}
+          className={cn(
+            "flex flex-col items-center gap-1 py-2 text-[10px] text-[#8fa3ad]",
+            isInventoryActive && "bg-[#0d1519] text-[#22ddeb]",
+          )}
+          aria-expanded={inventoryOpen}
+        >
+          <Package className="h-4 w-4" />
+          Inventory
+        </button>
+        <Link
+          href="/settings"
+          className={cn(
+            "flex flex-col items-center gap-1 py-2 text-[10px] text-[#8fa3ad]",
+            (pathname === "/settings" || pathname.startsWith("/settings/")) && "bg-[#0d1519] text-[#22ddeb]",
+          )}
+        >
+          <Settings className="h-4 w-4" />
+          Settings
+        </Link>
+      </div>
+    </>
   );
 }
