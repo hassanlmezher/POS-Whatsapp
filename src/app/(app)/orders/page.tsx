@@ -79,33 +79,56 @@ export default async function OrdersPage() {
               </tr>
             </thead>
             <tbody>
-              {orders.map((order) => (
-                <tr key={order.id} className="border-t border-[#1d3038] text-[#f8fbff] transition hover:bg-[#0b1114]">
-                  <td className="whitespace-nowrap px-6 py-5 align-middle font-semibold text-[#f8fbff]">#{order.orderNumber}</td>
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-3">
-                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#10181c] text-xs font-bold text-[#f8fbff] ring-1 ring-[#1d3038]">{initials(order.customerName)}</span>
-                      <span className="whitespace-nowrap">{order.customerName}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="min-w-0 max-w-[320px]">
-                      <div className="truncate text-sm font-semibold text-[#f8fbff]">
-                        {(order.items ?? [])[0]?.productName ?? "No items"}
-                      </div>
-                      <div className="whitespace-nowrap text-xs text-[#6f858f]">
-                        {(order.items ?? []).length
-                          ? `${(order.items ?? []).reduce((sum, item) => sum + item.quantity, 0)} item${(order.items ?? []).reduce((sum, item) => sum + item.quantity, 0) === 1 ? "" : "s"}`
-                          : "Empty order"}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-5 text-[#8fa3ad]">{new Date(order.createdAt).toLocaleDateString()}</td>
-                  <td className="whitespace-nowrap px-6 py-5 font-black text-[#22ddeb]">{formatCurrency(order.total)}</td>
-                  <td className="whitespace-nowrap px-6 py-5"><Badge tone={order.paymentStatus === "paid" ? "green" : order.paymentStatus === "failed" ? "red" : "yellow"}>{order.paymentStatus}</Badge></td>
-                  <td className="whitespace-nowrap px-6 py-5 text-right"><Link className="font-bold text-[#22ddeb]" href={`/orders/${order.id}`}>View Details</Link></td>
-                </tr>
-              ))}
+              {orders.map((order) => {
+                const orderHref = `/orders/${order.id}`;
+                const itemCount = (order.items ?? []).reduce((sum, item) => sum + item.quantity, 0);
+
+                return (
+                  <tr key={order.id} className="group border-t border-[#1d3038] text-[#f8fbff] transition hover:bg-[#0b1114]">
+                    <td className="align-middle">
+                      <Link href={orderHref} className="block whitespace-nowrap px-6 py-5 font-semibold text-[#f8fbff]">
+                        #{order.orderNumber}
+                      </Link>
+                    </td>
+                    <td className="align-middle">
+                      <Link href={orderHref} className="flex items-center gap-3 px-6 py-5">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#10181c] text-xs font-bold text-[#f8fbff] ring-1 ring-[#1d3038]">{initials(order.customerName)}</span>
+                        <span className="whitespace-nowrap text-[#f8fbff]">{order.customerName}</span>
+                      </Link>
+                    </td>
+                    <td className="align-middle">
+                      <Link href={orderHref} className="block px-6 py-5">
+                        <span className="block max-w-[320px] truncate text-sm font-semibold text-[#f8fbff]">
+                          {(order.items ?? [])[0]?.productName ?? "No items"}
+                        </span>
+                        <span className="block whitespace-nowrap text-xs text-[#6f858f]">
+                          {itemCount ? `${itemCount} item${itemCount === 1 ? "" : "s"}` : "Empty order"}
+                        </span>
+                      </Link>
+                    </td>
+                    <td className="align-middle">
+                      <Link href={orderHref} className="block whitespace-nowrap px-6 py-5 text-[#8fa3ad]">
+                        {new Date(order.createdAt).toLocaleDateString()}
+                      </Link>
+                    </td>
+                    <td className="align-middle">
+                      <Link href={orderHref} className="block whitespace-nowrap px-6 py-5 font-black text-[#22ddeb]">
+                        {formatCurrency(order.total)}
+                      </Link>
+                    </td>
+                    <td className="align-middle">
+                      <Link href={orderHref} className="block whitespace-nowrap px-6 py-5">
+                        <Badge tone={order.paymentStatus === "paid" ? "green" : order.paymentStatus === "failed" ? "red" : "yellow"}>{order.paymentStatus}</Badge>
+                      </Link>
+                    </td>
+                    <td className="align-middle text-right">
+                      <Link href={orderHref} className="block whitespace-nowrap px-6 py-5 font-bold text-[#22ddeb]">
+                        View Details
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
