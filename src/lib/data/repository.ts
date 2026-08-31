@@ -98,8 +98,8 @@ type DbOrderItem = {
   quantity: number;
   unit_price: number | string;
   line_total: number | string;
-  product?: { image_url: string | null } | null;
 };
+type DbProductImage = { id: string; image_url: string | null };
 
 function assertNoError(error: unknown, context: string) {
   if (error) throw new Error(`${context}: ${JSON.stringify(error)}`);
@@ -245,13 +245,13 @@ function mapMessage(row: DbMessage): Message {
   };
 }
 
-function mapOrderItem(row: DbOrderItem): OrderItem {
+function mapOrderItem(row: DbOrderItem, productImagesById = new Map<string, string | null>()): OrderItem {
   return {
     id: row.id,
     orderId: row.order_id,
     productId: row.product_id ?? "",
     productName: row.product_name,
-    productImageUrl: row.product?.image_url ?? "/inchouf-pos-mark.png",
+    productImageUrl: row.product_id ? productImagesById.get(row.product_id) ?? "" : "",
     quantity: row.quantity,
     unitPrice: money(row.unit_price),
     lineTotal: money(row.line_total),
@@ -358,12 +358,13 @@ async function fetchMessages(supabase: SupabaseClient, tenantId: string, convers
 async function fetchOrderItems(supabase: SupabaseClient, tenantId: string, orderId: string) {
   const { data, error } = await supabase
     .from("order_items")
-    .select("id,order_id,product_id,product_name,quantity,unit_price,line_total,product:products!order_items_product_tenant_fkey(image_url)")
+    .select("id,tenant_id,order_id,product_id,product_name,quantity,unit_price,line_total")
     .eq("tenant_id", tenantId)
     .eq("order_id", orderId)
     .returns<DbOrderItem[]>();
   assertNoError(error, "order_items select failed");
-  return (data ?? []).map(mapOrderItem);
+  const productImagesById = await fetchProductImagesForOrderItems(supabase, tenantId, data ?? []);
+  return (data ?? []).map((row) => mapOrderItem(row, productImagesById));
 }
 
 async function fetchOrderItemsForOrders(supabase: SupabaseClient, tenantId: string, orderIds: string[]) {
@@ -373,18 +374,39 @@ async function fetchOrderItemsForOrders(supabase: SupabaseClient, tenantId: stri
 
   const { data, error } = await supabase
     .from("order_items")
-    .select("id,order_id,product_id,product_name,quantity,unit_price,line_total,product:products!order_items_product_tenant_fkey(image_url)")
+    .select("id,tenant_id,order_id,product_id,product_name,quantity,unit_price,line_total")
     .eq("tenant_id", tenantId)
     .in("order_id", orderIds)
     .returns<DbOrderItem[]>();
   assertNoError(error, "order_items preview select failed");
 
+  const productImagesById = await fetchProductImagesForOrderItems(supabase, tenantId, data ?? []);
   const itemsByOrderId = new Map<string, OrderItem[]>();
-  for (const item of (data ?? []).map(mapOrderItem)) {
+  for (const item of (data ?? []).map((row) => mapOrderItem(row, productImagesById))) {
     itemsByOrderId.set(item.orderId, [...(itemsByOrderId.get(item.orderId) ?? []), item]);
   }
 
   return itemsByOrderId;
+}
+
+async function fetchProductImagesForOrderItems(supabase: SupabaseClient, tenantId: string, items: DbOrderItem[]) {
+  const productIds = Array.from(
+    new Set(items.map((item) => item.product_id).filter((productId): productId is string => Boolean(productId))),
+  );
+
+  if (!productIds.length) {
+    return new Map<string, string | null>();
+  }
+
+  const { data, error } = await supabase
+    .from("products")
+    .select("id,image_url")
+    .eq("tenant_id", tenantId)
+    .in("id", productIds)
+    .returns<DbProductImage[]>();
+  assertNoError(error, "order item product image select failed");
+
+  return new Map((data ?? []).map((product) => [product.id, product.image_url]));
 }
 
 export async function getCompanyContext() {

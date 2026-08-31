@@ -48,11 +48,17 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ o
             {items.map((item) => (
               <div key={item.id} className="flex items-center justify-between gap-5 p-5">
                 <div className="flex min-w-0 items-center gap-4">
-                  <img
-                    src={item.productImageUrl}
-                    alt={item.productName}
-                    className="h-16 w-16 shrink-0 rounded-lg border border-[#1d3038] bg-[#030607] object-cover"
-                  />
+                  {item.productImageUrl ? (
+                    <img
+                      src={item.productImageUrl}
+                      alt={item.productName}
+                      className="h-16 w-16 shrink-0 rounded-lg border border-[#1d3038] bg-[#030607] object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-[#1d3038] bg-[#030607] text-[#22ddeb]">
+                      <Package className="h-6 w-6" />
+                    </span>
+                  )}
                   <div className="min-w-0">
                     <div className="truncate font-semibold text-[#f8fbff]">{item.productName}</div>
                     <div className="mt-1 text-sm text-[#8fa3ad]">

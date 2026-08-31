@@ -3,7 +3,6 @@ import { CalendarDays, Download, Package, Plus, Search, ShoppingBag } from "luci
 import { getOrdersData } from "@/lib/data/repository";
 import { formatCurrency, initials } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
@@ -12,11 +11,13 @@ export default async function OrdersPage() {
   const { orders } = await getOrdersData();
   const paidRevenue = orders.filter((order) => order.paymentStatus === "paid").reduce((sum, order) => sum + order.total, 0);
   const pending = orders.filter((order) => order.paymentStatus === "pending").length;
+  const completed = orders.filter((order) => order.status === "completed").length;
   const totalItems = orders.reduce(
     (sum, order) => sum + (order.items ?? []).reduce((itemSum, item) => itemSum + item.quantity, 0),
     0,
   );
-  const averageOrder = orders.length ? paidRevenue / orders.length : 0;
+  const paidOrders = orders.filter((order) => order.paymentStatus === "paid").length;
+  const averageOrder = paidOrders ? paidRevenue / paidOrders : 0;
 
   return (
     <div className="space-y-7 p-5 lg:p-8">
@@ -25,9 +26,12 @@ export default async function OrdersPage() {
           <h1 className="text-2xl font-black text-[#f8fbff]">Orders</h1>
           <p className="mt-2 text-[#8fa3ad]">Review transaction history, purchased items, and customer relationships.</p>
         </div>
-        <Button>
+        <Link
+          href="/pos"
+          className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-[#22ddeb] px-5 text-sm font-semibold text-black shadow-[0_6px_14px_rgba(34,221,235,0.24)] transition hover:bg-[#2ff4ff]"
+        >
           <Plus className="h-4 w-4" /> New Order
-        </Button>
+        </Link>
       </div>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -35,7 +39,7 @@ export default async function OrdersPage() {
           { label: "Total Orders", value: orders.length.toLocaleString(), helper: `${totalItems.toLocaleString()} items sold`, icon: ShoppingBag },
           { label: "Active Pending", value: pending.toLocaleString(), helper: "Awaiting payment", icon: CalendarDays },
           { label: "Net Revenue", value: formatCurrency(paidRevenue), helper: `${formatCurrency(averageOrder)} avg. order`, icon: Package },
-          { label: "Satisfaction", value: "4.9/5", helper: "Customer rating", icon: ShoppingBag },
+          { label: "Completed", value: completed.toLocaleString(), helper: "Completed orders", icon: ShoppingBag },
         ].map((stat) => {
           const Icon = stat.icon;
 
@@ -62,8 +66,15 @@ export default async function OrdersPage() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6f858f]" />
             <input className="h-11 w-full rounded-lg border border-[#1d3038] bg-[#0b1114] pl-10 text-[#f8fbff] outline-none placeholder:text-[#6f858f] focus:border-[#22ddeb]" placeholder="Filter by ID or Name" />
           </label>
-          <Button variant="outline">All Status</Button>
-          <Button variant="ghost" size="icon" aria-label="Download orders"><Download className="h-5 w-5" /></Button>
+          <button className="inline-flex h-12 items-center justify-center rounded-lg border border-[#1d3038] bg-[#070b0d] px-5 text-sm font-semibold text-[#f8fbff] shadow-sm transition hover:bg-[#0b1114]">
+            All Status
+          </button>
+          <button
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-transparent p-0 text-[#8fa3ad] transition hover:bg-[#10181c] hover:text-[#22ddeb]"
+            aria-label="Download orders"
+          >
+            <Download className="h-5 w-5" />
+          </button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1120px] text-left">
@@ -79,7 +90,7 @@ export default async function OrdersPage() {
               </tr>
             </thead>
             <tbody>
-              {orders.map((order) => {
+              {orders.length ? orders.map((order) => {
                 const orderHref = `/orders/${order.id}`;
                 const itemCount = (order.items ?? []).reduce((sum, item) => sum + item.quantity, 0);
 
@@ -128,7 +139,27 @@ export default async function OrdersPage() {
                     </td>
                   </tr>
                 );
-              })}
+              }) : (
+                <tr>
+                  <td colSpan={7} className="px-6 py-16 text-center">
+                    <div className="mx-auto flex max-w-sm flex-col items-center">
+                      <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#082529] text-[#22ddeb] ring-1 ring-[#22ddeb]/40">
+                        <ShoppingBag className="h-6 w-6" />
+                      </span>
+                      <h2 className="mt-4 text-lg font-semibold text-[#f8fbff]">No orders yet</h2>
+                      <p className="mt-2 text-sm text-[#8fa3ad]">
+                        Orders created from the POS checkout will appear here for this tenant.
+                      </p>
+                      <Link
+                        href="/pos"
+                        className="mt-5 inline-flex h-11 items-center justify-center rounded-lg bg-[#22ddeb] px-4 text-sm font-semibold text-black transition hover:bg-[#2ff4ff]"
+                      >
+                        Create first order
+                      </Link>
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
