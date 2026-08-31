@@ -2,6 +2,7 @@
 
 import { randomUUID } from "crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -187,6 +188,8 @@ export async function updateAccountProfile(formData: FormData) {
     redirect("/settings?error=profile-update-failed");
   }
 
+  revalidatePath("/", "layout");
+  revalidatePath("/settings");
   redirect("/settings?updated=profile");
 }
 
