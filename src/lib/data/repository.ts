@@ -452,7 +452,10 @@ async function fetchProductImagesForOrderItems(supabase: SupabaseClient, tenantI
     .eq("tenant_id", tenantId)
     .in("id", productIds)
     .returns<DbProductImage[]>();
-  assertNoError(error, "order item product image select failed");
+  if (error) {
+    console.warn("[repository] Order item product image lookup failed; continuing without item images", error);
+    return new Map<string, string | null>();
+  }
 
   return new Map((data ?? []).map((product) => [product.id, product.image_url]));
 }
@@ -746,14 +749,42 @@ export async function getUnreadInboxCount() {
 
 export async function getOrdersData() {
   const { supabase, tenant } = await getAuthenticatedTenantContext();
-  const customers = await fetchCustomers(supabase, tenant.id);
+  let dataSupabase = supabase;
+
+  try {
+    dataSupabase = createSupabaseAdminClient();
+  } catch (error) {
+    console.warn("[repository] Admin client unavailable for orders page; falling back to session client", error);
+  }
+
+  let customers: Customer[] = [];
+  try {
+    customers = await fetchCustomers(dataSupabase, tenant.id);
+  } catch (error) {
+    console.warn("[repository] Customer lookup failed for orders page; continuing with walk-in labels", error);
+  }
+
   const customersById = new Map(customers.map((customer) => [customer.id, customer]));
-  const orders = await fetchOrders(supabase, tenant.id, customersById);
-  const itemsByOrderId = await fetchOrderItemsForOrders(
-    supabase,
-    tenant.id,
-    orders.map((order) => order.id),
-  );
+  let orders: Order[] = [];
+
+  try {
+    orders = await fetchOrders(dataSupabase, tenant.id, customersById);
+  } catch (error) {
+    console.error("[repository] Orders lookup failed; rendering empty orders page", error);
+  }
+
+  let itemsByOrderId = new Map<string, OrderItem[]>();
+
+  try {
+    itemsByOrderId = await fetchOrderItemsForOrders(
+      dataSupabase,
+      tenant.id,
+      orders.map((order) => order.id),
+    );
+  } catch (error) {
+    console.warn("[repository] Order item lookup failed for orders page; continuing without item previews", error);
+  }
+
   return {
     company: mapTenant(tenant),
     orders: orders.map((order) => ({ ...order, items: itemsByOrderId.get(order.id) ?? [] })),
@@ -763,9 +794,23 @@ export async function getOrdersData() {
 
 export async function getOrderDetails(orderId: string) {
   const { supabase, tenant } = await getAuthenticatedTenantContext();
-  const customers = await fetchCustomers(supabase, tenant.id);
+  let dataSupabase = supabase;
+
+  try {
+    dataSupabase = createSupabaseAdminClient();
+  } catch (error) {
+    console.warn("[repository] Admin client unavailable for order details; falling back to session client", error);
+  }
+
+  let customers: Customer[] = [];
+  try {
+    customers = await fetchCustomers(dataSupabase, tenant.id);
+  } catch (error) {
+    console.warn("[repository] Customer lookup failed for order details; continuing with order customer label", error);
+  }
+
   const customersById = new Map(customers.map((customer) => [customer.id, customer]));
-  const { data, error } = await supabase
+  const { data, error } = await dataSupabase
     .from("orders")
     .select("id,tenant_id,customer_id,conversation_id,order_number,status,payment_status,subtotal,tax_total,total,created_at")
     .eq("tenant_id", tenant.id)
@@ -773,11 +818,28 @@ export async function getOrderDetails(orderId: string) {
     .maybeSingle<DbOrder>();
   assertNoError(error, "order details select failed");
   const order = data ? mapOrder(data, customersById) : undefined;
-  const conversations = order ? await fetchConversations(supabase, tenant.id, customersById) : [];
+  let conversations: Conversation[] = [];
+  if (order?.conversationId) {
+    try {
+      conversations = await fetchConversations(dataSupabase, tenant.id, customersById);
+    } catch (error) {
+      console.warn("[repository] Conversation lookup failed for order details; continuing without conversation link", error);
+    }
+  }
+
+  let items: OrderItem[] = [];
+  if (order) {
+    try {
+      items = await fetchOrderItems(dataSupabase, tenant.id, order.id);
+    } catch (error) {
+      console.warn("[repository] Order item lookup failed for order details; continuing without items", error);
+    }
+  }
+
   return {
     company: mapTenant(tenant),
     order,
-    items: order ? await fetchOrderItems(supabase, tenant.id, order.id) : [],
+    items,
     customer: order?.customerId ? customersById.get(order.customerId) ?? null : null,
     conversation: order?.conversationId
       ? conversations.find((item) => item.id === order.conversationId) ?? null
