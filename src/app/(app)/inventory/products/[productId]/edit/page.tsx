@@ -1,12 +1,14 @@
 import Link from "next/link";
-import { createInventoryProduct } from "@/app/(app)/inventory/actions";
-import { getNewProductData } from "@/lib/data/repository";
+import { notFound } from "next/navigation";
+import { updateInventoryProduct } from "@/app/(app)/inventory/actions";
+import { getEditProductData } from "@/lib/data/repository";
 import { ProductForm } from "@/components/inventory/product-form";
 import { Card } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
 
-type NewProductPageProps = {
+type EditProductPageProps = {
+  params: Promise<{ productId: string }>;
   searchParams: Promise<{ error?: string }>;
 };
 
@@ -14,12 +16,19 @@ const errorMessages: Record<string, string> = {
   "invalid-product": "Check the product name, SKU, price, and stock.",
   "invalid-image": "Upload a JPG, PNG, WebP, or GIF image under 8 MB.",
   "invalid-category": "The selected category does not belong to this tenant.",
-  "product-create-failed": "Product could not be created. The SKU may already exist.",
+  "product-update-failed": "Product could not be updated. The SKU may already exist.",
 };
 
-export default async function NewInventoryProductPage({ searchParams }: NewProductPageProps) {
-  const [data, params] = await Promise.all([getNewProductData(), searchParams]);
-  const errorMessage = params.error ? errorMessages[params.error] : null;
+export default async function EditInventoryProductPage({ params, searchParams }: EditProductPageProps) {
+  const [{ productId }, query] = await Promise.all([params, searchParams]);
+  const data = await getEditProductData(productId);
+
+  if (!data) {
+    notFound();
+  }
+
+  const updateProduct = updateInventoryProduct.bind(null, data.product.id);
+  const errorMessage = query.error ? errorMessages[query.error] : null;
 
   return (
     <div className="space-y-6 p-5 lg:p-8">
@@ -27,9 +36,9 @@ export default async function NewInventoryProductPage({ searchParams }: NewProdu
         <Link href="/inventory/products" className="text-sm font-bold text-[#22ddeb]">
           Product Catalog
         </Link>
-        <h1 className="mt-3 text-2xl font-black text-white">Add Product</h1>
+        <h1 className="mt-3 text-2xl font-black text-white">Edit Product</h1>
         <p className="mt-2 max-w-2xl text-[#8fa3ad]">
-          Create a tenant-owned product. It will appear in the product catalog and POS workspace.
+          Update product details, stock, image, and POS availability.
         </p>
       </div>
 
@@ -41,14 +50,14 @@ export default async function NewInventoryProductPage({ searchParams }: NewProdu
 
       <Card className="max-w-3xl p-6">
         <ProductForm
-          action={createInventoryProduct}
+          action={updateProduct}
           categories={data.categories}
-          skuSeed={data.skuSeed}
-          submitLabel="Save Product"
+          product={data.product}
+          submitLabel="Update Product"
         />
         {!data.branches.length ? (
           <p className="mt-5 rounded-lg border border-[#8a621f] bg-[#33240b] px-4 py-3 text-sm text-[#f6c76a]">
-            No active branch exists for this tenant. The product can be created, but initial stock
+            No active branch exists for this tenant. Product details can be updated, but stock
             cannot be assigned until a branch exists.
           </p>
         ) : null}

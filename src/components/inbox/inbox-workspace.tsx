@@ -59,6 +59,7 @@ export function InboxWorkspace({
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [conversationSearch, setConversationSearch] = useState("");
   const [activeCustomer, setActiveCustomer] = useState<Customer | null>(selectedCustomer ?? null);
   const [activeRecentOrders, setActiveRecentOrders] = useState<Order[]>(recentOrders);
   const draftTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -86,6 +87,21 @@ export function InboxWorkspace({
   }, [activeConversationId]);
 
   const visibleConversations = storeConversations.length ? storeConversations : conversations;
+  const filteredConversations = useMemo(() => {
+    const query = conversationSearch.trim().toLowerCase();
+
+    if (!query) {
+      return visibleConversations;
+    }
+
+    return visibleConversations.filter((conversation) =>
+      [
+        conversation.customerName,
+        conversation.customerPhone,
+        conversation.lastMessage,
+      ].some((value) => value.toLowerCase().includes(query)),
+    );
+  }, [conversationSearch, visibleConversations]);
   const activeConversation = visibleConversations.find((item) => item.id === activeConversationId) ?? selectedConversation ?? null;
   const activeMessages = activeConversation
     ? messages.filter((message) => message.conversationId === activeConversation.id)
@@ -381,9 +397,16 @@ export function InboxWorkspace({
           <h2 className="text-xl font-semibold text-[#f8fbff]">Messages</h2>
           <Button variant="ghost" size="icon" aria-label="Compose"><Send className="h-5 w-5 rotate-[-35deg] text-[#22ddeb]" /></Button>
         </div>
-        <div className="p-4"><Input icon placeholder="Search conversations..." /></div>
+        <div className="p-4">
+          <Input
+            icon
+            value={conversationSearch}
+            onChange={(event) => setConversationSearch(event.target.value)}
+            placeholder="Search conversations..."
+          />
+        </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
-          {visibleConversations.map((conversation) => (
+          {filteredConversations.map((conversation) => (
             <button
               key={conversation.id}
               onClick={() => {
@@ -408,6 +431,11 @@ export function InboxWorkspace({
               {conversation.unreadCount ? <Badge tone="green">{conversation.unreadCount}</Badge> : null}
             </button>
           ))}
+          {!filteredConversations.length ? (
+            <div className="px-6 py-10 text-center text-sm leading-6 text-[#8fa3ad]">
+              No conversations match your search.
+            </div>
+          ) : null}
         </div>
       </aside>
 

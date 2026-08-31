@@ -1,4 +1,5 @@
 import "server-only";
+import { randomUUID } from "crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getTenantContext as getAuthenticatedTenantContext, type Tenant } from "@/lib/tenant-context";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -501,8 +502,10 @@ export async function getInventoryCategoriesData() {
     categories: realCategories.map((category) => ({
       ...category,
       productCount: products.filter((product) => product.categoryId === category.id).length,
+      products: products.filter((product) => product.categoryId === category.id),
     })),
     uncategorizedCount: products.filter((product) => !product.categoryId).length,
+    uncategorizedProducts: products.filter((product) => !product.categoryId),
   };
 }
 
@@ -524,6 +527,54 @@ export async function getNewProductData() {
     company: mapTenant(tenant),
     categories: categories.filter((category) => category.id !== "cat-all"),
     branches: branchRows ?? [],
+    skuSeed: randomUUID().slice(0, 4).toUpperCase(),
+  };
+}
+
+export async function getEditProductData(productId: string) {
+  const { supabase, tenant } = await getAuthenticatedTenantContext();
+  const [{ data: productRow, error: productError }, categories, { data: inventoryRows, error: inventoryError }, { data: branchRows, error: branchError }] =
+    await Promise.all([
+      supabase
+        .from("products")
+        .select("id,tenant_id,category_id,name,sku,price,image_url,active")
+        .eq("tenant_id", tenant.id)
+        .eq("id", productId)
+        .maybeSingle<DbProduct>(),
+      fetchCategories(supabase, tenant.id),
+      supabase
+        .from("inventory")
+        .select("product_id,quantity")
+        .eq("tenant_id", tenant.id)
+        .eq("product_id", productId)
+        .returns<{ product_id: string; quantity: number }[]>(),
+      supabase
+        .from("branches")
+        .select("id,name")
+        .eq("tenant_id", tenant.id)
+        .eq("active", true)
+        .order("created_at")
+        .returns<{ id: string; name: string }[]>(),
+    ]);
+
+  assertNoError(productError, "product edit lookup failed");
+  assertNoError(inventoryError, "product edit inventory lookup failed");
+  assertNoError(branchError, "product edit branches lookup failed");
+
+  if (!productRow) {
+    return null;
+  }
+
+  const stockByProductId = new Map<string, number>();
+  for (const row of inventoryRows ?? []) {
+    stockByProductId.set(row.product_id, (stockByProductId.get(row.product_id) ?? 0) + row.quantity);
+  }
+
+  return {
+    company: mapTenant(tenant),
+    categories: categories.filter((category) => category.id !== "cat-all"),
+    branches: branchRows ?? [],
+    product: mapProduct(productRow, stockByProductId),
   };
 }
 
