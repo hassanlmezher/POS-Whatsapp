@@ -122,6 +122,22 @@ function isMissingMessageMediaSchema(error: unknown) {
   );
 }
 
+function isMissingOrderItemTenantSchema(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const record = error as { code?: unknown; message?: unknown };
+  const message = typeof record.message === "string" ? record.message.toLowerCase() : "";
+
+  return (
+    record.code === "PGRST204" ||
+    record.code === "42703" ||
+    message.includes("tenant_id") ||
+    message.includes("schema cache")
+  );
+}
+
 function money(value: number | string | null | undefined) {
   return Number(value ?? 0);
 }
@@ -362,6 +378,19 @@ async function fetchOrderItems(supabase: SupabaseClient, tenantId: string, order
     .eq("tenant_id", tenantId)
     .eq("order_id", orderId)
     .returns<DbOrderItem[]>();
+
+  if (error && isMissingOrderItemTenantSchema(error)) {
+    console.warn("[repository] order_items.tenant_id unavailable; falling back to tenant-scoped order id lookup");
+    const { data: legacyData, error: legacyError } = await supabase
+      .from("order_items")
+      .select("id,order_id,product_id,product_name,quantity,unit_price,line_total")
+      .eq("order_id", orderId)
+      .returns<DbOrderItem[]>();
+    assertNoError(legacyError, "legacy order_items select failed");
+    const productImagesById = await fetchProductImagesForOrderItems(supabase, tenantId, legacyData ?? []);
+    return (legacyData ?? []).map((row) => mapOrderItem(row, productImagesById));
+  }
+
   assertNoError(error, "order_items select failed");
   const productImagesById = await fetchProductImagesForOrderItems(supabase, tenantId, data ?? []);
   return (data ?? []).map((row) => mapOrderItem(row, productImagesById));
@@ -378,6 +407,25 @@ async function fetchOrderItemsForOrders(supabase: SupabaseClient, tenantId: stri
     .eq("tenant_id", tenantId)
     .in("order_id", orderIds)
     .returns<DbOrderItem[]>();
+
+  if (error && isMissingOrderItemTenantSchema(error)) {
+    console.warn("[repository] order_items.tenant_id unavailable; falling back to tenant-scoped order ids lookup");
+    const { data: legacyData, error: legacyError } = await supabase
+      .from("order_items")
+      .select("id,order_id,product_id,product_name,quantity,unit_price,line_total")
+      .in("order_id", orderIds)
+      .returns<DbOrderItem[]>();
+    assertNoError(legacyError, "legacy order_items preview select failed");
+
+    const productImagesById = await fetchProductImagesForOrderItems(supabase, tenantId, legacyData ?? []);
+    const legacyItemsByOrderId = new Map<string, OrderItem[]>();
+    for (const item of (legacyData ?? []).map((row) => mapOrderItem(row, productImagesById))) {
+      legacyItemsByOrderId.set(item.orderId, [...(legacyItemsByOrderId.get(item.orderId) ?? []), item]);
+    }
+
+    return legacyItemsByOrderId;
+  }
+
   assertNoError(error, "order_items preview select failed");
 
   const productImagesById = await fetchProductImagesForOrderItems(supabase, tenantId, data ?? []);
