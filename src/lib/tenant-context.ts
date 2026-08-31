@@ -39,6 +39,32 @@ export class TenantMembershipRequiredError extends Error {
   }
 }
 
+type TenantMembershipRow = {
+  id: string;
+  auth_user_id: string;
+  tenant_id: string;
+  name: string;
+  role: TenantMembership["role"];
+  avatar_url?: string | null;
+  created_at?: string | null;
+};
+
+function isMissingOptionalProfileSchema(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const record = error as { code?: unknown; message?: unknown };
+  const message = typeof record.message === "string" ? record.message.toLowerCase() : "";
+
+  return (
+    record.code === "PGRST204" ||
+    record.code === "42703" ||
+    message.includes("avatar_url") ||
+    message.includes("schema cache")
+  );
+}
+
 export async function getTenantContext() {
   const supabase = await createSupabaseServerClient();
   const { data: authData, error: authError } = await supabase.auth.getUser();
@@ -47,19 +73,25 @@ export async function getTenantContext() {
     throw new AuthenticationRequiredError();
   }
 
-  const { data: membershipRow, error: membershipError } = await supabase
+  const { data: membershipRowWithProfile, error: membershipProfileError } = await supabase
     .from("tenant_users")
     .select("id,auth_user_id,tenant_id,name,role,avatar_url,created_at")
     .eq("auth_user_id", authData.user.id)
-    .maybeSingle<{
-      id: string;
-      auth_user_id: string;
-      tenant_id: string;
-      name: string;
-      role: TenantMembership["role"];
-      avatar_url: string | null;
-      created_at: string;
-    }>();
+    .maybeSingle<TenantMembershipRow>();
+
+  let membershipRow = membershipRowWithProfile;
+  let membershipError = membershipProfileError;
+
+  if (membershipProfileError && isMissingOptionalProfileSchema(membershipProfileError)) {
+    const fallback = await supabase
+      .from("tenant_users")
+      .select("id,auth_user_id,tenant_id,name,role,created_at")
+      .eq("auth_user_id", authData.user.id)
+      .maybeSingle<TenantMembershipRow>();
+
+    membershipRow = fallback.data;
+    membershipError = fallback.error;
+  }
 
   if (membershipError) {
     throw new Error(`Tenant membership lookup failed: ${membershipError.message}`);
@@ -101,8 +133,8 @@ export async function getTenantContext() {
       tenantId: membershipRow.tenant_id,
       name: membershipRow.name,
       role: membershipRow.role,
-      avatarUrl: membershipRow.avatar_url,
-      createdAt: membershipRow.created_at,
+      avatarUrl: membershipRow.avatar_url ?? null,
+      createdAt: membershipRow.created_at ?? authData.user.created_at,
     } satisfies TenantMembership,
     tenant: {
       id: tenantRow.id,

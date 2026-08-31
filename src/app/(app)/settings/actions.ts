@@ -29,6 +29,23 @@ const companySchema = z.object({
 
 const companyEditRoles = new Set(["owner", "admin", "manager"]);
 
+function isMissingOptionalProfileSchema(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const record = error as { code?: unknown; message?: unknown };
+  const message = typeof record.message === "string" ? record.message.toLowerCase() : "";
+
+  return (
+    record.code === "PGRST204" ||
+    record.code === "42703" ||
+    message.includes("avatar_url") ||
+    message.includes("updated_at") ||
+    message.includes("schema cache")
+  );
+}
+
 function optionalString(value: FormDataEntryValue | null) {
   const text = typeof value === "string" ? value.trim() : "";
   return text.length ? text : null;
@@ -141,7 +158,24 @@ export async function updateAccountProfile(formData: FormData) {
     .eq("auth_user_id", user.id);
 
   if (error) {
-    redirect("/settings?error=profile-update-failed");
+    if (isMissingOptionalProfileSchema(error)) {
+      if (avatarFile) {
+        redirect("/settings?error=profile-schema-required");
+      }
+
+      const { error: fallbackError } = await supabase
+        .from("tenant_users")
+        .update({ name: parsed.data.name })
+        .eq("id", membership.id)
+        .eq("tenant_id", tenant.id)
+        .eq("auth_user_id", user.id);
+
+      if (fallbackError) {
+        redirect("/settings?error=profile-update-failed");
+      }
+    } else {
+      redirect("/settings?error=profile-update-failed");
+    }
   }
 
   await supabase.auth.admin.updateUserById(user.id, {
