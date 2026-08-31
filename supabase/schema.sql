@@ -63,7 +63,9 @@ alter table public.tenant_users add column if not exists auth_user_id uuid;
 alter table public.tenant_users add column if not exists tenant_id uuid;
 alter table public.tenant_users add column if not exists name text;
 alter table public.tenant_users add column if not exists role public.app_role;
+alter table public.tenant_users add column if not exists avatar_url text;
 alter table public.tenant_users add column if not exists created_at timestamptz default now();
+alter table public.tenant_users add column if not exists updated_at timestamptz default now();
 
 -- Preserve every legacy company as a tenant with the same UUID, so company_id
 -- can be copied to tenant_id without remapping or losing ownership.
@@ -377,6 +379,19 @@ values (
   'product-images',
   true,
   8388608,
+  array['image/jpeg', 'image/png', 'image/webp', 'image/gif']::text[]
+)
+on conflict (id) do update
+set public = true,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'profile-avatars',
+  'profile-avatars',
+  true,
+  5242880,
   array['image/jpeg', 'image/png', 'image/webp', 'image/gif']::text[]
 )
 on conflict (id) do update

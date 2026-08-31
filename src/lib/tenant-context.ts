@@ -12,6 +12,7 @@ export type Tenant = {
   whatsappPhoneNumber: string | null;
   whatsappPhoneNumberId: string | null;
   whatsappBusinessAccountId: string | null;
+  createdAt: string;
 };
 
 export type TenantMembership = {
@@ -20,6 +21,8 @@ export type TenantMembership = {
   tenantId: string;
   name: string;
   role: "owner" | "admin" | "manager" | "cashier" | "support";
+  avatarUrl: string | null;
+  createdAt: string;
 };
 
 export class AuthenticationRequiredError extends Error {
@@ -46,7 +49,7 @@ export async function getTenantContext() {
 
   const { data: membershipRow, error: membershipError } = await supabase
     .from("tenant_users")
-    .select("id,auth_user_id,tenant_id,name,role")
+    .select("id,auth_user_id,tenant_id,name,role,avatar_url,created_at")
     .eq("auth_user_id", authData.user.id)
     .maybeSingle<{
       id: string;
@@ -54,6 +57,8 @@ export async function getTenantContext() {
       tenant_id: string;
       name: string;
       role: TenantMembership["role"];
+      avatar_url: string | null;
+      created_at: string;
     }>();
 
   if (membershipError) {
@@ -67,7 +72,7 @@ export async function getTenantContext() {
   const { data: tenantRow, error: tenantError } = await supabase
     .from("tenants")
     .select(
-      "id,name,slug,currency,tax_rate,timezone,whatsapp_phone_number,whatsapp_phone_number_id,whatsapp_business_account_id",
+      "id,name,slug,currency,tax_rate,timezone,whatsapp_phone_number,whatsapp_phone_number_id,whatsapp_business_account_id,created_at",
     )
     .eq("id", membershipRow.tenant_id)
     .single<{
@@ -80,6 +85,7 @@ export async function getTenantContext() {
       whatsapp_phone_number: string | null;
       whatsapp_phone_number_id: string | null;
       whatsapp_business_account_id: string | null;
+      created_at: string;
     }>();
 
   if (tenantError || !tenantRow) {
@@ -95,6 +101,8 @@ export async function getTenantContext() {
       tenantId: membershipRow.tenant_id,
       name: membershipRow.name,
       role: membershipRow.role,
+      avatarUrl: membershipRow.avatar_url,
+      createdAt: membershipRow.created_at,
     } satisfies TenantMembership,
     tenant: {
       id: tenantRow.id,
@@ -106,6 +114,7 @@ export async function getTenantContext() {
       whatsappPhoneNumber: tenantRow.whatsapp_phone_number,
       whatsappPhoneNumberId: tenantRow.whatsapp_phone_number_id,
       whatsappBusinessAccountId: tenantRow.whatsapp_business_account_id,
+      createdAt: tenantRow.created_at,
     } satisfies Tenant,
   };
 }
