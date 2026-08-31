@@ -124,6 +124,9 @@ export async function getTenantContext() {
     throw new Error(`Tenant lookup failed: ${tenantError?.message ?? "tenant not found"}`);
   }
 
+  const metadataAvatarUrl =
+    typeof authData.user.user_metadata?.avatar_url === "string" ? authData.user.user_metadata.avatar_url : null;
+
   return {
     supabase,
     user: authData.user as User,
@@ -133,7 +136,7 @@ export async function getTenantContext() {
       tenantId: membershipRow.tenant_id,
       name: membershipRow.name,
       role: membershipRow.role,
-      avatarUrl: membershipRow.avatar_url ?? null,
+      avatarUrl: membershipRow.avatar_url ?? metadataAvatarUrl,
       createdAt: membershipRow.created_at ?? authData.user.created_at,
     } satisfies TenantMembership,
     tenant: {

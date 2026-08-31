@@ -810,13 +810,28 @@ export async function getOrderDetails(orderId: string) {
   }
 
   const customersById = new Map(customers.map((customer) => [customer.id, customer]));
-  const { data, error } = await dataSupabase
+  const { data: orderById, error: orderByIdError } = await dataSupabase
     .from("orders")
     .select("id,tenant_id,customer_id,conversation_id,order_number,status,payment_status,subtotal,tax_total,total,created_at")
     .eq("tenant_id", tenant.id)
-    .or(`id.eq.${orderId},order_number.eq.${orderId}`)
+    .eq("id", orderId)
     .maybeSingle<DbOrder>();
-  assertNoError(error, "order details select failed");
+
+  assertNoError(orderByIdError, "order details select by id failed");
+
+  let data = orderById;
+  if (!data) {
+    const { data: orderByNumber, error: orderByNumberError } = await dataSupabase
+      .from("orders")
+      .select("id,tenant_id,customer_id,conversation_id,order_number,status,payment_status,subtotal,tax_total,total,created_at")
+      .eq("tenant_id", tenant.id)
+      .eq("order_number", orderId)
+      .maybeSingle<DbOrder>();
+
+    assertNoError(orderByNumberError, "order details select by number failed");
+    data = orderByNumber;
+  }
+
   const order = data ? mapOrder(data, customersById) : undefined;
   let conversations: Conversation[] = [];
   if (order?.conversationId) {

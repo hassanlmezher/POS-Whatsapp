@@ -159,10 +159,6 @@ export async function updateAccountProfile(formData: FormData) {
 
   if (error) {
     if (isMissingOptionalProfileSchema(error)) {
-      if (avatarFile) {
-        redirect("/settings?error=profile-schema-required");
-      }
-
       const { error: fallbackError } = await supabase
         .from("tenant_users")
         .update({ name: parsed.data.name })
@@ -178,13 +174,18 @@ export async function updateAccountProfile(formData: FormData) {
     }
   }
 
-  await supabase.auth.admin.updateUserById(user.id, {
+  const { error: authUpdateError } = await supabase.auth.admin.updateUserById(user.id, {
     user_metadata: {
       ...user.user_metadata,
       avatar_url: avatarUrl,
       name: parsed.data.name,
     },
   });
+
+  if (authUpdateError) {
+    console.error("[settings] Auth profile metadata update failed", authUpdateError);
+    redirect("/settings?error=profile-update-failed");
+  }
 
   redirect("/settings?updated=profile");
 }

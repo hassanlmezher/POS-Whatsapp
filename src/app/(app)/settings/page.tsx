@@ -18,7 +18,7 @@ const errorMessages: Record<string, string> = {
   "invalid-profile": "Check your profile name.",
   "invalid-avatar": "Upload a JPG, PNG, WebP, or GIF avatar under 5 MB.",
   "avatar-upload-failed": "Profile picture could not be uploaded.",
-  "profile-schema-required": "Run the latest Supabase schema before saving profile pictures.",
+  "profile-schema-required": "Profile picture support is being prepared. Try saving again.",
   "profile-update-failed": "Profile could not be updated.",
   "invalid-company": "Check company name, currency, tax rate, and timezone.",
   "company-permission-denied": "Your role cannot edit company profile settings.",
