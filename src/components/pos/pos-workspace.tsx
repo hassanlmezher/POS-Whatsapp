@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import type { Category, Company, Customer, Product } from "@/lib/types/domain";
 import { formatCurrency } from "@/lib/utils";
+import { finishAppProgress, startAppProgress } from "@/components/app/navigation-progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCartStore, getCartTotals } from "@/lib/stores/cart-store";
@@ -48,6 +49,7 @@ export function POSWorkspace({
   async function checkout() {
     setCheckoutError(null);
     setIsCheckingOut(true);
+    startAppProgress();
     const response = await fetch("/api/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -56,18 +58,19 @@ export function POSWorkspace({
         paymentMethod,
         items: items.map((item) => ({ productId: item.product.id, quantity: item.quantity })),
       }),
-    });
+    }).catch(() => null);
 
-    if (response.ok) {
+    if (response?.ok) {
       clear();
       router.push("/orders");
       router.refresh();
       return;
     }
 
-    const payload = await response.json().catch(() => null);
+    const payload = await response?.json().catch(() => null);
     setCheckoutError(payload?.error ?? "Checkout failed. Check the server logs for details.");
     setIsCheckingOut(false);
+    finishAppProgress();
   }
 
   return (

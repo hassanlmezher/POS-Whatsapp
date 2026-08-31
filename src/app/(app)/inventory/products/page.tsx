@@ -5,6 +5,7 @@ import { getInventoryProductsData } from "@/lib/data/repository";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -102,13 +103,13 @@ export default async function InventoryProductsPage({ searchParams }: ProductsPa
                           Edit
                         </Link>
                         <form action={deleteProduct}>
-                          <button
-                            type="submit"
+                          <SubmitButton
+                            pendingText="Deleting..."
                             className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-[#5c1d29] bg-[#351018] px-3 text-sm font-bold text-[#ff9aac] transition hover:bg-[#43131e]"
                           >
                             <Trash2 className="h-4 w-4" />
                             Delete
-                          </button>
+                          </SubmitButton>
                         </form>
                       </div>
                     </td>

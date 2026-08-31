@@ -5,6 +5,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { PasswordForm } from "@/components/settings/password-form";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -136,12 +137,12 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                 />
               </label>
               <div className="flex justify-end md:col-span-2">
-                <button
-                  type="submit"
+                <SubmitButton
+                  pendingText="Saving profile..."
                   className="inline-flex h-12 items-center justify-center rounded-lg bg-[#22ddeb] px-5 text-sm font-semibold text-black shadow-[0_10px_24px_rgba(34,221,235,0.2)] transition hover:bg-[#2ff4ff]"
                 >
                   Save Profile
-                </button>
+                </SubmitButton>
               </div>
             </form>
           </Card>
@@ -208,12 +209,12 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                   <span className="font-semibold text-white">{tenant.slug}</span>
                 </div>
                 {canEditCompany ? (
-                  <button
-                    type="submit"
+                  <SubmitButton
+                    pendingText="Saving company..."
                     className="inline-flex h-12 items-center justify-center rounded-lg bg-[#22ddeb] px-5 text-sm font-semibold text-black shadow-[0_10px_24px_rgba(34,221,235,0.2)] transition hover:bg-[#2ff4ff]"
                   >
                     Save Company
-                  </button>
+                  </SubmitButton>
                 ) : (
                   <Badge tone="slate">View only</Badge>
                 )}

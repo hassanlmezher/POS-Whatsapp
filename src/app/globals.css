@@ -47,3 +47,13 @@ textarea {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+@keyframes progress-slide {
+  0% {
+    transform: translateX(-105%);
+  }
+
+  100% {
+    transform: translateX(205%);
+  }
+}

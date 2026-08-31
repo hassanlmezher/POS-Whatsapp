@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { ImageUp, Package, RefreshCw } from "lucide-react";
+import { SubmitButton } from "@/components/ui/submit-button";
 import type { Category, Product } from "@/lib/types/domain";
 
 type ProductFormProps = {
@@ -187,12 +188,12 @@ export function ProductForm({ action, categories, product, skuSeed = "0001", sub
         >
           Cancel
         </Link>
-        <button
-          type="submit"
+        <SubmitButton
+          pendingText="Saving product..."
           className="inline-flex h-12 items-center justify-center rounded-lg bg-[#22ddeb] px-5 text-sm font-semibold text-black shadow-[0_10px_24px_rgba(34,221,235,0.2)] transition hover:bg-[#2ff4ff]"
         >
           {submitLabel}
-        </button>
+        </SubmitButton>
       </div>
     </CardLikeForm>
   );

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { KeyRound } from "lucide-react";
+import { finishAppProgress, startAppProgress } from "@/components/app/navigation-progress";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export function PasswordForm() {
@@ -28,10 +29,21 @@ export function PasswordForm() {
     }
 
     setIsSaving(true);
-    const { error: updateError } = await createSupabaseBrowserClient().auth.updateUser({
-      password,
-    });
-    setIsSaving(false);
+    startAppProgress();
+    let updateError: { message: string } | null = null;
+    try {
+      const result = await createSupabaseBrowserClient().auth.updateUser({
+        password,
+      });
+      updateError = result.error;
+    } catch (requestError) {
+      updateError = {
+        message: requestError instanceof Error ? requestError.message : "Password could not be updated.",
+      };
+    } finally {
+      setIsSaving(false);
+      finishAppProgress();
+    }
 
     if (updateError) {
       setError(updateError.message);
@@ -88,9 +100,15 @@ export function PasswordForm() {
       <button
         type="submit"
         disabled={isSaving}
-        className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-[#22ddeb] px-5 text-sm font-semibold text-black shadow-[0_10px_24px_rgba(34,221,235,0.2)] transition hover:bg-[#2ff4ff] disabled:cursor-not-allowed disabled:opacity-60"
+        aria-busy={isSaving}
+        className="relative inline-flex h-12 w-full items-center justify-center overflow-hidden rounded-lg bg-[#22ddeb] px-5 text-sm font-semibold text-black shadow-[0_10px_24px_rgba(34,221,235,0.2)] transition hover:bg-[#2ff4ff] disabled:cursor-wait disabled:opacity-80"
       >
-        {isSaving ? "Saving..." : "Change Password"}
+        <span className="relative z-10">{isSaving ? "Changing password..." : "Change Password"}</span>
+        {isSaving ? (
+          <span className="absolute inset-x-0 bottom-0 h-1 overflow-hidden bg-black/15">
+            <span className="block h-full w-1/2 animate-[progress-slide_1s_ease-in-out_infinite] bg-white/85" />
+          </span>
+        ) : null}
       </button>
     </form>
   );

@@ -5,6 +5,7 @@ import { getInventoryCategoriesData } from "@/lib/data/repository";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -149,12 +150,12 @@ export default async function InventoryCategoriesPage({ searchParams }: Categori
                 placeholder="Example: Drinks"
               />
             </label>
-            <button
-              type="submit"
+            <SubmitButton
+              pendingText="Saving category..."
               className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-[#22ddeb] px-5 text-sm font-semibold text-black shadow-[0_10px_24px_rgba(34,221,235,0.2)] transition hover:bg-[#2ff4ff]"
             >
               Save Category
-            </button>
+            </SubmitButton>
           </form>
         </Card>
       </div>
