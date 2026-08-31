@@ -1,11 +1,61 @@
+import type React from "react";
 import Link from "next/link";
 import { CalendarDays, Download, Package, Plus, Search, ShoppingBag } from "lucide-react";
 import { getOrdersData } from "@/lib/data/repository";
 import { formatCurrency, initials } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import type { PaymentStatus } from "@/lib/types/domain";
 
 export const dynamic = "force-dynamic";
+
+function textValue(value: unknown, fallback: string) {
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function dateValue(value: unknown) {
+  const date = typeof value === "string" || typeof value === "number" || value instanceof Date ? new Date(value) : null;
+  return date && Number.isFinite(date.getTime()) ? date.toLocaleDateString() : "Unknown date";
+}
+
+function paymentTone(status: PaymentStatus) {
+  if (status === "paid") {
+    return "green";
+  }
+
+  if (status === "failed") {
+    return "red";
+  }
+
+  return "yellow";
+}
+
+function StatCard({
+  label,
+  value,
+  helper,
+  children,
+}: {
+  label: string;
+  value: string;
+  helper: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Card className="p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="text-xs font-black uppercase tracking-[0.18em] text-[#6f858f]">{label}</div>
+          <div className="mt-5 text-3xl font-black text-[#f8fbff]">{value}</div>
+        </div>
+        <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#082529] text-[#22ddeb] ring-1 ring-[#22ddeb]/40">
+          {children}
+        </span>
+      </div>
+      <div className="mt-4 text-sm text-[#8fa3ad]">{helper}</div>
+    </Card>
+  );
+}
 
 export default async function OrdersPage() {
   const { orders } = await getOrdersData();
@@ -35,29 +85,18 @@ export default async function OrdersPage() {
       </div>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {[
-          { label: "Total Orders", value: orders.length.toLocaleString(), helper: `${totalItems.toLocaleString()} items sold`, icon: ShoppingBag },
-          { label: "Active Pending", value: pending.toLocaleString(), helper: "Awaiting payment", icon: CalendarDays },
-          { label: "Net Revenue", value: formatCurrency(paidRevenue), helper: `${formatCurrency(averageOrder)} avg. order`, icon: Package },
-          { label: "Completed", value: completed.toLocaleString(), helper: "Completed orders", icon: ShoppingBag },
-        ].map((stat) => {
-          const Icon = stat.icon;
-
-          return (
-            <Card key={stat.label} className="p-5">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="text-xs font-black uppercase tracking-[0.18em] text-[#6f858f]">{stat.label}</div>
-                  <div className="mt-5 text-3xl font-black text-[#f8fbff]">{stat.value}</div>
-                </div>
-                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#082529] text-[#22ddeb] ring-1 ring-[#22ddeb]/40">
-                  <Icon className="h-5 w-5" />
-                </span>
-              </div>
-              <div className="mt-4 text-sm text-[#8fa3ad]">{stat.helper}</div>
-            </Card>
-          );
-        })}
+        <StatCard label="Total Orders" value={orders.length.toLocaleString()} helper={`${totalItems.toLocaleString()} items sold`}>
+          <ShoppingBag className="h-5 w-5" />
+        </StatCard>
+        <StatCard label="Active Pending" value={pending.toLocaleString()} helper="Awaiting payment">
+          <CalendarDays className="h-5 w-5" />
+        </StatCard>
+        <StatCard label="Net Revenue" value={formatCurrency(paidRevenue)} helper={`${formatCurrency(averageOrder)} avg. order`}>
+          <Package className="h-5 w-5" />
+        </StatCard>
+        <StatCard label="Completed" value={completed.toLocaleString()} helper="Completed orders">
+          <ShoppingBag className="h-5 w-5" />
+        </StatCard>
       </section>
 
       <Card className="overflow-hidden">
@@ -92,19 +131,22 @@ export default async function OrdersPage() {
             <tbody>
               {orders.length ? orders.map((order) => {
                 const orderHref = `/orders/${order.id}`;
+                const orderNumber = textValue(order.orderNumber, "Unknown order");
+                const customerName = textValue(order.customerName, "Walk-in Customer");
+                const paymentStatus = textValue(order.paymentStatus, "pending") as PaymentStatus;
                 const itemCount = (order.items ?? []).reduce((sum, item) => sum + item.quantity, 0);
 
                 return (
                   <tr key={order.id} className="group border-t border-[#1d3038] text-[#f8fbff] transition hover:bg-[#0b1114]">
                     <td className="align-middle">
                       <Link href={orderHref} className="block whitespace-nowrap px-6 py-5 font-semibold text-[#f8fbff]">
-                        #{order.orderNumber}
+                        #{orderNumber}
                       </Link>
                     </td>
                     <td className="align-middle">
                       <Link href={orderHref} className="flex items-center gap-3 px-6 py-5">
-                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#10181c] text-xs font-bold text-[#f8fbff] ring-1 ring-[#1d3038]">{initials(order.customerName)}</span>
-                        <span className="whitespace-nowrap text-[#f8fbff]">{order.customerName}</span>
+                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#10181c] text-xs font-bold text-[#f8fbff] ring-1 ring-[#1d3038]">{initials(customerName)}</span>
+                        <span className="whitespace-nowrap text-[#f8fbff]">{customerName}</span>
                       </Link>
                     </td>
                     <td className="align-middle">
@@ -119,7 +161,7 @@ export default async function OrdersPage() {
                     </td>
                     <td className="align-middle">
                       <Link href={orderHref} className="block whitespace-nowrap px-6 py-5 text-[#8fa3ad]">
-                        {new Date(order.createdAt).toLocaleDateString()}
+                        {dateValue(order.createdAt)}
                       </Link>
                     </td>
                     <td className="align-middle">
@@ -129,7 +171,7 @@ export default async function OrdersPage() {
                     </td>
                     <td className="align-middle">
                       <Link href={orderHref} className="block whitespace-nowrap px-6 py-5">
-                        <Badge tone={order.paymentStatus === "paid" ? "green" : order.paymentStatus === "failed" ? "red" : "yellow"}>{order.paymentStatus}</Badge>
+                        <Badge tone={paymentTone(paymentStatus)}>{paymentStatus}</Badge>
                       </Link>
                     </td>
                     <td className="align-middle text-right">
