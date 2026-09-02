@@ -38,10 +38,15 @@ export function useRealtimeMessages(tenantId: string, onMessage: (message: Messa
         },
         (payload) => {
           const record = payload.new as Record<string, unknown>;
-          const messageType = record.message_type === "audio" || record.message_type === "unsupported"
+          const messageType =
+            record.message_type === "audio" ||
+            record.message_type === "image" ||
+            record.message_type === "document" ||
+            record.message_type === "unsupported"
             ? record.message_type
             : "text";
           const hasAudioStorage = Boolean(record.media_storage_bucket && record.media_storage_path);
+          const hasAttachmentStorage = Boolean(record.media_storage_bucket && record.media_storage_path);
           const duration = Number(record.media_duration_seconds);
           const fileSize = Number(record.media_file_size);
 
@@ -68,6 +73,19 @@ export function useRealtimeMessages(tenantId: string, onMessage: (message: Messa
                   storagePath: record.media_storage_path ? String(record.media_storage_path) : null,
                   error: record.media_error ? String(record.media_error) : null,
                   url: hasAudioStorage ? `/api/messages/${record.id}/audio` : null,
+                }
+              : null,
+            attachment: messageType === "image" || messageType === "document"
+              ? {
+                  mediaId: record.media_id ? String(record.media_id) : null,
+                  mimeType: record.media_mime_type ? String(record.media_mime_type) : null,
+                  sha256: record.media_sha256 ? String(record.media_sha256) : null,
+                  fileSize: Number.isFinite(fileSize) ? fileSize : null,
+                  fileName: record.media_file_name ? String(record.media_file_name) : null,
+                  storageBucket: record.media_storage_bucket ? String(record.media_storage_bucket) : null,
+                  storagePath: record.media_storage_path ? String(record.media_storage_path) : null,
+                  error: record.media_error ? String(record.media_error) : null,
+                  url: hasAttachmentStorage ? `/api/messages/${record.id}/attachment` : null,
                 }
               : null,
             createdAt: String(record.created_at),

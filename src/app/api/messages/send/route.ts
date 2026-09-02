@@ -186,6 +186,7 @@ export async function POST(request: Request) {
         status: message.status,
         whatsappMessageId: message.whatsapp_message_id,
         audio: null,
+        attachment: null,
         createdAt: message.created_at,
       },
     });

@@ -1,8 +1,33 @@
+import { buildWhatsAppAudioMessagePayload, parseWhatsAppMediaUploadResponse, parseWhatsAppSendResponse } from "@/lib/whatsapp-audio";
+import { buildWhatsAppAttachmentMessagePayload } from "@/lib/whatsapp-attachments";
+
 type SendWhatsAppTextInput = {
   phoneNumberId: string;
   accessToken: string;
   to: string;
   body: string;
+};
+
+export type UploadWhatsAppMediaInput = {
+  phoneNumberId: string;
+  accessToken: string;
+  file: Blob;
+  fileName: string;
+  mimeType: string;
+};
+
+type SendWhatsAppAudioInput = {
+  phoneNumberId: string;
+  accessToken: string;
+  to: string;
+  mediaId: string;
+};
+
+type SendWhatsAppAttachmentInput = {
+  phoneNumberId: string;
+  accessToken: string;
+  to: string;
+  payload: ReturnType<typeof buildWhatsAppAttachmentMessagePayload>;
 };
 
 type WhatsAppEnvCheck = {
@@ -130,6 +155,160 @@ export async function sendWhatsAppTextMessage({
   }
 
   return payload as { messages?: { id: string }[] };
+}
+
+export async function uploadWhatsAppMedia({
+  phoneNumberId,
+  accessToken,
+  file,
+  fileName,
+  mimeType,
+}: UploadWhatsAppMediaInput) {
+  const formData = new FormData();
+  formData.append("messaging_product", "whatsapp");
+  formData.append("type", mimeType);
+  formData.append("file", file, fileName);
+
+  const response = await fetch(`https://graph.facebook.com/v25.0/${phoneNumberId}/media`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: formData,
+  });
+
+  const payload = (await response.json().catch(() => null)) as MetaErrorPayload | { id?: string } | null;
+
+  console.info("[whatsapp/media] upload response status", response.status);
+
+  if (!response.ok) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[whatsapp/media] upload error payload", payload);
+    }
+
+    const message = (payload as MetaErrorPayload | null)?.error?.message ?? "WhatsApp media upload failed";
+    const isAuthError =
+      response.status === 401 ||
+      response.status === 403 ||
+      (payload as MetaErrorPayload | null)?.error?.code === 190;
+
+    throw new WhatsAppApiError(message, {
+      status: response.status,
+      payload,
+      isAuthError,
+    });
+  }
+
+  const parsed = parseWhatsAppMediaUploadResponse(payload);
+
+  if (!parsed) {
+    throw new WhatsAppApiError("WhatsApp media upload did not return a media ID", {
+      status: response.status,
+      payload,
+      isAuthError: false,
+    });
+  }
+
+  return parsed;
+}
+
+export async function sendWhatsAppAudioMessage({
+  phoneNumberId,
+  accessToken,
+  to,
+  mediaId,
+}: SendWhatsAppAudioInput) {
+  const response = await fetch(`https://graph.facebook.com/v25.0/${phoneNumberId}/messages`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(buildWhatsAppAudioMessagePayload(to, mediaId)),
+  });
+
+  const payload = (await response.json().catch(() => null)) as MetaErrorPayload | { messages?: { id: string }[] } | null;
+
+  console.info("[whatsapp/send-audio] meta response status", response.status);
+
+  if (!response.ok) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[whatsapp/send-audio] meta error payload", payload);
+    }
+
+    const message = (payload as MetaErrorPayload | null)?.error?.message ?? "WhatsApp audio send failed";
+    const isAuthError =
+      response.status === 401 ||
+      response.status === 403 ||
+      (payload as MetaErrorPayload | null)?.error?.code === 190;
+
+    throw new WhatsAppApiError(message, {
+      status: response.status,
+      payload,
+      isAuthError,
+    });
+  }
+
+  const parsed = parseWhatsAppSendResponse(payload);
+
+  if (!parsed) {
+    throw new WhatsAppApiError("WhatsApp audio send did not return a message ID", {
+      status: response.status,
+      payload,
+      isAuthError: false,
+    });
+  }
+
+  return { messages: [{ id: parsed.id }] };
+}
+
+export async function sendWhatsAppAttachmentMessage({
+  phoneNumberId,
+  accessToken,
+  payload,
+}: SendWhatsAppAttachmentInput) {
+  const response = await fetch(`https://graph.facebook.com/v25.0/${phoneNumberId}/messages`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const metaPayload = (await response.json().catch(() => null)) as MetaErrorPayload | { messages?: { id: string }[] } | null;
+
+  console.info("[whatsapp/send-attachment] meta response status", response.status);
+
+  if (!response.ok) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[whatsapp/send-attachment] meta error payload", metaPayload);
+    }
+
+    const message = (metaPayload as MetaErrorPayload | null)?.error?.message ?? "WhatsApp attachment send failed";
+    const isAuthError =
+      response.status === 401 ||
+      response.status === 403 ||
+      (metaPayload as MetaErrorPayload | null)?.error?.code === 190;
+
+    throw new WhatsAppApiError(message, {
+      status: response.status,
+      payload: metaPayload,
+      isAuthError,
+    });
+  }
+
+  const parsed = parseWhatsAppSendResponse(metaPayload);
+
+  if (!parsed) {
+    throw new WhatsAppApiError("WhatsApp attachment send did not return a message ID", {
+      status: response.status,
+      payload: metaPayload,
+      isAuthError: false,
+    });
+  }
+
+  return { messages: [{ id: parsed.id }] };
 }
 
 export async function fetchWhatsAppMediaMetadata(mediaId: string, accessToken: string) {

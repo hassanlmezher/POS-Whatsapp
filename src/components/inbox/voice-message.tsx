@@ -29,6 +29,14 @@ export function VoiceMessage({ message }: { message: Message }) {
   const bars = useMemo(() => Array.from({ length: 34 }, (_, index) => 8 + ((index * 7) % 22)), []);
   const canPlay = Boolean(message.audio?.url) && !error;
   const isOutbound = message.direction === "outbound";
+  const statusLabel =
+    message.status === "uploading"
+      ? "Uploading"
+      : message.status === "sending"
+        ? "Sending"
+        : message.status === "failed"
+          ? "Failed"
+          : null;
 
   async function togglePlayback() {
     const audio = audioRef.current;
@@ -162,14 +170,14 @@ export function VoiceMessage({ message }: { message: Message }) {
 
           <div className={`mt-1 flex justify-between text-xs ${isOutbound ? "text-black/60" : "text-[#6f858f]"}`}>
             <span>{error ? "Unavailable" : isLoading ? "Loading" : formatDuration(currentTime)}</span>
-            <span>{formatDuration(duration)}</span>
+            <span>{statusLabel ?? formatDuration(duration)}</span>
           </div>
         </div>
       </div>
 
-      {error ? (
+      {error || statusLabel ? (
         <div className={`mt-3 text-xs ${isOutbound ? "text-black/70" : "text-[#ff7a94]"}`}>
-          {error}
+          {error ?? statusLabel}
         </div>
       ) : null}
     </div>

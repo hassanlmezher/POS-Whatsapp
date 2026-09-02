@@ -353,7 +353,7 @@ alter table public.messages add column if not exists media_error text;
 
 alter table public.messages drop constraint if exists messages_message_type_check;
 alter table public.messages add constraint messages_message_type_check
-  check (message_type in ('text', 'audio', 'unsupported'));
+  check (message_type in ('text', 'audio', 'image', 'document', 'unsupported'));
 
 update public.messages
 set message_type = 'audio',
@@ -367,6 +367,30 @@ values (
   false,
   26214400,
   array['audio/aac', 'audio/amr', 'audio/mp4', 'audio/mpeg', 'audio/ogg', 'audio/opus', 'audio/webm']::text[]
+)
+on conflict (id) do update
+set public = false,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'whatsapp-media',
+  'whatsapp-media',
+  false,
+  104857600,
+  array[
+    'image/jpeg',
+    'image/png',
+    'application/pdf',
+    'text/plain',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+  ]::text[]
 )
 on conflict (id) do update
 set public = false,
@@ -582,6 +606,8 @@ create index if not exists idx_messages_tenant_media_id on public.messages(tenan
   where media_id is not null;
 create index if not exists idx_messages_tenant_audio_storage on public.messages(tenant_id, media_storage_bucket, media_storage_path)
   where message_type = 'audio' and media_storage_path is not null;
+create index if not exists idx_messages_tenant_attachment_storage on public.messages(tenant_id, media_storage_bucket, media_storage_path)
+  where message_type in ('image', 'document') and media_storage_path is not null;
 create index if not exists idx_orders_tenant_created on public.orders(tenant_id, created_at desc);
 create index if not exists idx_orders_tenant_customer on public.orders(tenant_id, customer_id);
 create index if not exists idx_order_items_tenant_order on public.order_items(tenant_id, order_id);

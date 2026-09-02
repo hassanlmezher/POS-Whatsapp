@@ -10,6 +10,7 @@ import type {
   Customer,
   DashboardData,
   MessageAudio,
+  MessageAttachment,
   Message,
   MessageType,
   Order,
@@ -212,7 +213,7 @@ function mapConversation(row: DbConversation, customersById: Map<string, Custome
 }
 
 function mapMessageType(value: string | null | undefined): MessageType {
-  if (value === "audio" || value === "unsupported") {
+  if (value === "audio" || value === "image" || value === "document" || value === "unsupported") {
     return value;
   }
 
@@ -243,6 +244,29 @@ function mapAudio(row: DbMessage, messageId: string): MessageAudio | null {
   };
 }
 
+function mapAttachment(row: DbMessage, messageId: string): MessageAttachment | null {
+  const messageType = mapMessageType(row.message_type);
+
+  if (messageType !== "image" && messageType !== "document") {
+    return null;
+  }
+
+  const fileSize = Number(row.media_file_size);
+  const hasStorage = Boolean(row.media_storage_bucket && row.media_storage_path);
+
+  return {
+    mediaId: row.media_id ?? row.whatsapp_message_id,
+    mimeType: row.media_mime_type ?? null,
+    sha256: row.media_sha256 ?? null,
+    fileSize: Number.isFinite(fileSize) ? fileSize : null,
+    fileName: row.media_file_name ?? null,
+    storageBucket: row.media_storage_bucket ?? null,
+    storagePath: row.media_storage_path ?? null,
+    error: row.media_error ?? null,
+    url: hasStorage ? `/api/messages/${messageId}/attachment` : null,
+  };
+}
+
 function mapMessage(row: DbMessage): Message {
   const messageType = row.body === "[audio message]" ? "audio" : mapMessageType(row.message_type);
 
@@ -257,6 +281,7 @@ function mapMessage(row: DbMessage): Message {
     status: row.status,
     whatsappMessageId: row.whatsapp_message_id,
     audio: mapAudio(row, row.id),
+    attachment: mapAttachment(row, row.id),
     createdAt: row.created_at,
   };
 }
@@ -732,6 +757,44 @@ export async function getMessageAudioStorage(messageId: string) {
     path: data.media_storage_path,
     mimeType: data.media_mime_type,
     fileName: data.media_file_name,
+  };
+}
+
+export async function getMessageAttachmentStorage(messageId: string) {
+  const { tenant } = await getAuthenticatedTenantContext();
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("messages")
+    .select("id,tenant_id,message_type,media_mime_type,media_storage_bucket,media_storage_path,media_file_name")
+    .eq("id", messageId)
+    .eq("tenant_id", tenant.id)
+    .in("message_type", ["image", "document"])
+    .maybeSingle<{
+      id: string;
+      tenant_id: string;
+      message_type: string;
+      media_mime_type: string | null;
+      media_storage_bucket: string | null;
+      media_storage_path: string | null;
+      media_file_name: string | null;
+    }>();
+
+  if (error && isMissingMessageMediaSchema(error)) {
+    return null;
+  }
+
+  assertNoError(error, "message attachment lookup failed");
+
+  if (!data?.media_storage_bucket || !data.media_storage_path) {
+    return null;
+  }
+
+  return {
+    bucket: data.media_storage_bucket,
+    path: data.media_storage_path,
+    mimeType: data.media_mime_type,
+    fileName: data.media_file_name,
+    messageType: data.message_type,
   };
 }
 
