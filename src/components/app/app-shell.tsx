@@ -1,21 +1,27 @@
-import type React from "react";
+import { Suspense, type ReactNode } from "react";
 import { Header } from "@/components/app/header";
+import { NavigationProgress } from "@/components/app/navigation-progress";
 import { MobileNav, Sidebar } from "@/components/app/sidebar";
 
 export function AppShell({
   children,
   title,
+  userAvatarUrl,
   userName,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   title?: string;
+  userAvatarUrl?: string | null;
   userName: string;
 }) {
   return (
     <div className="min-h-screen bg-[#030607] text-[#f8fbff]">
+      <Suspense fallback={null}>
+        <NavigationProgress />
+      </Suspense>
       <Sidebar />
       <div className="min-h-screen lg:pl-[300px]">
-        <Header title={title} userName={userName} />
+        <Header title={title} userAvatarUrl={userAvatarUrl} userName={userName} />
         <main className="pb-20 lg:pb-0">{children}</main>
       </div>
       <MobileNav />

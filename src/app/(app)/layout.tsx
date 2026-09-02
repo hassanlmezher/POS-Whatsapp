@@ -11,7 +11,7 @@ export default async function MerchantLayout({ children }: { children: React.Rea
   const { membership } = await loadTenantContext();
 
   return (
-    <AppShell userName={membership.name}>
+    <AppShell userAvatarUrl={membership.avatarUrl} userName={membership.name}>
       {children}
     </AppShell>
   );

@@ -3,6 +3,18 @@
 import { create } from "zustand";
 import type { Conversation, Message } from "@/lib/types/domain";
 
+function getConversationPreview(message: Message) {
+  if (message.messageType === "audio") {
+    return "🎤 Voice message";
+  }
+
+  if (message.messageType === "image" || message.messageType === "document") {
+    return "📎 Attachment";
+  }
+
+  return message.body;
+}
+
 type InboxState = {
   activeConversationId: string | null;
   conversations: Conversation[];
@@ -11,6 +23,7 @@ type InboxState = {
   setActiveConversation: (conversationId: string) => void;
   markConversationRead: (conversationId: string) => void;
   appendMessage: (message: Message) => void;
+  upsertMessage: (message: Message) => void;
 };
 
 export const useInboxStore = create<InboxState>((set) => ({
@@ -48,7 +61,32 @@ export const useInboxStore = create<InboxState>((set) => ({
           conversation.id === message.conversationId
             ? {
                 ...conversation,
-                lastMessage: message.body,
+                lastMessage: getConversationPreview(message),
+                lastMessageAt: message.createdAt,
+                unreadCount:
+                  message.direction === "inbound"
+                    ? state.activeConversationId === message.conversationId
+                      ? 0
+                      : conversation.unreadCount + 1
+                    : conversation.unreadCount,
+              }
+            : conversation,
+        )
+        .sort((left, right) => new Date(right.lastMessageAt).getTime() - new Date(left.lastMessageAt).getTime());
+
+      return { messages, conversations };
+    }),
+  upsertMessage: (message) =>
+    set((state) => {
+      const messages = state.messages.some((item) => item.id === message.id)
+        ? state.messages.map((item) => (item.id === message.id ? message : item))
+        : [...state.messages, message];
+      const conversations = state.conversations
+        .map((conversation) =>
+          conversation.id === message.conversationId
+            ? {
+                ...conversation,
+                lastMessage: getConversationPreview(message),
                 lastMessageAt: message.createdAt,
                 unreadCount:
                   message.direction === "inbound"

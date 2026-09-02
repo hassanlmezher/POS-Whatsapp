@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import type { Category, Company, Customer, Product } from "@/lib/types/domain";
 import { formatCurrency } from "@/lib/utils";
+import { finishAppProgress, startAppProgress } from "@/components/app/navigation-progress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCartStore, getCartTotals } from "@/lib/stores/cart-store";
@@ -48,6 +49,7 @@ export function POSWorkspace({
   async function checkout() {
     setCheckoutError(null);
     setIsCheckingOut(true);
+    startAppProgress();
     const response = await fetch("/api/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -56,18 +58,19 @@ export function POSWorkspace({
         paymentMethod,
         items: items.map((item) => ({ productId: item.product.id, quantity: item.quantity })),
       }),
-    });
+    }).catch(() => null);
 
-    if (response.ok) {
+    if (response?.ok) {
       clear();
       router.push("/orders");
       router.refresh();
       return;
     }
 
-    const payload = await response.json().catch(() => null);
+    const payload = await response?.json().catch(() => null);
     setCheckoutError(payload?.error ?? "Checkout failed. Check the server logs for details.");
     setIsCheckingOut(false);
+    finishAppProgress();
   }
 
   return (
@@ -146,7 +149,7 @@ export function POSWorkspace({
         </div>
       </section>
 
-      <aside className="flex min-h-[620px] flex-col border-l border-[#1d3038] bg-[#070b0d]">
+      <aside className="flex min-h-[620px] flex-col border-l border-[#1d3038] bg-[#070b0d] xl:sticky xl:top-[98px] xl:h-[calc(100vh-98px)]">
         <div className="border-b border-[#142126] p-8">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-medium text-[#f8fbff]">Current Order</h2>
@@ -202,7 +205,7 @@ export function POSWorkspace({
           ))}
         </div>
 
-        <div className="border-t border-[#142126] bg-[#070b0d] p-8">
+        <div className="sticky bottom-0 z-10 border-t border-[#142126] bg-[#070b0d] p-8 shadow-[0_-16px_34px_rgba(0,0,0,0.22)]">
           <div className="space-y-4 text-base text-[#8fa3ad]">
             <div className="flex justify-between"><span>Subtotal</span><span>{formatCurrency(totals.subtotal)}</span></div>
             <div className="flex justify-between"><span>Tax ({company.taxRate * 100}%)</span><span>{formatCurrency(totals.tax)}</span></div>

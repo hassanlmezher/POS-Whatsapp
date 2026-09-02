@@ -63,7 +63,9 @@ alter table public.tenant_users add column if not exists auth_user_id uuid;
 alter table public.tenant_users add column if not exists tenant_id uuid;
 alter table public.tenant_users add column if not exists name text;
 alter table public.tenant_users add column if not exists role public.app_role;
+alter table public.tenant_users add column if not exists avatar_url text;
 alter table public.tenant_users add column if not exists created_at timestamptz default now();
+alter table public.tenant_users add column if not exists updated_at timestamptz default now();
 
 -- Preserve every legacy company as a tenant with the same UUID, so company_id
 -- can be copied to tenant_id without remapping or losing ownership.
@@ -230,10 +232,21 @@ create table if not exists public.messages (
   tenant_id uuid,
   conversation_id uuid not null,
   customer_id uuid not null,
+  message_type text not null default 'text',
   direction public.message_direction not null,
   body text not null,
   status public.message_status not null,
   whatsapp_message_id text,
+  media_id text,
+  media_mime_type text,
+  media_sha256 text,
+  media_is_voice boolean not null default false,
+  media_duration_seconds integer,
+  media_file_size integer,
+  media_storage_bucket text,
+  media_storage_path text,
+  media_file_name text,
+  media_error text,
   delivered_at timestamptz,
   read_at timestamptz,
   created_at timestamptz not null default now()
@@ -326,6 +339,89 @@ alter table public.ai_suggestions add column if not exists tenant_id uuid;
 
 alter table public.inventory add column if not exists updated_at timestamptz default now();
 alter table public.order_items add column if not exists created_at timestamptz default now();
+alter table public.messages add column if not exists message_type text not null default 'text';
+alter table public.messages add column if not exists media_id text;
+alter table public.messages add column if not exists media_mime_type text;
+alter table public.messages add column if not exists media_sha256 text;
+alter table public.messages add column if not exists media_is_voice boolean not null default false;
+alter table public.messages add column if not exists media_duration_seconds integer;
+alter table public.messages add column if not exists media_file_size integer;
+alter table public.messages add column if not exists media_storage_bucket text;
+alter table public.messages add column if not exists media_storage_path text;
+alter table public.messages add column if not exists media_file_name text;
+alter table public.messages add column if not exists media_error text;
+
+alter table public.messages drop constraint if exists messages_message_type_check;
+alter table public.messages add constraint messages_message_type_check
+  check (message_type in ('text', 'audio', 'image', 'document', 'unsupported'));
+
+update public.messages
+set message_type = 'audio',
+    body = '🎤 Voice message'
+where body = '[audio message]';
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'whatsapp-audio',
+  'whatsapp-audio',
+  false,
+  26214400,
+  array['audio/aac', 'audio/amr', 'audio/mp4', 'audio/mpeg', 'audio/ogg', 'audio/opus', 'audio/webm']::text[]
+)
+on conflict (id) do update
+set public = false,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'whatsapp-media',
+  'whatsapp-media',
+  false,
+  104857600,
+  array[
+    'image/jpeg',
+    'image/png',
+    'application/pdf',
+    'text/plain',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+  ]::text[]
+)
+on conflict (id) do update
+set public = false,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'product-images',
+  'product-images',
+  true,
+  8388608,
+  array['image/jpeg', 'image/png', 'image/webp', 'image/gif']::text[]
+)
+on conflict (id) do update
+set public = true,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'profile-avatars',
+  'profile-avatars',
+  true,
+  5242880,
+  array['image/jpeg', 'image/png', 'image/webp', 'image/gif']::text[]
+)
+on conflict (id) do update
+set public = true,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
 
 -- Add tenant ownership to legacy/optional business tables only when they exist.
 do $$
@@ -506,6 +602,12 @@ create index if not exists idx_customers_tenant_phone on public.customers(tenant
 create index if not exists idx_conversations_tenant_last on public.conversations(tenant_id, last_message_at desc);
 create index if not exists idx_messages_conversation_created on public.messages(conversation_id, created_at);
 create index if not exists idx_messages_tenant_status on public.messages(tenant_id, status);
+create index if not exists idx_messages_tenant_media_id on public.messages(tenant_id, media_id)
+  where media_id is not null;
+create index if not exists idx_messages_tenant_audio_storage on public.messages(tenant_id, media_storage_bucket, media_storage_path)
+  where message_type = 'audio' and media_storage_path is not null;
+create index if not exists idx_messages_tenant_attachment_storage on public.messages(tenant_id, media_storage_bucket, media_storage_path)
+  where message_type in ('image', 'document') and media_storage_path is not null;
 create index if not exists idx_orders_tenant_created on public.orders(tenant_id, created_at desc);
 create index if not exists idx_orders_tenant_customer on public.orders(tenant_id, customer_id);
 create index if not exists idx_order_items_tenant_order on public.order_items(tenant_id, order_id);

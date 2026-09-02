@@ -1,17 +1,22 @@
 import Link from "next/link";
-import { FolderTree, Plus } from "lucide-react";
+import { FolderTree, Package, Plus } from "lucide-react";
 import { createInventoryCategory } from "@/app/(app)/inventory/actions";
 import { getInventoryCategoriesData } from "@/lib/data/repository";
+import { formatCurrency } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export const dynamic = "force-dynamic";
 
 type CategoriesPageProps = {
-  searchParams: Promise<{ created?: string; error?: string }>;
+  searchParams: Promise<{ category?: string; created?: string; error?: string }>;
 };
 
 export default async function InventoryCategoriesPage({ searchParams }: CategoriesPageProps) {
   const [data, params] = await Promise.all([getInventoryCategoriesData(), searchParams]);
+  const selectedCategory = data.categories.find((category) => category.id === params.category) ?? data.categories[0] ?? null;
+  const selectedProducts = selectedCategory?.products ?? [];
 
   return (
     <div className="space-y-6 p-5 lg:p-8">
@@ -41,7 +46,12 @@ export default async function InventoryCategoriesPage({ searchParams }: Categori
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <section className="grid gap-4 md:grid-cols-2">
           {data.categories.map((category) => (
-            <Card key={category.id} className="p-6">
+            <Link key={category.id} href={`/inventory/categories?category=${category.id}`}>
+            <Card
+              className={`h-full p-6 transition hover:border-[#22ddeb]/55 ${
+                selectedCategory?.id === category.id ? "border-[#22ddeb]/70 bg-[#082529]/35" : ""
+              }`}
+            >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#082529] text-[#22ddeb] ring-1 ring-[#22ddeb]/40">
                   <FolderTree className="h-5 w-5" />
@@ -51,8 +61,9 @@ export default async function InventoryCategoriesPage({ searchParams }: Categori
                 </div>
               </div>
               <h2 className="mt-5 text-lg font-semibold text-white">{category.name}</h2>
-              <p className="mt-2 text-sm text-[#8fa3ad]">Icon: {category.icon}</p>
+              <p className="mt-2 text-sm text-[#8fa3ad]">View products in this category.</p>
             </Card>
+            </Link>
           ))}
           {!data.categories.length ? (
             <Card className="p-8 text-center md:col-span-2">
@@ -69,6 +80,51 @@ export default async function InventoryCategoriesPage({ searchParams }: Categori
               <p className="mt-2 text-sm text-[#8fa3ad]">
                 {data.uncategorizedCount} products are not assigned to a category yet.
               </p>
+            </Card>
+          ) : null}
+          {selectedCategory ? (
+            <Card className="overflow-hidden md:col-span-2">
+              <div className="border-b border-[#1d3038] px-6 py-5">
+                <h2 className="text-lg font-semibold text-white">{selectedCategory.name}</h2>
+                <p className="mt-1 text-sm text-[#8fa3ad]">
+                  {selectedProducts.length} product{selectedProducts.length === 1 ? "" : "s"} in this category.
+                </p>
+              </div>
+              <div className="divide-y divide-[#1d3038]">
+                {selectedProducts.map((product) => (
+                  <Link
+                    key={product.id}
+                    href={`/inventory/products/${product.id}/edit`}
+                    className="flex items-center gap-4 px-6 py-4 transition hover:bg-[#10181c]"
+                  >
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[#1d3038] bg-[#0b1114] text-[#6f858f]">
+                      {product.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <Package className="h-5 w-5" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-semibold text-white">{product.name}</div>
+                      <div className="mt-1 text-sm text-[#8fa3ad]">{product.sku}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-black text-[#22ddeb]">
+                        {formatCurrency(product.price, data.company.currency)}
+                      </div>
+                      <Badge tone={product.active ? "green" : "slate"} className="mt-2">
+                        {product.active ? "Active" : "Inactive"}
+                      </Badge>
+                    </div>
+                  </Link>
+                ))}
+                {!selectedProducts.length ? (
+                  <div className="px-6 py-8 text-sm text-[#8fa3ad]">
+                    No products are assigned to this category yet.
+                  </div>
+                ) : null}
+              </div>
             </Card>
           ) : null}
         </section>
@@ -94,20 +150,12 @@ export default async function InventoryCategoriesPage({ searchParams }: Categori
                 placeholder="Example: Drinks"
               />
             </label>
-            <label className="block text-sm font-semibold text-white">
-              Icon Name
-              <input
-                name="icon"
-                defaultValue="Package"
-                className="mt-2 h-12 w-full rounded-lg border border-[#1d3038] bg-[#0b1114] px-4 text-white outline-none placeholder:text-[#6f858f] focus:border-[#22ddeb] focus:ring-4 focus:ring-[#22ddeb]/15"
-              />
-            </label>
-            <button
-              type="submit"
+            <SubmitButton
+              pendingText="Saving category..."
               className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-[#22ddeb] px-5 text-sm font-semibold text-black shadow-[0_10px_24px_rgba(34,221,235,0.2)] transition hover:bg-[#2ff4ff]"
             >
               Save Category
-            </button>
+            </SubmitButton>
           </form>
         </Card>
       </div>
