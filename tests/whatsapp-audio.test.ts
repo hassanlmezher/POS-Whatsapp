@@ -10,6 +10,7 @@ import {
   parseWhatsAppMediaUploadResponse,
   shouldReturnExistingAudioMessage,
   shouldTranscodeAudioForWhatsApp,
+  toExactArrayBuffer,
   validateAudioUpload,
 } from "../src/lib/whatsapp-audio";
 import { formatWhatsAppApiErrorForUser, WhatsAppApiError } from "../src/lib/whatsapp";
@@ -179,4 +180,16 @@ test("WhatsApp access denied errors are explained with phone number access actio
 
   assert.match(formatWhatsAppApiErrorForUser(error), /access denied/i);
   assert.match(formatWhatsAppApiErrorForUser(error), /phone number ID/i);
+});
+
+test("audio Blob bytes are sliced away from Node Buffer pool memory", () => {
+  const pooled = Buffer.allocUnsafe(32);
+  pooled.fill(255);
+  const audioBytes = pooled.subarray(8, 12);
+  audioBytes.set([1, 2, 3, 4]);
+
+  const exact = toExactArrayBuffer(audioBytes);
+
+  assert.equal(exact.byteLength, audioBytes.byteLength);
+  assert.deepEqual(Array.from(new Uint8Array(exact)), [1, 2, 3, 4]);
 });

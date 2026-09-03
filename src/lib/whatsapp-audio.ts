@@ -121,6 +121,12 @@ export function buildAudioStoragePath({
   return `${tenantId}/conversations/${conversationId}/audio/${direction}/${messageId}.${getAudioExtension(mimeType)}`;
 }
 
+export function toExactArrayBuffer(buffer: Buffer): ArrayBuffer {
+  const exactBytes = new Uint8Array(buffer.byteLength);
+  exactBytes.set(buffer);
+  return exactBytes.buffer;
+}
+
 export function conversationBelongsToTenant(
   conversation: { tenant_id: string; customer_id: string } | null | undefined,
   tenantId: string,

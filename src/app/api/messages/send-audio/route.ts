@@ -24,6 +24,7 @@ import {
   getConfiguredMaxAudioBytes,
   shouldReturnExistingAudioMessage,
   shouldTranscodeAudioForWhatsApp,
+  toExactArrayBuffer,
   validateAudioUpload,
 } from "@/lib/whatsapp-audio";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -414,7 +415,7 @@ export async function POST(request: Request) {
       const mediaUpload = await uploadWhatsAppMedia({
         phoneNumberId: env.phoneNumberId,
         accessToken: env.accessToken,
-        file: new Blob([new Uint8Array(prepared.buffer)], { type: prepared.mimeType }),
+        file: new Blob([toExactArrayBuffer(prepared.buffer)], { type: prepared.mimeType }),
         fileName: prepared.fileName,
         mimeType: prepared.mimeType,
       });
