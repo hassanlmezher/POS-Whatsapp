@@ -227,7 +227,11 @@ export function InboxWorkspace({
   }, [conversationSearch, visibleConversations]);
   const activeConversation = visibleConversations.find((item) => item.id === activeConversationId) ?? selectedConversation ?? null;
   const activeMessages = activeConversation
-    ? messages.filter((message) => message.conversationId === activeConversation.id)
+    ? messages.filter(
+        (message) =>
+          message.conversationId === activeConversation.id &&
+          !(message.messageType === "audio" && message.direction === "outbound" && message.status === "failed"),
+      )
     : [];
   const latestMessageId = activeMessages[activeMessages.length - 1]?.id ?? "";
   const activeSuggestion = suggestionConversationId === activeConversation?.id ? suggestion : null;

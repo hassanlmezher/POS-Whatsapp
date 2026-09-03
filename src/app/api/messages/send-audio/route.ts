@@ -4,7 +4,6 @@ import { mkdtemp, readFile, rm, writeFile } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
 import { promisify } from "util";
-import ffmpegPath from "ffmpeg-static";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
@@ -34,6 +33,7 @@ export const runtime = "nodejs";
 
 const executeFile = promisify(execFile);
 const WHATSAPP_AUDIO_BUCKET = process.env.WHATSAPP_AUDIO_BUCKET ?? "whatsapp-audio";
+const FFMPEG_PATH = process.env.FFMPEG_BIN ?? "./node_modules/ffmpeg-static/ffmpeg";
 
 const formSchema = z.object({
   conversationId: z.string().uuid(),
@@ -133,7 +133,7 @@ async function prepareAudioForWhatsApp(input: {
     };
   }
 
-  if (!ffmpegPath) {
+  if (!FFMPEG_PATH) {
     throw new Error("Server audio transcoder is not available.");
   }
 
@@ -144,7 +144,7 @@ async function prepareAudioForWhatsApp(input: {
   try {
     await writeFile(inputPath, input.buffer);
     await executeFile(
-      ffmpegPath,
+      FFMPEG_PATH,
       [
         "-y",
         "-i",
@@ -453,28 +453,30 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: mapAudioMessage(savedMessage) });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Voice message send failed";
-      const savedMessage = await persistAudioMessage({
-        supabase,
-        messageId: input.messageId,
-        tenantId: tenant.id,
-        conversationId: tenantConversation.id,
-        customerId: customer.id,
-        status: "failed",
-        whatsappMessageId: null,
-        mediaId,
-        mimeType: prepared.mimeType,
-        durationSeconds: input.durationSeconds,
-        fileSize: prepared.buffer.byteLength,
-        storagePath,
-        fileName: prepared.fileName,
-        mediaError: errorMessage,
-      });
+
+      await supabase.storage
+        .from(WHATSAPP_AUDIO_BUCKET)
+        .remove([storagePath])
+        .then(({ error: cleanupError }) => {
+          if (cleanupError) {
+            console.warn("[messages/send-audio] Failed to clean up unsent audio storage object", {
+              conversationId: tenantConversation.id,
+              messageId: input.messageId,
+              storagePath,
+              cleanupError,
+            });
+          }
+        });
 
       console.error("[messages/send-audio] WhatsApp audio send failed", {
         tenantId: tenant.id,
         conversationId: tenantConversation.id,
         messageId: input.messageId,
         mediaId,
+        preparedMimeType: prepared.mimeType,
+        preparedFileName: prepared.fileName,
+        preparedBytes: prepared.buffer.byteLength,
+        transcoded: prepared.wasTranscoded,
         error,
       });
 
@@ -482,7 +484,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error: errorMessage,
-          message: savedMessage ? mapAudioMessage(savedMessage) : undefined,
+          details: error instanceof WhatsAppApiError && process.env.NODE_ENV !== "production" ? error.payload : undefined,
         },
         { status },
       );
