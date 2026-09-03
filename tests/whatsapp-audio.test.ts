@@ -6,6 +6,7 @@ import {
   canRetryAudioMessage,
   conversationBelongsToTenant,
   DEFAULT_MAX_AUDIO_BYTES,
+  normalizeAudioDurationSeconds,
   parseWhatsAppMediaUploadResponse,
   shouldReturnExistingAudioMessage,
   shouldTranscodeAudioForWhatsApp,
@@ -131,4 +132,27 @@ test("duplicate retry does not resend non-failed messages and allows failed mess
 test("browser WebM recording is marked for server-side WhatsApp transcode", () => {
   assert.equal(shouldTranscodeAudioForWhatsApp("audio/webm;codecs=opus"), true);
   assert.equal(shouldTranscodeAudioForWhatsApp("audio/mpeg"), false);
+});
+
+test("fractional browser recording duration is safe for integer database column", () => {
+  assert.equal(normalizeAudioDurationSeconds(3.42), 3);
+  assert.equal(normalizeAudioDurationSeconds(0.51), 1);
+
+  const payload = buildAudioMessageDatabasePayload({
+    messageId,
+    tenantId: tenantA,
+    conversationId,
+    customerId,
+    status: "sent",
+    whatsappMessageId: "wamid.SUCCESS",
+    mediaId: "MEDIA_ID_123",
+    mimeType: "audio/mpeg",
+    durationSeconds: 3.42,
+    fileSize: 2048,
+    storageBucket: "whatsapp-audio",
+    storagePath: `${tenantA}/conversations/${conversationId}/audio/outgoing/${messageId}.mp3`,
+    fileName: `${messageId}.mp3`,
+  });
+
+  assert.equal(payload.media_duration_seconds, 3);
 });

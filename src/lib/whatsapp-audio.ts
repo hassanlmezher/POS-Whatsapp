@@ -183,6 +183,14 @@ export function buildWhatsAppAudioMessagePayload(to: string, mediaId: string) {
   };
 }
 
+export function normalizeAudioDurationSeconds(value: number | null | undefined) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return null;
+  }
+
+  return Math.max(1, Math.round(value));
+}
+
 export function buildAudioMessageDatabasePayload({
   messageId,
   tenantId,
@@ -228,7 +236,7 @@ export function buildAudioMessageDatabasePayload({
     media_mime_type: mimeType,
     media_sha256: null,
     media_is_voice: true,
-    media_duration_seconds: durationSeconds,
+    media_duration_seconds: normalizeAudioDurationSeconds(durationSeconds),
     media_file_size: fileSize,
     media_storage_bucket: storageBucket,
     media_storage_path: storagePath,
