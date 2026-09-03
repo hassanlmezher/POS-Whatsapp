@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
+  formatWhatsAppApiErrorForUser,
   isInsideCustomerServiceWindow,
   normalizeWhatsAppPhone,
   sendWhatsAppTextMessage,
@@ -194,19 +195,9 @@ export async function POST(request: Request) {
     console.error("[messages/send] Unexpected failure", error);
 
     if (error instanceof WhatsAppApiError) {
-      if (error.isAuthError) {
-        return NextResponse.json(
-          {
-            error: "WhatsApp authentication failed. Regenerate WHATSAPP_ACCESS_TOKEN in Meta API Setup and restart dev server.",
-            details: process.env.NODE_ENV !== "production" ? error.payload : undefined,
-          },
-          { status: 401 },
-        );
-      }
-
       return NextResponse.json(
         {
-          error: error.message,
+          error: formatWhatsAppApiErrorForUser(error),
           details: process.env.NODE_ENV !== "production" ? error.payload : undefined,
         },
         { status: error.status || 500 },

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
+  formatWhatsAppApiErrorForUser,
   isInsideCustomerServiceWindow,
   normalizeWhatsAppPhone,
   sendWhatsAppAttachmentMessage,
@@ -390,7 +391,12 @@ export async function POST(request: Request) {
 
       return NextResponse.json({ message: mapAttachmentMessage(savedMessage) });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Attachment send failed";
+      const errorMessage =
+        error instanceof WhatsAppApiError
+          ? formatWhatsAppApiErrorForUser(error)
+          : error instanceof Error
+            ? error.message
+            : "Attachment send failed";
       const savedMessage = await persistAttachmentMessage({
         supabase,
         messageId: input.messageId,
@@ -431,9 +437,7 @@ export async function POST(request: Request) {
     if (error instanceof WhatsAppApiError) {
       return NextResponse.json(
         {
-          error: error.isAuthError
-            ? "WhatsApp authentication failed. Regenerate WHATSAPP_ACCESS_TOKEN in Meta API Setup."
-            : error.message,
+          error: formatWhatsAppApiErrorForUser(error),
           details: process.env.NODE_ENV !== "production" ? error.payload : undefined,
         },
         { status: error.status || 500 },

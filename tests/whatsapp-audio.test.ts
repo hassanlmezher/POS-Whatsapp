@@ -12,6 +12,7 @@ import {
   shouldTranscodeAudioForWhatsApp,
   validateAudioUpload,
 } from "../src/lib/whatsapp-audio";
+import { formatWhatsAppApiErrorForUser, WhatsAppApiError } from "../src/lib/whatsapp";
 
 const tenantA = "11111111-1111-4111-8111-111111111111";
 const tenantB = "22222222-2222-4222-8222-222222222222";
@@ -155,4 +156,26 @@ test("fractional browser recording duration is safe for integer database column"
   });
 
   assert.equal(payload.media_duration_seconds, 3);
+});
+
+test("WhatsApp expired token errors are explained with environment action", () => {
+  const error = new WhatsAppApiError("Session has expired", {
+    status: 401,
+    payload: { error: { code: 190, error_subcode: 463, message: "Session has expired" } },
+    isAuthError: true,
+  });
+
+  assert.match(formatWhatsAppApiErrorForUser(error), /access token expired/i);
+  assert.match(formatWhatsAppApiErrorForUser(error), /WHATSAPP_ACCESS_TOKEN/);
+});
+
+test("WhatsApp access denied errors are explained with phone number access action", () => {
+  const error = new WhatsAppApiError("(#131005) Access denied", {
+    status: 400,
+    payload: { error: { code: 131005, message: "(#131005) Access denied" } },
+    isAuthError: true,
+  });
+
+  assert.match(formatWhatsAppApiErrorForUser(error), /access denied/i);
+  assert.match(formatWhatsAppApiErrorForUser(error), /phone number ID/i);
 });

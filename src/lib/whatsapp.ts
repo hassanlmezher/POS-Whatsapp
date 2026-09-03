@@ -55,6 +55,23 @@ type MetaErrorPayload = {
   };
 };
 
+function getMetaError(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const error = (payload as MetaErrorPayload).error;
+
+  return error && typeof error === "object" ? error : null;
+}
+
+function isWhatsAppAuthOrAccessError(status: number, payload: unknown) {
+  const error = getMetaError(payload);
+  const code = error?.code;
+
+  return status === 401 || status === 403 || code === 190 || code === 131005;
+}
+
 export class WhatsAppApiError extends Error {
   status: number;
   payload: unknown;
@@ -67,6 +84,26 @@ export class WhatsAppApiError extends Error {
     this.payload = options.payload;
     this.isAuthError = options.isAuthError;
   }
+}
+
+export function formatWhatsAppApiErrorForUser(error: WhatsAppApiError) {
+  const metaError = getMetaError(error.payload);
+  const code = metaError?.code;
+  const subcode = metaError?.error_subcode;
+
+  if (code === 190 || subcode === 463) {
+    return "WhatsApp access token expired. Generate a new token for this WhatsApp Business account, update WHATSAPP_ACCESS_TOKEN, then redeploy or restart the server.";
+  }
+
+  if (code === 131005 || /access denied/i.test(error.message)) {
+    return "WhatsApp access denied. Update WHATSAPP_ACCESS_TOKEN so it has whatsapp_business_messaging access to this tenant's WhatsApp Business Account and phone number ID, then redeploy or restart the server.";
+  }
+
+  if (error.isAuthError) {
+    return "WhatsApp authentication failed. Regenerate WHATSAPP_ACCESS_TOKEN in Meta API Setup, then redeploy or restart the server.";
+  }
+
+  return error.message;
 }
 
 export function getPreferredWebhookVerifyToken() {
@@ -142,10 +179,7 @@ export async function sendWhatsAppTextMessage({
     }
 
     const message = payload?.error?.message ?? "WhatsApp Cloud API request failed";
-    const isAuthError =
-      response.status === 401 ||
-      response.status === 403 ||
-      payload?.error?.code === 190;
+    const isAuthError = isWhatsAppAuthOrAccessError(response.status, payload);
 
     throw new WhatsAppApiError(message, {
       status: response.status,
@@ -187,10 +221,7 @@ export async function uploadWhatsAppMedia({
     }
 
     const message = (payload as MetaErrorPayload | null)?.error?.message ?? "WhatsApp media upload failed";
-    const isAuthError =
-      response.status === 401 ||
-      response.status === 403 ||
-      (payload as MetaErrorPayload | null)?.error?.code === 190;
+    const isAuthError = isWhatsAppAuthOrAccessError(response.status, payload);
 
     throw new WhatsAppApiError(message, {
       status: response.status,
@@ -237,10 +268,7 @@ export async function sendWhatsAppAudioMessage({
     }
 
     const message = (payload as MetaErrorPayload | null)?.error?.message ?? "WhatsApp audio send failed";
-    const isAuthError =
-      response.status === 401 ||
-      response.status === 403 ||
-      (payload as MetaErrorPayload | null)?.error?.code === 190;
+    const isAuthError = isWhatsAppAuthOrAccessError(response.status, payload);
 
     throw new WhatsAppApiError(message, {
       status: response.status,
@@ -286,10 +314,7 @@ export async function sendWhatsAppAttachmentMessage({
     }
 
     const message = (metaPayload as MetaErrorPayload | null)?.error?.message ?? "WhatsApp attachment send failed";
-    const isAuthError =
-      response.status === 401 ||
-      response.status === 403 ||
-      (metaPayload as MetaErrorPayload | null)?.error?.code === 190;
+    const isAuthError = isWhatsAppAuthOrAccessError(response.status, metaPayload);
 
     throw new WhatsAppApiError(message, {
       status: response.status,
@@ -334,10 +359,7 @@ export async function fetchWhatsAppMediaMetadata(mediaId: string, accessToken: s
     }
 
     const message = payload?.error?.message ?? "WhatsApp media metadata request failed";
-    const isAuthError =
-      response.status === 401 ||
-      response.status === 403 ||
-      payload?.error?.code === 190;
+    const isAuthError = isWhatsAppAuthOrAccessError(response.status, payload);
 
     throw new WhatsAppApiError(message, {
       status: response.status,
@@ -376,7 +398,7 @@ export async function downloadWhatsAppMedia(mediaUrl: string, accessToken: strin
     throw new WhatsAppApiError("WhatsApp media download failed", {
       status: response.status,
       payload,
-      isAuthError: response.status === 401 || response.status === 403,
+      isAuthError: isWhatsAppAuthOrAccessError(response.status, payload),
     });
   }
 
