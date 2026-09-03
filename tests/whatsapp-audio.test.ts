@@ -132,7 +132,8 @@ test("duplicate retry does not resend non-failed messages and allows failed mess
 
 test("browser WebM recording is marked for server-side WhatsApp transcode", () => {
   assert.equal(shouldTranscodeAudioForWhatsApp("audio/webm;codecs=opus"), true);
-  assert.equal(shouldTranscodeAudioForWhatsApp("audio/mpeg"), false);
+  assert.equal(shouldTranscodeAudioForWhatsApp("audio/mpeg"), true);
+  assert.equal(shouldTranscodeAudioForWhatsApp("audio/ogg;codecs=opus"), false);
 });
 
 test("fractional browser recording duration is safe for integer database column", () => {

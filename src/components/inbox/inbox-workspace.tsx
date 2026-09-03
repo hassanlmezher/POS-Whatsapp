@@ -227,11 +227,7 @@ export function InboxWorkspace({
   }, [conversationSearch, visibleConversations]);
   const activeConversation = visibleConversations.find((item) => item.id === activeConversationId) ?? selectedConversation ?? null;
   const activeMessages = activeConversation
-    ? messages.filter(
-        (message) =>
-          message.conversationId === activeConversation.id &&
-          !(message.messageType === "audio" && message.direction === "outbound" && message.status === "failed"),
-      )
+    ? messages.filter((message) => message.conversationId === activeConversation.id)
     : [];
   const latestMessageId = activeMessages[activeMessages.length - 1]?.id ?? "";
   const activeSuggestion = suggestionConversationId === activeConversation?.id ? suggestion : null;
@@ -672,7 +668,17 @@ export function InboxWorkspace({
       const payload = await response.json().catch(() => null);
 
       if (!response.ok) {
-        setRecorderState("preview");
+        if (payload?.message) {
+          upsertMessage(payload.message);
+          setSuggestion(null);
+          setSuggestionConversationId(null);
+          setSuggestionError(null);
+          scheduleSync("send-audio-failed");
+          resetRecording();
+        } else {
+          setRecorderState("preview");
+        }
+
         setSendError(formatSendError(payload));
         return;
       }

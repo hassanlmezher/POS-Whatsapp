@@ -60,7 +60,7 @@ export function isRecordableAudioMimeType(mimeType: string | null | undefined) {
 }
 
 export function shouldTranscodeAudioForWhatsApp(mimeType: string | null | undefined) {
-  return normalizeAudioMimeType(mimeType) === "audio/webm";
+  return normalizeAudioMimeType(mimeType) !== "audio/ogg";
 }
 
 export function validateAudioUpload({

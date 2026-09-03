@@ -140,7 +140,7 @@ async function prepareAudioForWhatsApp(input: {
 
   const tempDir = await mkdtemp(join(tmpdir(), "inchouf-audio-"));
   const inputPath = join(tempDir, `${randomUUID()}.${getAudioExtension(input.mimeType)}`);
-  const outputPath = join(tempDir, `${input.messageId}.mp3`);
+  const outputPath = join(tempDir, `${input.messageId}.ogg`);
 
   try {
     await writeFile(inputPath, input.buffer);
@@ -155,8 +155,12 @@ async function prepareAudioForWhatsApp(input: {
         "1",
         "-ar",
         "16000",
+        "-c:a",
+        "libopus",
         "-b:a",
-        "48k",
+        "24k",
+        "-application",
+        "voip",
         outputPath,
       ],
       { timeout: 30000 },
@@ -164,8 +168,8 @@ async function prepareAudioForWhatsApp(input: {
 
     return {
       buffer: await readFile(outputPath),
-      mimeType: "audio/mpeg",
-      fileName: `${input.messageId}.mp3`,
+      mimeType: "audio/ogg",
+      fileName: `${input.messageId}.ogg`,
       wasTranscoded: true,
     };
   } finally {
@@ -459,20 +463,22 @@ export async function POST(request: Request) {
           : error instanceof Error
             ? error.message
             : "Voice message send failed";
-
-      await supabase.storage
-        .from(WHATSAPP_AUDIO_BUCKET)
-        .remove([storagePath])
-        .then(({ error: cleanupError }) => {
-          if (cleanupError) {
-            console.warn("[messages/send-audio] Failed to clean up unsent audio storage object", {
-              conversationId: tenantConversation.id,
-              messageId: input.messageId,
-              storagePath,
-              cleanupError,
-            });
-          }
-        });
+      const savedMessage = await persistAudioMessage({
+        supabase,
+        messageId: input.messageId,
+        tenantId: tenant.id,
+        conversationId: tenantConversation.id,
+        customerId: customer.id,
+        status: "failed",
+        whatsappMessageId: null,
+        mediaId,
+        mimeType: prepared.mimeType,
+        durationSeconds: input.durationSeconds,
+        fileSize: prepared.buffer.byteLength,
+        storagePath,
+        fileName: prepared.fileName,
+        mediaError: errorMessage,
+      });
 
       console.error("[messages/send-audio] WhatsApp audio send failed", {
         tenantId: tenant.id,
@@ -490,6 +496,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error: errorMessage,
+          message: savedMessage ? mapAudioMessage(savedMessage) : undefined,
           details: error instanceof WhatsAppApiError && process.env.NODE_ENV !== "production" ? error.payload : undefined,
         },
         { status },
