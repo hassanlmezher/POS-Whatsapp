@@ -19,19 +19,19 @@ export default async function CustomerDetailsPage({ params }: { params: Promise<
         <div className="flex flex-wrap items-center gap-5">
           <Avatar name={customer.name} src={customer.avatarUrl} className="h-20 w-20" />
           <div className="flex-1">
-            <h1 className="text-2xl font-black text-[#f8fbff]">{customer.name}</h1>
-            <p className="mt-1 text-[#8fa3ad]">{customer.phone}</p>
+            <h1 className="text-2xl font-black text-[#000000]">{customer.name}</h1>
+            <p className="mt-1 text-[#000000]">{customer.phone}</p>
             <div className="mt-3 flex gap-2">{customer.tags.map((tag) => <Badge key={tag} tone="green">{tag}</Badge>)}</div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-lg bg-[#0b1114] p-5 ring-1 ring-[#1d3038]"><div className="text-xs uppercase text-[#6f858f]">Total Spent</div><div className="mt-2 text-xl font-black text-[#f8fbff]">{formatCurrency(spent)}</div></div>
-            <div className="rounded-lg bg-[#0b1114] p-5 ring-1 ring-[#1d3038]"><div className="text-xs uppercase text-[#6f858f]">Orders</div><div className="mt-2 text-xl font-black text-[#f8fbff]">{orders.length}</div></div>
+            <div className="rounded-lg bg-[#ffffff] p-5 ring-1 ring-[#d8c3ff]"><div className="text-xs uppercase text-[#000000]">Total Spent</div><div className="mt-2 text-xl font-black text-[#000000]">{formatCurrency(spent)}</div></div>
+            <div className="rounded-lg bg-[#ffffff] p-5 ring-1 ring-[#d8c3ff]"><div className="text-xs uppercase text-[#000000]">Orders</div><div className="mt-2 text-xl font-black text-[#000000]">{orders.length}</div></div>
           </div>
         </div>
       </Card>
       <div className="grid gap-6 xl:grid-cols-2">
-        <Card className="p-6"><h2 className="text-lg font-semibold text-[#f8fbff]">Notes</h2><p className="mt-4 leading-7 text-[#8fa3ad]">{customer.notes}</p></Card>
-        <Card className="p-6"><h2 className="text-lg font-semibold text-[#f8fbff]">WhatsApp Conversations</h2><div className="mt-4 space-y-3">{conversations.map((conversation) => <div key={conversation.id} className="rounded-lg bg-[#0b1114] p-4 text-[#f8fbff] ring-1 ring-[#1d3038]">{conversation.lastMessage}</div>)}</div></Card>
+        <Card className="p-6"><h2 className="text-lg font-semibold text-[#000000]">Notes</h2><p className="mt-4 leading-7 text-[#000000]">{customer.notes}</p></Card>
+        <Card className="p-6"><h2 className="text-lg font-semibold text-[#000000]">WhatsApp Conversations</h2><div className="mt-4 space-y-3">{conversations.map((conversation) => <div key={conversation.id} className="rounded-lg bg-[#ffffff] p-4 text-[#000000] ring-1 ring-[#d8c3ff]">{conversation.lastMessage}</div>)}</div></Card>
       </div>
     </div>
   );

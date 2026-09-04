@@ -134,7 +134,7 @@ export function Sidebar() {
   return (
     <>
       {isSigningOut ? <LoadingScreen message="Signing you out..." /> : null}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[300px] flex-col border-r border-[#1d3038] bg-[#050809] lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[300px] flex-col border-r border-[#d8c3ff] bg-[#ffffff] lg:flex">
         <Link href="/dashboard" className="flex h-[112px] items-center gap-4 px-6">
           <Image
             src="/inchouf-pos-mark.png"
@@ -142,11 +142,11 @@ export function Sidebar() {
             width={64}
             height={64}
             priority
-            className="h-16 w-16 shrink-0 rounded-lg bg-black object-cover ring-1 ring-[#22ddeb]/30 shadow-[0_12px_28px_rgba(34,221,235,0.16)]"
+            className="h-16 w-16 shrink-0 rounded-lg bg-[#f4ecff] object-cover ring-1 ring-[#7c3aed]/30 shadow-[0_12px_28px_rgba(124,58,237,0.16)]"
           />
           <div className="min-w-0">
-            <div className="max-w-[190px] truncate text-[21px] font-black leading-6 text-[#f8fbff]">{APP_NAME}</div>
-            <div className="mt-2 text-[11px] font-black uppercase tracking-[0.24em] text-[#95a0b5]">Enterprise Portal</div>
+            <div className="max-w-[190px] truncate text-[21px] font-black leading-6 text-[#000000]">{APP_NAME}</div>
+            <div className="mt-2 text-[11px] font-black uppercase tracking-[0.24em] text-[#000000]">Enterprise Portal</div>
           </div>
         </Link>
 
@@ -160,14 +160,14 @@ export function Sidebar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex h-[52px] items-center gap-4 rounded-lg px-4 text-[17px] font-medium text-[#8fa3ad] transition hover:bg-[#10181c] hover:text-[#22ddeb]",
-                  active && "bg-[#0d1519] text-[#22ddeb]",
+                  "flex h-[52px] items-center gap-4 rounded-lg px-4 text-[17px] font-medium text-[#000000] transition hover:bg-[#f4ecff] hover:text-[#7c3aed]",
+                  active && "bg-[#f4ecff] text-[#7c3aed]",
                 )}
               >
                 <Icon className="h-[22px] w-[22px]" />
                 <span className="min-w-0 flex-1 truncate">{item.label}</span>
                 {item.href === "/inbox" && !isInboxActive && unreadInboxCount > 0 ? (
-                  <span className="ml-auto inline-flex min-w-6 items-center justify-center rounded-full bg-[#22ddeb] px-2 py-0.5 text-xs font-black text-black shadow-[0_0_16px_rgba(34,221,235,0.35)]">
+                  <span className="ml-auto inline-flex min-w-6 items-center justify-center rounded-full bg-[#7c3aed] px-2 py-0.5 text-xs font-black text-black shadow-[0_0_16px_rgba(124,58,237,0.35)]">
                     {unreadInboxCount > 99 ? "99+" : unreadInboxCount}
                   </span>
                 ) : null}
@@ -180,8 +180,8 @@ export function Sidebar() {
               onClick={() => setInventoryOpen((open) => !open)}
               aria-expanded={showInventoryMenu}
               className={cn(
-                "flex h-[52px] w-full items-center gap-4 rounded-lg px-4 text-left text-[17px] font-medium text-[#8fa3ad] transition hover:bg-[#10181c] hover:text-[#22ddeb]",
-                isInventoryActive && "bg-[#0d1519] text-[#22ddeb]",
+                "flex h-[52px] w-full items-center gap-4 rounded-lg px-4 text-left text-[17px] font-medium text-[#000000] transition hover:bg-[#f4ecff] hover:text-[#7c3aed]",
+                isInventoryActive && "bg-[#f4ecff] text-[#7c3aed]",
               )}
             >
               <Package className="h-[22px] w-[22px]" />
@@ -204,8 +204,8 @@ export function Sidebar() {
                       key={item.href}
                       href={item.href}
                       className={cn(
-                        "flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-semibold text-[#8fa3ad] transition hover:bg-[#10181c] hover:text-[#22ddeb]",
-                        active && "bg-[#082529] text-[#22ddeb]",
+                        "flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-semibold text-[#000000] transition hover:bg-[#f4ecff] hover:text-[#7c3aed]",
+                        active && "bg-[#f4ecff] text-[#7c3aed]",
                       )}
                     >
                       <Icon className="h-4 w-4" />
@@ -219,8 +219,8 @@ export function Sidebar() {
           <Link
             href="/settings"
             className={cn(
-              "flex h-[52px] items-center gap-4 rounded-lg px-4 text-[17px] font-medium text-[#8fa3ad] transition hover:bg-[#10181c] hover:text-[#22ddeb]",
-              (pathname === "/settings" || pathname.startsWith("/settings/")) && "bg-[#0d1519] text-[#22ddeb]",
+              "flex h-[52px] items-center gap-4 rounded-lg px-4 text-[17px] font-medium text-[#000000] transition hover:bg-[#f4ecff] hover:text-[#7c3aed]",
+              (pathname === "/settings" || pathname.startsWith("/settings/")) && "bg-[#f4ecff] text-[#7c3aed]",
             )}
           >
             <Settings className="h-[22px] w-[22px]" />
@@ -228,15 +228,15 @@ export function Sidebar() {
           </Link>
         </nav>
 
-        <div className="mx-5 border-t border-[#18282e] py-6">
-          <button className="flex h-12 w-full items-center gap-4 rounded-lg px-4 text-left text-[17px] font-medium text-[#8fa3ad] hover:bg-[#10181c]">
+        <div className="mx-5 border-t border-[#eadbff] py-6">
+          <button className="flex h-12 w-full items-center gap-4 rounded-lg px-4 text-left text-[17px] font-medium text-[#000000] hover:bg-[#f4ecff]">
             <CircleHelp className="h-[22px] w-[22px]" />
             Help Support
           </button>
           <button
             onClick={signOut}
             disabled={isSigningOut}
-            className="flex h-12 w-full items-center gap-4 rounded-lg px-4 text-left text-[17px] font-medium text-[#8fa3ad] hover:bg-[#10181c] disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex h-12 w-full items-center gap-4 rounded-lg px-4 text-left text-[17px] font-medium text-[#000000] hover:bg-[#f4ecff] disabled:cursor-not-allowed disabled:opacity-60"
           >
             <LogOut className="h-[22px] w-[22px]" />
             Sign Out
@@ -257,7 +257,7 @@ export function MobileNav() {
   return (
     <>
       {inventoryOpen ? (
-        <div className="fixed inset-x-3 bottom-[68px] z-40 rounded-lg border border-[#1d3038] bg-[#070b0d] p-2 shadow-[0_18px_46px_rgba(0,0,0,0.4)] lg:hidden">
+        <div className="fixed inset-x-3 bottom-[68px] z-40 rounded-lg border border-[#d8c3ff] bg-[#fbf8ff] p-2 shadow-[0_18px_46px_rgba(0,0,0,0.4)] lg:hidden">
           <div className="grid grid-cols-2 gap-1">
             {inventoryNav.map((item) => {
               const Icon = item.icon;
@@ -269,8 +269,8 @@ export function MobileNav() {
                   href={item.href}
                   onClick={() => setInventoryOpen(false)}
                   className={cn(
-                    "flex h-11 items-center gap-2 rounded-lg px-3 text-xs font-semibold text-[#8fa3ad]",
-                    active && "bg-[#082529] text-[#22ddeb]",
+                    "flex h-11 items-center gap-2 rounded-lg px-3 text-xs font-semibold text-[#000000]",
+                    active && "bg-[#f4ecff] text-[#7c3aed]",
                   )}
                 >
                   <Icon className="h-4 w-4" />
@@ -281,7 +281,7 @@ export function MobileNav() {
           </div>
         </div>
       ) : null}
-      <div className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-6 border-t border-[#1d3038] bg-[#050809] lg:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-6 border-t border-[#d8c3ff] bg-[#ffffff] lg:hidden">
         {nav.map((item) => {
           const Icon = item.icon;
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -291,14 +291,14 @@ export function MobileNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center gap-1 py-2 text-[10px] text-[#8fa3ad]",
-                active && "bg-[#0d1519] text-[#22ddeb]",
+                "flex flex-col items-center gap-1 py-2 text-[10px] text-[#000000]",
+                active && "bg-[#f4ecff] text-[#7c3aed]",
               )}
             >
               <span className="relative">
                 <Icon className="h-4 w-4" />
                 {item.href === "/inbox" && !isInboxActive && unreadInboxCount > 0 ? (
-                  <span className="absolute -right-3 -top-2 inline-flex min-w-4 items-center justify-center rounded-full bg-[#22ddeb] px-1 text-[9px] font-black leading-4 text-black">
+                  <span className="absolute -right-3 -top-2 inline-flex min-w-4 items-center justify-center rounded-full bg-[#7c3aed] px-1 text-[9px] font-black leading-4 text-black">
                     {unreadInboxCount > 99 ? "99+" : unreadInboxCount}
                   </span>
                 ) : null}
@@ -311,8 +311,8 @@ export function MobileNav() {
           type="button"
           onClick={() => setInventoryOpen((open) => !open)}
           className={cn(
-            "flex flex-col items-center gap-1 py-2 text-[10px] text-[#8fa3ad]",
-            isInventoryActive && "bg-[#0d1519] text-[#22ddeb]",
+            "flex flex-col items-center gap-1 py-2 text-[10px] text-[#000000]",
+            isInventoryActive && "bg-[#f4ecff] text-[#7c3aed]",
           )}
           aria-expanded={inventoryOpen}
         >
@@ -322,8 +322,8 @@ export function MobileNav() {
         <Link
           href="/settings"
           className={cn(
-            "flex flex-col items-center gap-1 py-2 text-[10px] text-[#8fa3ad]",
-            (pathname === "/settings" || pathname.startsWith("/settings/")) && "bg-[#0d1519] text-[#22ddeb]",
+            "flex flex-col items-center gap-1 py-2 text-[10px] text-[#000000]",
+            (pathname === "/settings" || pathname.startsWith("/settings/")) && "bg-[#f4ecff] text-[#7c3aed]",
           )}
         >
           <Settings className="h-4 w-4" />

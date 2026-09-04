@@ -74,9 +74,9 @@ export function POSWorkspace({
   }
 
   return (
-    <div className="grid min-h-[calc(100vh-98px)] grid-cols-1 bg-[#030607] xl:grid-cols-[minmax(0,1fr)_390px]">
+    <div className="grid min-h-[calc(100vh-98px)] grid-cols-1 bg-[#ffffff] xl:grid-cols-[minmax(0,1fr)_390px]">
       <section className="min-w-0">
-        <div className="border-b border-[#1d3038] bg-[#070b0d] px-8 py-5">
+        <div className="border-b border-[#d8c3ff] bg-[#fbf8ff] px-8 py-5">
           <div className="flex gap-4 overflow-x-auto">
           {categories.map((category) => {
             const active = category.id === categoryId;
@@ -85,7 +85,7 @@ export function POSWorkspace({
                 key={category.id}
                 onClick={() => setCategoryId(category.id)}
                 className={`h-12 shrink-0 rounded-full px-8 text-base font-bold transition ${
-                  active ? "bg-[#22ddeb] text-black shadow-[0_8px_18px_rgba(34,221,235,0.24)]" : "bg-[#10181c] text-[#8fa3ad] hover:bg-[#18282e] hover:text-white"
+                  active ? "bg-[#7c3aed] text-black shadow-[0_8px_18px_rgba(124,58,237,0.24)]" : "bg-[#f4ecff] text-[#000000] hover:bg-[#eadbff] hover:text-black"
                 }`}
               >
                 {category.name}
@@ -112,35 +112,35 @@ export function POSWorkspace({
                   }
                 }}
                 disabled={unavailable}
-                className="overflow-hidden rounded-xl bg-[#070b0d] p-4 text-left shadow-[0_2px_8px_rgba(15,23,42,0.05)] ring-1 ring-[#1d3038] transition hover:-translate-y-0.5 hover:ring-[#22ddeb]/45 hover:shadow-[0_12px_28px_rgba(0,0,0,0.28)] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0 disabled:hover:ring-[#1d3038]"
+                className="overflow-hidden rounded-xl bg-[#fbf8ff] p-4 text-left shadow-[0_2px_8px_rgba(15,23,42,0.05)] ring-1 ring-[#d8c3ff] transition hover:-translate-y-0.5 hover:ring-[#7c3aed]/45 hover:shadow-[0_12px_28px_rgba(0,0,0,0.28)] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0 disabled:hover:ring-[#d8c3ff]"
               >
                 <div className="relative">
                   {product.imageUrl ? (
                     <img src={product.imageUrl} alt={product.name} className="h-52 w-full rounded-lg object-cover" />
                   ) : (
-                    <div className="flex h-52 w-full items-center justify-center rounded-lg border border-[#1d3038] bg-[#0b1114] text-[#6f858f]">
+                    <div className="flex h-52 w-full items-center justify-center rounded-lg border border-[#d8c3ff] bg-[#ffffff] text-[#000000]">
                       <Package className="h-10 w-10" aria-hidden="true" />
                     </div>
                   )}
-                  <span className="absolute bottom-2 right-2 rounded-md bg-[#070b0d] px-3 py-1 text-sm font-black text-[#22ddeb] shadow">{formatCurrency(product.price, company.currency)}</span>
+                  <span className="absolute bottom-2 right-2 rounded-md bg-[#fbf8ff] px-3 py-1 text-sm font-black text-[#7c3aed] shadow">{formatCurrency(product.price, company.currency)}</span>
                   {unavailable ? (
-                    <span className="absolute left-2 top-2 rounded-md bg-black/80 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-white ring-1 ring-white/10">
+                    <span className="absolute left-2 top-2 rounded-md bg-[#f4ecff] px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-black ring-1 ring-[#7c3aed]/40">
                       {product.active ? "Out of stock" : "Inactive"}
                     </span>
                   ) : null}
                 </div>
                 <div className="pt-4">
-                  <div className="line-clamp-1 text-xl font-medium text-[#f8fbff]">{product.name}</div>
-                  <div className="mt-1 text-base text-[#8fa3ad]">{category?.name ?? "Uncategorized"}</div>
+                  <div className="line-clamp-1 text-xl font-medium text-[#000000]">{product.name}</div>
+                  <div className="mt-1 text-base text-[#000000]">{category?.name ?? "Uncategorized"}</div>
                 </div>
               </button>
             );
           })}
           {!filteredProducts.length ? (
-            <div className="col-span-full rounded-xl border border-[#1d3038] bg-[#070b0d] px-6 py-12 text-center">
-              <Package className="mx-auto h-10 w-10 text-[#22ddeb]" aria-hidden="true" />
-              <h2 className="mt-4 text-xl font-semibold text-white">No products found</h2>
-              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#8fa3ad]">
+            <div className="col-span-full rounded-xl border border-[#d8c3ff] bg-[#fbf8ff] px-6 py-12 text-center">
+              <Package className="mx-auto h-10 w-10 text-[#7c3aed]" aria-hidden="true" />
+              <h2 className="mt-4 text-xl font-semibold text-black">No products found</h2>
+              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#000000]">
                 Products created for this tenant in Supabase will appear here automatically.
               </p>
             </div>
@@ -149,16 +149,16 @@ export function POSWorkspace({
         </div>
       </section>
 
-      <aside className="flex min-h-[620px] flex-col border-l border-[#1d3038] bg-[#070b0d] xl:sticky xl:top-[98px] xl:h-[calc(100vh-98px)]">
-        <div className="border-b border-[#142126] p-8">
+      <aside className="flex min-h-[620px] flex-col border-l border-[#d8c3ff] bg-[#fbf8ff] xl:sticky xl:top-[98px] xl:h-[calc(100vh-98px)]">
+        <div className="border-b border-[#d8c3ff] p-8">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-medium text-[#f8fbff]">Current Order</h2>
-            <span className="rounded-full bg-[#10181c] px-4 py-1 text-sm font-black text-[#8fa3ad]">{totals.count} Items</span>
+            <h2 className="text-2xl font-medium text-[#000000]">Current Order</h2>
+            <span className="rounded-full bg-[#f4ecff] px-4 py-1 text-sm font-black text-[#000000]">{totals.count} Items</span>
           </div>
-          <label className="mt-5 flex items-center gap-3 rounded-xl bg-[#0b1114] p-3 text-sm ring-1 ring-[#1d3038]">
-            <User className="h-4 w-4 text-[#6f858f]" />
+          <label className="mt-5 flex items-center gap-3 rounded-xl bg-[#ffffff] p-3 text-sm ring-1 ring-[#d8c3ff]">
+            <User className="h-4 w-4 text-[#000000]" />
             <select
-              className="flex-1 bg-transparent text-[#e8f2f5] outline-none"
+              className="flex-1 bg-transparent text-[#000000] outline-none"
               value={customerId ?? ""}
               onChange={(event) => setCustomer(event.target.value || null)}
             >
@@ -174,30 +174,30 @@ export function POSWorkspace({
 
         <div className="flex-1 space-y-4 overflow-y-auto p-5">
           {items.map((item) => (
-            <div key={item.product.id} className="rounded-xl bg-[#070b0d] p-3 shadow-sm ring-1 ring-[#1d3038]">
+            <div key={item.product.id} className="rounded-xl bg-[#fbf8ff] p-3 shadow-sm ring-1 ring-[#d8c3ff]">
               <div className="flex gap-4">
                 {item.product.imageUrl ? (
                   <img src={item.product.imageUrl} alt={item.product.name} className="h-16 w-16 rounded-lg object-cover" />
                 ) : (
-                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-[#1d3038] bg-[#0b1114] text-[#6f858f]">
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-[#d8c3ff] bg-[#ffffff] text-[#000000]">
                     <Package className="h-6 w-6" aria-hidden="true" />
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="flex justify-between gap-3">
-                    <div className="font-bold text-[#f8fbff]">{item.product.name}</div>
+                    <div className="font-bold text-[#000000]">{item.product.name}</div>
                     <button onClick={() => removeItem(item.product.id)} aria-label="Remove item">
-                      <Trash2 className="h-4 w-4 text-[#6f858f]" />
+                      <Trash2 className="h-4 w-4 text-[#000000]" />
                     </button>
                   </div>
-                  <div className="mt-1 text-sm text-[#6f858f]">{formatCurrency(item.product.price)}</div>
+                  <div className="mt-1 text-sm text-[#000000]">{formatCurrency(item.product.price)}</div>
                   <div className="mt-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Button variant="outline" size="icon" onClick={() => decrementItem(item.product.id)}><Minus className="h-4 w-4" /></Button>
                       <span className="w-5 text-center font-semibold">{item.quantity}</span>
                       <Button variant="outline" size="icon" onClick={() => addItem(item.product)}><Plus className="h-4 w-4" /></Button>
                     </div>
-                    <div className="font-black text-[#f8fbff]">{formatCurrency(item.product.price * item.quantity)}</div>
+                    <div className="font-black text-[#000000]">{formatCurrency(item.product.price * item.quantity)}</div>
                   </div>
                 </div>
               </div>
@@ -205,11 +205,11 @@ export function POSWorkspace({
           ))}
         </div>
 
-        <div className="sticky bottom-0 z-10 border-t border-[#142126] bg-[#070b0d] p-8 shadow-[0_-16px_34px_rgba(0,0,0,0.22)]">
-          <div className="space-y-4 text-base text-[#8fa3ad]">
+        <div className="sticky bottom-0 z-10 border-t border-[#d8c3ff] bg-[#fbf8ff] p-8 shadow-[0_-16px_34px_rgba(0,0,0,0.22)]">
+          <div className="space-y-4 text-base text-[#000000]">
             <div className="flex justify-between"><span>Subtotal</span><span>{formatCurrency(totals.subtotal)}</span></div>
             <div className="flex justify-between"><span>Tax ({company.taxRate * 100}%)</span><span>{formatCurrency(totals.tax)}</span></div>
-            <div className="flex justify-between border-t border-[#142126] pt-6 text-xl font-black text-[#f8fbff]">
+            <div className="flex justify-between border-t border-[#d8c3ff] pt-6 text-xl font-black text-[#000000]">
               <span>Total</span><span>{formatCurrency(totals.total)}</span>
             </div>
           </div>
@@ -222,7 +222,7 @@ export function POSWorkspace({
             </Button>
           </div>
           {checkoutError ? (
-            <div className="mt-4 rounded-xl bg-[#351018] p-3 text-sm font-medium text-[#ff7a94] ring-1 ring-[#8d2638]">
+            <div className="mt-4 rounded-xl bg-[#f4ecff] p-3 text-sm font-medium text-[#6d28d9] ring-1 ring-[#7c3aed]">
               {checkoutError}
             </div>
           ) : null}

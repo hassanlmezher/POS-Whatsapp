@@ -84,8 +84,8 @@ export default async function TeamSettingsPage({ searchParams }: TeamPageProps) 
     <div className="space-y-6 p-5 lg:p-8">
       <section className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-[#f8fbff]">Team Management</h1>
-          <p className="mt-2 text-[#8fa3ad]">Manage employee access for {tenant.name}.</p>
+          <h1 className="text-2xl font-black text-[#000000]">Team Management</h1>
+          <p className="mt-2 text-[#000000]">Manage employee access for {tenant.name}.</p>
         </div>
         <Badge tone="cyan" className="gap-2">
           <ShieldCheck className="h-3.5 w-3.5" />
@@ -93,40 +93,40 @@ export default async function TeamSettingsPage({ searchParams }: TeamPageProps) 
         </Badge>
       </section>
 
-      {successMessage ? <div className="rounded-lg border border-[#22ddeb]/35 bg-[#082529] px-4 py-3 text-sm text-white">{successMessage}</div> : null}
-      {errorMessage ? <div className="rounded-lg border border-[#8d2638] bg-[#351018] px-4 py-3 text-sm text-[#ff9aac]">{errorMessage}</div> : null}
+      {successMessage ? <div className="rounded-lg border border-[#7c3aed]/35 bg-[#f4ecff] px-4 py-3 text-sm text-black">{successMessage}</div> : null}
+      {errorMessage ? <div className="rounded-lg border border-[#7c3aed] bg-[#f4ecff] px-4 py-3 text-sm text-[#6d28d9]">{errorMessage}</div> : null}
 
       <Card className="overflow-hidden">
-        <div className="flex items-center gap-3 border-b border-[#1d3038] p-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#082529] text-[#22ddeb] ring-1 ring-[#22ddeb]/40">
+        <div className="flex items-center gap-3 border-b border-[#d8c3ff] p-6">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#f4ecff] text-[#7c3aed] ring-1 ring-[#7c3aed]/40">
             <UsersRound className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-white">Employees</h2>
-            <p className="text-sm text-[#8fa3ad]">{members?.length ?? 0} tenant member(s)</p>
+            <h2 className="text-lg font-semibold text-black">Employees</h2>
+            <p className="text-sm text-[#000000]">{members?.length ?? 0} tenant member(s)</p>
           </div>
         </div>
 
-        <div className="divide-y divide-[#1d3038]">
+        <div className="divide-y divide-[#d8c3ff]">
           {(members ?? []).map((member) => (
             <form key={member.id} action={updateTeamMemberRole} className="grid gap-4 p-5 md:grid-cols-[minmax(0,1fr)_260px_120px] md:items-center">
               <input type="hidden" name="membershipId" value={member.id} />
               <div className="flex min-w-0 items-center gap-4">
                 <Avatar name={member.name} src={member.avatar_url} />
                 <div className="min-w-0">
-                  <div className="truncate font-semibold text-white">{member.name}</div>
-                  <div className="truncate text-sm text-[#8fa3ad]">{member.auth_user_id}</div>
+                  <div className="truncate font-semibold text-black">{member.name}</div>
+                  <div className="truncate text-sm text-[#000000]">{member.auth_user_id}</div>
                 </div>
                 <Badge tone="slate">{formatRole(member.role)}</Badge>
               </div>
-              <select name="roleId" defaultValue={(roles ?? []).find((role) => role.name === member.role)?.id} className="h-11 rounded-lg border border-[#1d3038] bg-[#0b1114] px-3 text-sm text-white outline-none focus:border-[#22ddeb] focus:ring-4 focus:ring-[#22ddeb]/15">
+              <select name="roleId" defaultValue={(roles ?? []).find((role) => role.name === member.role)?.id} className="h-11 rounded-lg border border-[#d8c3ff] bg-[#ffffff] px-3 text-sm text-black outline-none focus:border-[#7c3aed] focus:ring-4 focus:ring-[#7c3aed]/15">
                 {(roles ?? []).map((role) => (
                   <option key={role.id} value={role.id}>
                     {formatRole(role.name)}
                   </option>
                 ))}
               </select>
-              <SubmitButton pendingText="Saving..." className="h-11 rounded-lg bg-[#22ddeb] px-4 text-sm font-semibold text-black transition hover:bg-[#2ff4ff]">
+              <SubmitButton pendingText="Saving..." className="h-11 rounded-lg bg-[#7c3aed] px-4 text-sm font-semibold text-black transition hover:bg-[#6d28d9]">
                 Save
               </SubmitButton>
             </form>

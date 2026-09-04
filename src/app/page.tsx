@@ -3,6 +3,7 @@ import {
   AuthenticationRequiredError,
   getTenantContext,
   TenantMembershipRequiredError,
+  TenantSuspendedError,
 } from "@/lib/tenant-context";
 
 export default async function Home() {
@@ -15,6 +16,10 @@ export default async function Home() {
 
     if (error instanceof TenantMembershipRequiredError) {
       redirect("/login?error=missing-membership");
+    }
+
+    if (error instanceof TenantSuspendedError) {
+      redirect("/login?error=tenant-suspended");
     }
 
     throw error;

@@ -112,7 +112,7 @@ export function VoiceMessage({ message }: { message: Message }) {
           onClick={togglePlayback}
           disabled={!message.audio?.url || Boolean(error)}
           aria-label={isPlaying ? "Pause voice message" : "Play voice message"}
-          className={isOutbound ? "h-10 w-10 bg-black text-[#22ddeb] hover:bg-black/80" : "h-10 w-10"}
+          className={isOutbound ? "h-10 w-10 bg-[#ffffff] text-[#7c3aed] hover:bg-[#f4ecff]" : "h-10 w-10"}
         >
           {error ? (
             <AlertCircle className="h-5 w-5" />
@@ -133,7 +133,7 @@ export function VoiceMessage({ message }: { message: Message }) {
               type="button"
               onClick={cycleSpeed}
               className={`rounded-full px-2 py-0.5 text-[11px] font-black ${
-                isOutbound ? "bg-black/15 text-black" : "bg-[#082529] text-[#22ddeb]"
+                isOutbound ? "bg-[#f4ecff] text-[#7c3aed]" : "bg-[#f4ecff] text-[#7c3aed]"
               }`}
             >
               {SPEEDS[speedIndex]}x
@@ -147,8 +147,8 @@ export function VoiceMessage({ message }: { message: Message }) {
                   key={`${height}-${index}`}
                   className={`w-1 rounded-full transition-colors ${
                     index / bars.length <= progress
-                      ? isOutbound ? "bg-black" : "bg-[#22ddeb]"
-                      : isOutbound ? "bg-black/25" : "bg-[#1d3038]"
+                      ? "bg-[#7c3aed]"
+                      : "bg-[#d8c3ff]"
                   }`}
                   style={{ height }}
                 />
@@ -168,7 +168,7 @@ export function VoiceMessage({ message }: { message: Message }) {
             ) : null}
           </div>
 
-          <div className={`mt-1 flex justify-between text-xs ${isOutbound ? "text-black/60" : "text-[#6f858f]"}`}>
+          <div className={`mt-1 flex justify-between text-xs ${isOutbound ? "text-black/60" : "text-[#000000]"}`}>
             <span>{error ? "Unavailable" : isLoading ? "Loading" : formatDuration(currentTime)}</span>
             <span>{statusLabel ?? formatDuration(duration)}</span>
           </div>
@@ -176,7 +176,7 @@ export function VoiceMessage({ message }: { message: Message }) {
       </div>
 
       {error || statusLabel ? (
-        <div className={`mt-3 text-xs ${isOutbound ? "text-black/70" : "text-[#ff7a94]"}`}>
+        <div className={`mt-3 text-xs ${isOutbound ? "text-black/70" : "text-[#6d28d9]"}`}>
           {error ?? statusLabel}
         </div>
       ) : null}

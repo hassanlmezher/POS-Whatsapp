@@ -27,8 +27,8 @@ export function SubmitButton({
     >
       <span className="relative z-10">{pending ? pendingText : children}</span>
       {pending ? (
-        <span className="absolute inset-x-0 bottom-0 h-1 overflow-hidden bg-black/15">
-          <span className="block h-full w-1/2 animate-[progress-slide_1s_ease-in-out_infinite] bg-white/85" />
+        <span className="absolute inset-x-0 bottom-0 h-1 overflow-hidden bg-[#f4ecff]">
+          <span className="block h-full w-1/2 animate-[progress-slide_1s_ease-in-out_infinite] bg-[#6d28d9]" />
         </span>
       ) : null}
     </button>

@@ -7,11 +7,11 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const variants = {
-  primary: "bg-[#22ddeb] text-black shadow-[0_6px_14px_rgba(34,221,235,0.24)] hover:bg-[#2ff4ff]",
-  secondary: "border border-[#22ddeb]/55 bg-[#082529] text-[#22ddeb] shadow-[0_6px_14px_rgba(34,221,235,0.14)] hover:bg-[#0b3338]",
-  ghost: "bg-transparent text-[#8fa3ad] hover:bg-[#10181c] hover:text-[#22ddeb]",
-  outline: "border border-[#1d3038] bg-[#070b0d] text-[#f8fbff] shadow-sm hover:bg-[#0b1114]",
-  danger: "bg-[#351018] text-[#ff7a94] hover:bg-[#43131e]",
+  primary: "bg-[#7c3aed] text-black shadow-[0_6px_14px_rgba(124,58,237,0.24)] hover:bg-[#6d28d9]",
+  secondary: "border border-[#7c3aed]/55 bg-[#f4ecff] text-[#7c3aed] shadow-[0_6px_14px_rgba(124,58,237,0.14)] hover:bg-[#eadbff]",
+  ghost: "bg-transparent text-[#000000] hover:bg-[#f4ecff] hover:text-[#7c3aed]",
+  outline: "border border-[#d8c3ff] bg-[#fbf8ff] text-[#000000] shadow-sm hover:bg-[#ffffff]",
+  danger: "bg-[#f4ecff] text-[#6d28d9] hover:bg-[#eadbff]",
 };
 
 const sizes = {

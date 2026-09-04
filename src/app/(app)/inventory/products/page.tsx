@@ -21,17 +21,17 @@ export default async function InventoryProductsPage({ searchParams }: ProductsPa
     <div className="space-y-6 p-5 lg:p-8">
       <section className="flex flex-wrap items-start justify-between gap-5">
         <div>
-          <Link href="/inventory" className="text-sm font-bold text-[#22ddeb]">
+          <Link href="/inventory" className="text-sm font-bold text-[#7c3aed]">
             Inventory
           </Link>
-          <h1 className="mt-3 text-2xl font-black text-white">Product Catalog</h1>
-          <p className="mt-2 text-[#8fa3ad]">
+          <h1 className="mt-3 text-2xl font-black text-black">Product Catalog</h1>
+          <p className="mt-2 text-[#000000]">
             All products stored for this tenant in Supabase.
           </p>
         </div>
         <Link
           href="/inventory/products/new"
-          className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-[#22ddeb] px-5 text-sm font-semibold text-black shadow-[0_10px_24px_rgba(34,221,235,0.2)] transition hover:bg-[#2ff4ff]"
+          className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-[#7c3aed] px-5 text-sm font-semibold text-black shadow-[0_10px_24px_rgba(124,58,237,0.2)] transition hover:bg-[#6d28d9]"
         >
           <PackagePlus className="h-4 w-4" />
           Add Product
@@ -39,22 +39,22 @@ export default async function InventoryProductsPage({ searchParams }: ProductsPa
       </section>
 
       {params.created === "product" ? (
-        <div className="rounded-lg border border-[#22ddeb]/35 bg-[#082529] px-4 py-3 text-sm text-white">
+        <div className="rounded-lg border border-[#7c3aed]/35 bg-[#f4ecff] px-4 py-3 text-sm text-black">
           Product created. {params.stock === "skipped" ? "Stock was skipped." : ""} {params.image === "skipped" ? "Image upload was skipped." : ""}
         </div>
       ) : null}
       {params.updated === "product" ? (
-        <div className="rounded-lg border border-[#22ddeb]/35 bg-[#082529] px-4 py-3 text-sm text-white">
+        <div className="rounded-lg border border-[#7c3aed]/35 bg-[#f4ecff] px-4 py-3 text-sm text-black">
           Product updated. {params.stock === "skipped" ? "Stock was skipped." : ""} {params.image === "skipped" ? "Image upload was skipped." : ""}
         </div>
       ) : null}
       {params.deleted === "product" ? (
-        <div className="rounded-lg border border-[#22ddeb]/35 bg-[#082529] px-4 py-3 text-sm text-white">
+        <div className="rounded-lg border border-[#7c3aed]/35 bg-[#f4ecff] px-4 py-3 text-sm text-black">
           Product deleted.
         </div>
       ) : null}
       {params.error ? (
-        <div className="rounded-lg border border-[#8d2638] bg-[#351018] px-4 py-3 text-sm text-[#ff9aac]">
+        <div className="rounded-lg border border-[#7c3aed] bg-[#f4ecff] px-4 py-3 text-sm text-[#6d28d9]">
           Product action failed. It may be linked to an existing order.
         </div>
       ) : null}
@@ -62,7 +62,7 @@ export default async function InventoryProductsPage({ searchParams }: ProductsPa
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[840px] text-left">
-            <thead className="bg-[#0b1114] text-xs uppercase tracking-[0.12em] text-[#6f858f]">
+            <thead className="bg-[#ffffff] text-xs uppercase tracking-[0.12em] text-[#000000]">
               <tr>
                 <th className="px-6 py-5">Product</th>
                 <th className="px-6 py-5">SKU</th>
@@ -78,14 +78,14 @@ export default async function InventoryProductsPage({ searchParams }: ProductsPa
                 const deleteProduct = deleteInventoryProduct.bind(null, product.id);
 
                 return (
-                  <tr key={product.id} className="border-t border-[#1d3038] text-white">
+                  <tr key={product.id} className="border-t border-[#d8c3ff] text-black">
                     <td className="px-6 py-5 font-semibold">{product.name}</td>
-                    <td className="px-6 py-5 text-[#8fa3ad]">{product.sku}</td>
-                    <td className="px-6 py-5 text-[#8fa3ad]">
+                    <td className="px-6 py-5 text-[#000000]">{product.sku}</td>
+                    <td className="px-6 py-5 text-[#000000]">
                       {categoryById.get(product.categoryId) ?? "Uncategorized"}
                     </td>
                     <td className="px-6 py-5 font-semibold">{product.stock.toLocaleString()}</td>
-                    <td className="px-6 py-5 font-black text-[#22ddeb]">
+                    <td className="px-6 py-5 font-black text-[#7c3aed]">
                       {formatCurrency(product.price, data.company.currency)}
                     </td>
                     <td className="px-6 py-5">
@@ -97,7 +97,7 @@ export default async function InventoryProductsPage({ searchParams }: ProductsPa
                       <div className="flex items-center justify-end gap-2">
                         <Link
                           href={`/inventory/products/${product.id}/edit`}
-                          className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-[#1d3038] px-3 text-sm font-bold text-[#f8fbff] transition hover:bg-[#10181c] hover:text-[#22ddeb]"
+                          className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-[#d8c3ff] px-3 text-sm font-bold text-[#000000] transition hover:bg-[#f4ecff] hover:text-[#7c3aed]"
                         >
                           <Pencil className="h-4 w-4" />
                           Edit
@@ -105,7 +105,7 @@ export default async function InventoryProductsPage({ searchParams }: ProductsPa
                         <form action={deleteProduct}>
                           <SubmitButton
                             pendingText="Deleting..."
-                            className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-[#5c1d29] bg-[#351018] px-3 text-sm font-bold text-[#ff9aac] transition hover:bg-[#43131e]"
+                            className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-[#7c3aed] bg-[#f4ecff] px-3 text-sm font-bold text-[#6d28d9] transition hover:bg-[#eadbff]"
                           >
                             <Trash2 className="h-4 w-4" />
                             Delete
@@ -120,9 +120,9 @@ export default async function InventoryProductsPage({ searchParams }: ProductsPa
           </table>
         </div>
         {!data.products.length ? (
-          <div className="border-t border-[#1d3038] px-6 py-12 text-center">
-            <h2 className="text-lg font-semibold text-white">No products yet</h2>
-            <p className="mt-2 text-sm text-[#8fa3ad]">
+          <div className="border-t border-[#d8c3ff] px-6 py-12 text-center">
+            <h2 className="text-lg font-semibold text-black">No products yet</h2>
+            <p className="mt-2 text-sm text-[#000000]">
               Add the first product for this tenant to start selling from POS.
             </p>
           </div>

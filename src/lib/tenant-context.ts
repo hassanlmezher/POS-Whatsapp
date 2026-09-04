@@ -6,6 +6,7 @@ export type Tenant = {
   id: string;
   name: string;
   slug: string;
+  status: "active" | "suspended";
   currency: string;
   taxRate: number;
   timezone: string | null;
@@ -36,6 +37,13 @@ export class TenantMembershipRequiredError extends Error {
   constructor() {
     super("The authenticated user is not linked to a tenant");
     this.name = "TenantMembershipRequiredError";
+  }
+}
+
+export class TenantSuspendedError extends Error {
+  constructor() {
+    super("Tenant is suspended");
+    this.name = "TenantSuspendedError";
   }
 }
 
@@ -104,13 +112,14 @@ export async function getTenantContext() {
   const { data: tenantRow, error: tenantError } = await supabase
     .from("tenants")
     .select(
-      "id,name,slug,currency,tax_rate,timezone,whatsapp_phone_number,whatsapp_phone_number_id,whatsapp_business_account_id,created_at",
+      "id,name,slug,status,currency,tax_rate,timezone,whatsapp_phone_number,whatsapp_phone_number_id,whatsapp_business_account_id,created_at",
     )
     .eq("id", membershipRow.tenant_id)
     .single<{
       id: string;
       name: string;
       slug: string;
+      status: "active" | "suspended" | null;
       currency: string | null;
       tax_rate: number | string | null;
       timezone: string | null;
@@ -122,6 +131,10 @@ export async function getTenantContext() {
 
   if (tenantError || !tenantRow) {
     throw new Error(`Tenant lookup failed: ${tenantError?.message ?? "tenant not found"}`);
+  }
+
+  if (tenantRow.status === "suspended") {
+    throw new TenantSuspendedError();
   }
 
   const metadataAvatarUrl =
@@ -143,6 +156,7 @@ export async function getTenantContext() {
       id: tenantRow.id,
       name: tenantRow.name,
       slug: tenantRow.slug,
+      status: tenantRow.status ?? "active",
       currency: tenantRow.currency ?? "USD",
       taxRate: Number(tenantRow.tax_rate ?? 0),
       timezone: tenantRow.timezone,
@@ -159,7 +173,7 @@ export function tenantContextErrorStatus(error: unknown) {
     return 401;
   }
 
-  if (error instanceof TenantMembershipRequiredError) {
+  if (error instanceof TenantMembershipRequiredError || error instanceof TenantSuspendedError) {
     return 403;
   }
 

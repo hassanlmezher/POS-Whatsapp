@@ -70,17 +70,17 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
   return (
     <div className="space-y-6 p-5 lg:p-8">
       <div>
-        <h1 className="text-2xl font-black text-[#f8fbff]">Settings</h1>
-        <p className="mt-2 text-[#8fa3ad]">Account, business profile, and security.</p>
+        <h1 className="text-2xl font-black text-[#000000]">Settings</h1>
+        <p className="mt-2 text-[#000000]">Account, business profile, and security.</p>
       </div>
 
       {successMessage ? (
-        <div className="rounded-lg border border-[#22ddeb]/35 bg-[#082529] px-4 py-3 text-sm text-white">
+        <div className="rounded-lg border border-[#7c3aed]/35 bg-[#f4ecff] px-4 py-3 text-sm text-black">
           {successMessage}
         </div>
       ) : null}
       {errorMessage ? (
-        <div className="rounded-lg border border-[#8d2638] bg-[#351018] px-4 py-3 text-sm text-[#ff9aac]">
+        <div className="rounded-lg border border-[#7c3aed] bg-[#f4ecff] px-4 py-3 text-sm text-[#6d28d9]">
           {errorMessage}
         </div>
       ) : null}
@@ -92,24 +92,24 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
               <Avatar name={membership.name} src={membership.avatarUrl} className="h-20 w-20 shadow-xl" />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-3">
-                  <h2 className="text-xl font-semibold text-white">{membership.name}</h2>
+                  <h2 className="text-xl font-semibold text-black">{membership.name}</h2>
                   <Badge tone="cyan">{formatRole(membership.role)}</Badge>
                 </div>
-                <div className="mt-3 grid gap-3 text-sm text-[#8fa3ad] md:grid-cols-2">
+                <div className="mt-3 grid gap-3 text-sm text-[#000000] md:grid-cols-2">
                   <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-[#22ddeb]" />
+                    <Mail className="h-4 w-4 text-[#7c3aed]" />
                     <span className="truncate">{user.email ?? "No email"}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <CalendarDays className="h-4 w-4 text-[#22ddeb]" />
+                    <CalendarDays className="h-4 w-4 text-[#7c3aed]" />
                     <span>Account created {formatDate(user.created_at)}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <IdCard className="h-4 w-4 text-[#22ddeb]" />
+                    <IdCard className="h-4 w-4 text-[#7c3aed]" />
                     <span>Member since {formatDate(membership.createdAt)}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 text-[#22ddeb]" />
+                    <ShieldCheck className="h-4 w-4 text-[#7c3aed]" />
                     <span>Last sign-in {formatDateTime(user.last_sign_in_at)}</span>
                   </div>
                 </div>
@@ -117,29 +117,29 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             </div>
 
             <form action={updateAccountProfile} encType="multipart/form-data" className="mt-6 grid gap-5 md:grid-cols-2">
-              <label className="block text-sm font-semibold text-white">
+              <label className="block text-sm font-semibold text-black">
                 Display Name
                 <input
                   name="name"
                   required
                   minLength={2}
                   defaultValue={membership.name}
-                  className="mt-2 h-12 w-full rounded-lg border border-[#1d3038] bg-[#0b1114] px-4 text-white outline-none placeholder:text-[#6f858f] focus:border-[#22ddeb] focus:ring-4 focus:ring-[#22ddeb]/15"
+                  className="mt-2 h-12 w-full rounded-lg border border-[#d8c3ff] bg-[#ffffff] px-4 text-black outline-none placeholder:text-[#000000] focus:border-[#7c3aed] focus:ring-4 focus:ring-[#7c3aed]/15"
                 />
               </label>
-              <label className="block text-sm font-semibold text-white">
+              <label className="block text-sm font-semibold text-black">
                 Profile Picture
                 <input
                   name="avatarFile"
                   type="file"
                   accept="image/jpeg,image/png,image/webp,image/gif"
-                  className="mt-2 block h-12 w-full rounded-lg border border-[#1d3038] bg-[#0b1114] px-4 py-3 text-sm text-[#8fa3ad] outline-none file:mr-4 file:rounded-md file:border-0 file:bg-[#082529] file:px-3 file:py-1 file:text-sm file:font-bold file:text-[#22ddeb] focus:border-[#22ddeb] focus:ring-4 focus:ring-[#22ddeb]/15"
+                  className="mt-2 block h-12 w-full rounded-lg border border-[#d8c3ff] bg-[#ffffff] px-4 py-3 text-sm text-[#000000] outline-none file:mr-4 file:rounded-md file:border-0 file:bg-[#f4ecff] file:px-3 file:py-1 file:text-sm file:font-bold file:text-[#7c3aed] focus:border-[#7c3aed] focus:ring-4 focus:ring-[#7c3aed]/15"
                 />
               </label>
               <div className="flex justify-end md:col-span-2">
                 <SubmitButton
                   pendingText="Saving profile..."
-                  className="inline-flex h-12 items-center justify-center rounded-lg bg-[#22ddeb] px-5 text-sm font-semibold text-black shadow-[0_10px_24px_rgba(34,221,235,0.2)] transition hover:bg-[#2ff4ff]"
+                  className="inline-flex h-12 items-center justify-center rounded-lg bg-[#7c3aed] px-5 text-sm font-semibold text-black shadow-[0_10px_24px_rgba(124,58,237,0.2)] transition hover:bg-[#6d28d9]"
                 >
                   Save Profile
                 </SubmitButton>
@@ -149,17 +149,17 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
 
           <Card className="p-6">
             <div className="mb-6 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#082529] text-[#22ddeb] ring-1 ring-[#22ddeb]/40">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#f4ecff] text-[#7c3aed] ring-1 ring-[#7c3aed]/40">
                 <Building2 className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-white">Company Profile</h2>
-                <p className="text-sm text-[#8fa3ad]">Business profile for this employee account.</p>
+                <h2 className="text-lg font-semibold text-black">Company Profile</h2>
+                <p className="text-sm text-[#000000]">Business profile for this employee account.</p>
               </div>
             </div>
 
             <form action={updateCompanyProfile} className="grid gap-5 md:grid-cols-2">
-              <label className="block text-sm font-semibold text-white">
+              <label className="block text-sm font-semibold text-black">
                 Business Name
                 <input
                   name="name"
@@ -167,10 +167,10 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                   minLength={2}
                   defaultValue={tenant.name}
                   disabled={!canEditCompany}
-                  className="mt-2 h-12 w-full rounded-lg border border-[#1d3038] bg-[#0b1114] px-4 text-white outline-none placeholder:text-[#6f858f] focus:border-[#22ddeb] focus:ring-4 focus:ring-[#22ddeb]/15 disabled:opacity-65"
+                  className="mt-2 h-12 w-full rounded-lg border border-[#d8c3ff] bg-[#ffffff] px-4 text-black outline-none placeholder:text-[#000000] focus:border-[#7c3aed] focus:ring-4 focus:ring-[#7c3aed]/15 disabled:opacity-65"
                 />
               </label>
-              <label className="block text-sm font-semibold text-white">
+              <label className="block text-sm font-semibold text-black">
                 Currency
                 <input
                   name="currency"
@@ -178,10 +178,10 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                   maxLength={3}
                   defaultValue={tenant.currency}
                   disabled={!canEditCompany}
-                  className="mt-2 h-12 w-full rounded-lg border border-[#1d3038] bg-[#0b1114] px-4 uppercase text-white outline-none placeholder:text-[#6f858f] focus:border-[#22ddeb] focus:ring-4 focus:ring-[#22ddeb]/15 disabled:opacity-65"
+                  className="mt-2 h-12 w-full rounded-lg border border-[#d8c3ff] bg-[#ffffff] px-4 uppercase text-black outline-none placeholder:text-[#000000] focus:border-[#7c3aed] focus:ring-4 focus:ring-[#7c3aed]/15 disabled:opacity-65"
                 />
               </label>
-              <label className="block text-sm font-semibold text-white">
+              <label className="block text-sm font-semibold text-black">
                 Tax Rate %
                 <input
                   name="taxRatePercent"
@@ -191,27 +191,27 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
                   type="number"
                   defaultValue={tenant.taxRate * 100}
                   disabled={!canEditCompany}
-                  className="mt-2 h-12 w-full rounded-lg border border-[#1d3038] bg-[#0b1114] px-4 text-white outline-none placeholder:text-[#6f858f] focus:border-[#22ddeb] focus:ring-4 focus:ring-[#22ddeb]/15 disabled:opacity-65"
+                  className="mt-2 h-12 w-full rounded-lg border border-[#d8c3ff] bg-[#ffffff] px-4 text-black outline-none placeholder:text-[#000000] focus:border-[#7c3aed] focus:ring-4 focus:ring-[#7c3aed]/15 disabled:opacity-65"
                 />
               </label>
-              <label className="block text-sm font-semibold text-white">
+              <label className="block text-sm font-semibold text-black">
                 Timezone
                 <input
                   name="timezone"
                   defaultValue={tenant.timezone ?? "UTC"}
                   disabled={!canEditCompany}
-                  className="mt-2 h-12 w-full rounded-lg border border-[#1d3038] bg-[#0b1114] px-4 text-white outline-none placeholder:text-[#6f858f] focus:border-[#22ddeb] focus:ring-4 focus:ring-[#22ddeb]/15 disabled:opacity-65"
+                  className="mt-2 h-12 w-full rounded-lg border border-[#d8c3ff] bg-[#ffffff] px-4 text-black outline-none placeholder:text-[#000000] focus:border-[#7c3aed] focus:ring-4 focus:ring-[#7c3aed]/15 disabled:opacity-65"
                 />
               </label>
               <div className="flex flex-wrap items-center justify-between gap-3 md:col-span-2">
-                <div className="text-sm text-[#8fa3ad]">
+                <div className="text-sm text-[#000000]">
                   Business created {formatDate(tenant.createdAt)}. Slug:{" "}
-                  <span className="font-semibold text-white">{tenant.slug}</span>
+                  <span className="font-semibold text-black">{tenant.slug}</span>
                 </div>
                 {canEditCompany ? (
                   <SubmitButton
                     pendingText="Saving company..."
-                    className="inline-flex h-12 items-center justify-center rounded-lg bg-[#22ddeb] px-5 text-sm font-semibold text-black shadow-[0_10px_24px_rgba(34,221,235,0.2)] transition hover:bg-[#2ff4ff]"
+                    className="inline-flex h-12 items-center justify-center rounded-lg bg-[#7c3aed] px-5 text-sm font-semibold text-black shadow-[0_10px_24px_rgba(124,58,237,0.2)] transition hover:bg-[#6d28d9]"
                   >
                     Save Company
                   </SubmitButton>
@@ -226,46 +226,46 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
         <div className="space-y-6">
           <Card className="p-6">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#082529] text-[#22ddeb] ring-1 ring-[#22ddeb]/40">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#f4ecff] text-[#7c3aed] ring-1 ring-[#7c3aed]/40">
                 <UserRound className="h-5 w-5" />
               </div>
-              <h2 className="text-lg font-semibold text-white">Business Access</h2>
+              <h2 className="text-lg font-semibold text-black">Business Access</h2>
             </div>
             <dl className="mt-6 space-y-4 text-sm">
               <div>
-                <dt className="font-black uppercase tracking-[0.14em] text-[#6f858f]">Business</dt>
-                <dd className="mt-1 text-white">{tenant.name}</dd>
+                <dt className="font-black uppercase tracking-[0.14em] text-[#000000]">Business</dt>
+                <dd className="mt-1 text-black">{tenant.name}</dd>
               </div>
               <div>
-                <dt className="font-black uppercase tracking-[0.14em] text-[#6f858f]">Role</dt>
-                <dd className="mt-1 text-white">{formatRole(membership.role)}</dd>
+                <dt className="font-black uppercase tracking-[0.14em] text-[#000000]">Role</dt>
+                <dd className="mt-1 text-black">{formatRole(membership.role)}</dd>
               </div>
               <div>
-                <dt className="font-black uppercase tracking-[0.14em] text-[#6f858f]">Membership ID</dt>
-                <dd className="mt-1 break-all text-[#8fa3ad]">{membership.id}</dd>
+                <dt className="font-black uppercase tracking-[0.14em] text-[#000000]">Membership ID</dt>
+                <dd className="mt-1 break-all text-[#000000]">{membership.id}</dd>
               </div>
             </dl>
           </Card>
 
           <Card className="p-6">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#082529] text-[#22ddeb] ring-1 ring-[#22ddeb]/40">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#f4ecff] text-[#7c3aed] ring-1 ring-[#7c3aed]/40">
                 <Smartphone className="h-5 w-5" />
               </div>
-              <h2 className="text-lg font-semibold text-white">WhatsApp</h2>
+              <h2 className="text-lg font-semibold text-black">WhatsApp</h2>
             </div>
             <dl className="mt-6 space-y-4 text-sm">
               <div>
-                <dt className="font-black uppercase tracking-[0.14em] text-[#6f858f]">Phone Number</dt>
-                <dd className="mt-1 text-white">{tenant.whatsappPhoneNumber ?? "Not connected"}</dd>
+                <dt className="font-black uppercase tracking-[0.14em] text-[#000000]">Phone Number</dt>
+                <dd className="mt-1 text-black">{tenant.whatsappPhoneNumber ?? "Not connected"}</dd>
               </div>
               <div>
-                <dt className="font-black uppercase tracking-[0.14em] text-[#6f858f]">Phone Number ID</dt>
-                <dd className="mt-1 break-all text-[#8fa3ad]">{tenant.whatsappPhoneNumberId ?? "Not set"}</dd>
+                <dt className="font-black uppercase tracking-[0.14em] text-[#000000]">Phone Number ID</dt>
+                <dd className="mt-1 break-all text-[#000000]">{tenant.whatsappPhoneNumberId ?? "Not set"}</dd>
               </div>
               <div>
-                <dt className="font-black uppercase tracking-[0.14em] text-[#6f858f]">Business Account ID</dt>
-                <dd className="mt-1 break-all text-[#8fa3ad]">{tenant.whatsappBusinessAccountId ?? "Not set"}</dd>
+                <dt className="font-black uppercase tracking-[0.14em] text-[#000000]">Business Account ID</dt>
+                <dd className="mt-1 break-all text-[#000000]">{tenant.whatsappBusinessAccountId ?? "Not set"}</dd>
               </div>
             </dl>
           </Card>

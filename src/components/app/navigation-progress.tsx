@@ -110,8 +110,8 @@ export function NavigationProgress() {
   }
 
   return (
-    <div className="fixed inset-x-0 top-0 z-[90] h-1 overflow-hidden bg-[#082529]" role="progressbar" aria-label="Loading">
-      <div className="h-full w-1/3 animate-[progress-slide_1.15s_ease-in-out_infinite] rounded-full bg-[#22ddeb] shadow-[0_0_18px_rgba(34,221,235,0.75)]" />
+    <div className="fixed inset-x-0 top-0 z-[90] h-1 overflow-hidden bg-[#f4ecff]" role="progressbar" aria-label="Loading">
+      <div className="h-full w-1/3 animate-[progress-slide_1.15s_ease-in-out_infinite] rounded-full bg-[#7c3aed] shadow-[0_0_18px_rgba(124,58,237,0.75)]" />
     </div>
   );
 }

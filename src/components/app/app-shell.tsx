@@ -15,7 +15,7 @@ export function AppShell({
   userName: string;
 }) {
   return (
-    <div className="min-h-screen bg-[#030607] text-[#f8fbff]">
+    <div className="min-h-screen bg-[#ffffff] text-[#000000]">
       <Suspense fallback={null}>
         <NavigationProgress />
       </Suspense>

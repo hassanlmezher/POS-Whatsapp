@@ -5,6 +5,7 @@ import {
   AuthenticationRequiredError,
   getTenantContext,
   TenantMembershipRequiredError,
+  TenantSuspendedError,
 } from "@/lib/tenant-context";
 
 export const metadata: Metadata = {
@@ -23,7 +24,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     await getTenantContext();
     hasTenantContext = true;
   } catch (error) {
-    if (!(error instanceof AuthenticationRequiredError) && !(error instanceof TenantMembershipRequiredError)) {
+    if (
+      !(error instanceof AuthenticationRequiredError) &&
+      !(error instanceof TenantMembershipRequiredError) &&
+      !(error instanceof TenantSuspendedError)
+    ) {
       throw error;
     }
   }
@@ -37,6 +42,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const initialError =
     queryError === "missing-membership"
       ? "This account is not linked to a business workspace. Contact your administrator."
+      : queryError === "tenant-suspended"
+        ? "This business workspace is suspended. Contact InChouf support."
       : null;
 
   return <LoginForm initialError={initialError} year={new Date().getFullYear()} />;

@@ -6,17 +6,17 @@ export default function POSLoading() {
         {/* Category bar */}
         <div className="mb-6 flex gap-2">
           {[0, 1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-10 w-24 rounded-full bg-[#142126]" />
+            <div key={i} className="h-10 w-24 rounded-full bg-[#d8c3ff]" />
           ))}
         </div>
         {/* Product cards */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} className="rounded-2xl bg-[#070b0d] shadow-sm overflow-hidden">
-              <div className="h-36 bg-[#142126]" />
+            <div key={i} className="rounded-2xl bg-[#fbf8ff] shadow-sm overflow-hidden">
+              <div className="h-36 bg-[#d8c3ff]" />
               <div className="p-4 space-y-2">
-                <div className="h-4 w-3/4 rounded bg-[#142126]" />
-                <div className="h-4 w-1/2 rounded bg-[#142126]" />
+                <div className="h-4 w-3/4 rounded bg-[#d8c3ff]" />
+                <div className="h-4 w-1/2 rounded bg-[#d8c3ff]" />
               </div>
             </div>
           ))}
@@ -24,25 +24,25 @@ export default function POSLoading() {
       </div>
 
       {/* Cart panel */}
-      <div className="w-[360px] flex-shrink-0 border-l border-[#1d3038] bg-[#070b0d]">
-        <div className="border-b border-[#1d3038] p-5">
-          <div className="h-6 w-24 rounded-lg bg-[#142126]" />
+      <div className="w-[360px] flex-shrink-0 border-l border-[#d8c3ff] bg-[#fbf8ff]">
+        <div className="border-b border-[#d8c3ff] p-5">
+          <div className="h-6 w-24 rounded-lg bg-[#d8c3ff]" />
         </div>
         <div className="flex-1 p-5 space-y-3">
           {[0, 1, 2].map((i) => (
             <div key={i} className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-lg bg-[#142126]" />
+              <div className="h-12 w-12 rounded-lg bg-[#d8c3ff]" />
               <div className="flex-1 space-y-2">
-                <div className="h-4 w-28 rounded bg-[#142126]" />
-                <div className="h-3 w-16 rounded bg-[#142126]" />
+                <div className="h-4 w-28 rounded bg-[#d8c3ff]" />
+                <div className="h-3 w-16 rounded bg-[#d8c3ff]" />
               </div>
             </div>
           ))}
         </div>
-        <div className="border-t border-[#1d3038] p-5 space-y-3">
-          <div className="h-4 w-full rounded bg-[#142126]" />
-          <div className="h-4 w-full rounded bg-[#142126]" />
-          <div className="h-12 w-full rounded-xl bg-[#142126]" />
+        <div className="border-t border-[#d8c3ff] p-5 space-y-3">
+          <div className="h-4 w-full rounded bg-[#d8c3ff]" />
+          <div className="h-4 w-full rounded bg-[#d8c3ff]" />
+          <div className="h-12 w-full rounded-xl bg-[#d8c3ff]" />
         </div>
       </div>
     </div>

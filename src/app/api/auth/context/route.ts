@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getTenantContext, tenantContextErrorStatus } from "@/lib/tenant-context";
+import { getTenantContext, TenantSuspendedError, tenantContextErrorStatus } from "@/lib/tenant-context";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +10,10 @@ export async function GET() {
   } catch (error) {
     const status = tenantContextErrorStatus(error);
     return NextResponse.json(
-      { ok: false, error: status === 403 ? "missing_membership" : "tenant_context_unavailable" },
+      {
+        ok: false,
+        error: error instanceof TenantSuspendedError ? "tenant_suspended" : status === 403 ? "missing_membership" : "tenant_context_unavailable",
+      },
       { status },
     );
   }

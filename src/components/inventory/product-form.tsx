@@ -46,7 +46,7 @@ export function ProductForm({ action, categories, product, skuSeed = "0001", sub
 
   return (
     <CardLikeForm action={action}>
-      <label className="block text-sm font-semibold text-white">
+      <label className="block text-sm font-semibold text-black">
         Product Name
         <input
           name="name"
@@ -57,14 +57,14 @@ export function ProductForm({ action, categories, product, skuSeed = "0001", sub
             setName(event.target.value);
             updateAutoSku(event.target.value, categoryId);
           }}
-          className="mt-2 h-12 w-full rounded-lg border border-[#1d3038] bg-[#0b1114] px-4 text-white outline-none placeholder:text-[#6f858f] focus:border-[#22ddeb] focus:ring-4 focus:ring-[#22ddeb]/15"
+          className="mt-2 h-12 w-full rounded-lg border border-[#d8c3ff] bg-[#ffffff] px-4 text-black outline-none placeholder:text-[#000000] focus:border-[#7c3aed] focus:ring-4 focus:ring-[#7c3aed]/15"
           placeholder="Example: Premium Coffee"
         />
       </label>
 
-      <label className="block text-sm font-semibold text-white">
+      <label className="block text-sm font-semibold text-black">
         SKU
-        <span className="mt-2 flex h-12 rounded-lg border border-[#1d3038] bg-[#0b1114] focus-within:border-[#22ddeb] focus-within:ring-4 focus-within:ring-[#22ddeb]/15">
+        <span className="mt-2 flex h-12 rounded-lg border border-[#d8c3ff] bg-[#ffffff] focus-within:border-[#7c3aed] focus-within:ring-4 focus-within:ring-[#7c3aed]/15">
           <input
             name="sku"
             required
@@ -73,13 +73,13 @@ export function ProductForm({ action, categories, product, skuSeed = "0001", sub
               setSku(event.target.value);
               setSkuEdited(true);
             }}
-            className="min-w-0 flex-1 rounded-lg bg-transparent px-4 text-white outline-none placeholder:text-[#6f858f]"
+            className="min-w-0 flex-1 rounded-lg bg-transparent px-4 text-black outline-none placeholder:text-[#000000]"
             placeholder="Auto-generated"
           />
           <button
             type="button"
             onClick={regenerateSku}
-            className="flex w-12 items-center justify-center rounded-r-lg text-[#8fa3ad] transition hover:bg-[#10181c] hover:text-[#22ddeb]"
+            className="flex w-12 items-center justify-center rounded-r-lg text-[#000000] transition hover:bg-[#f4ecff] hover:text-[#7c3aed]"
             aria-label="Regenerate SKU"
           >
             <RefreshCw className="h-4 w-4" />
@@ -87,7 +87,7 @@ export function ProductForm({ action, categories, product, skuSeed = "0001", sub
         </span>
       </label>
 
-      <label className="block text-sm font-semibold text-white">
+      <label className="block text-sm font-semibold text-black">
         Category
         <select
           name="categoryId"
@@ -96,7 +96,7 @@ export function ProductForm({ action, categories, product, skuSeed = "0001", sub
             setCategoryId(event.target.value);
             updateAutoSku(name, event.target.value);
           }}
-          className="mt-2 h-12 w-full rounded-lg border border-[#1d3038] bg-[#0b1114] px-4 text-white outline-none focus:border-[#22ddeb] focus:ring-4 focus:ring-[#22ddeb]/15"
+          className="mt-2 h-12 w-full rounded-lg border border-[#d8c3ff] bg-[#ffffff] px-4 text-black outline-none focus:border-[#7c3aed] focus:ring-4 focus:ring-[#7c3aed]/15"
         >
           <option value="">Uncategorized</option>
           {categories.map((category) => (
@@ -107,7 +107,7 @@ export function ProductForm({ action, categories, product, skuSeed = "0001", sub
         </select>
       </label>
 
-      <label className="block text-sm font-semibold text-white">
+      <label className="block text-sm font-semibold text-black">
         Price
         <input
           name="price"
@@ -116,12 +116,12 @@ export function ProductForm({ action, categories, product, skuSeed = "0001", sub
           step="0.01"
           type="number"
           defaultValue={product?.price ?? ""}
-          className="mt-2 h-12 w-full rounded-lg border border-[#1d3038] bg-[#0b1114] px-4 text-white outline-none placeholder:text-[#6f858f] focus:border-[#22ddeb] focus:ring-4 focus:ring-[#22ddeb]/15"
+          className="mt-2 h-12 w-full rounded-lg border border-[#d8c3ff] bg-[#ffffff] px-4 text-black outline-none placeholder:text-[#000000] focus:border-[#7c3aed] focus:ring-4 focus:ring-[#7c3aed]/15"
           placeholder="0.00"
         />
       </label>
 
-      <label className="block text-sm font-semibold text-white">
+      <label className="block text-sm font-semibold text-black">
         {product ? "Stock" : "Initial Stock"}
         <input
           name="initialStock"
@@ -129,35 +129,35 @@ export function ProductForm({ action, categories, product, skuSeed = "0001", sub
           step="1"
           type="number"
           defaultValue={product?.stock ?? 0}
-          className="mt-2 h-12 w-full rounded-lg border border-[#1d3038] bg-[#0b1114] px-4 text-white outline-none focus:border-[#22ddeb] focus:ring-4 focus:ring-[#22ddeb]/15"
+          className="mt-2 h-12 w-full rounded-lg border border-[#d8c3ff] bg-[#ffffff] px-4 text-black outline-none focus:border-[#7c3aed] focus:ring-4 focus:ring-[#7c3aed]/15"
         />
       </label>
 
-      <label className="flex min-h-12 items-center gap-3 text-sm font-semibold text-white md:self-end">
+      <label className="flex min-h-12 items-center gap-3 text-sm font-semibold text-black md:self-end">
         <input
           name="active"
           type="checkbox"
           defaultChecked={product?.active ?? true}
-          className="h-5 w-5 rounded border-white/20 accent-[#22ddeb]"
+          className="h-5 w-5 rounded border-black/20 accent-[#7c3aed]"
         />
         Active in POS
       </label>
 
       <div className="md:col-span-2">
-        <label className="block text-sm font-semibold text-white">
+        <label className="block text-sm font-semibold text-black">
           Product Image
-          <div className="mt-2 grid gap-4 rounded-lg border border-dashed border-[#24434c] bg-[#0b1114] p-4 md:grid-cols-[140px_minmax(0,1fr)]">
+          <div className="mt-2 grid gap-4 rounded-lg border border-dashed border-[#c4a5ff] bg-[#ffffff] p-4 md:grid-cols-[140px_minmax(0,1fr)]">
             <div
-              className="flex h-32 w-full items-center justify-center rounded-lg border border-[#1d3038] bg-cover bg-center text-[#6f858f] md:w-32"
+              className="flex h-32 w-full items-center justify-center rounded-lg border border-[#d8c3ff] bg-cover bg-center text-[#000000] md:w-32"
               style={previewUrl ? { backgroundImage: `url("${previewUrl}")` } : undefined}
             >
               {!previewUrl ? <Package className="h-9 w-9" /> : null}
             </div>
             <div className="flex min-w-0 flex-col justify-center gap-3">
-              <span className="text-sm text-[#8fa3ad]">
+              <span className="text-sm text-[#000000]">
                 {fileName || (product?.imageUrl ? "Current image selected" : "Choose an image from this device.")}
               </span>
-              <span className="inline-flex h-11 w-fit cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#082529] px-4 text-sm font-bold text-[#22ddeb] ring-1 ring-[#22ddeb]/35 transition hover:bg-[#0c343a]">
+              <span className="inline-flex h-11 w-fit cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#f4ecff] px-4 text-sm font-bold text-[#7c3aed] ring-1 ring-[#7c3aed]/35 transition hover:bg-[#eadbff]">
                 <ImageUp className="h-4 w-4" />
                 Upload Image
               </span>
@@ -184,13 +184,13 @@ export function ProductForm({ action, categories, product, skuSeed = "0001", sub
       <div className="flex items-center justify-end gap-3 md:col-span-2">
         <Link
           href="/inventory/products"
-          className="inline-flex h-12 items-center justify-center rounded-lg border border-[#1d3038] px-5 text-sm font-semibold text-white transition hover:bg-[#10181c]"
+          className="inline-flex h-12 items-center justify-center rounded-lg border border-[#d8c3ff] px-5 text-sm font-semibold text-black transition hover:bg-[#f4ecff]"
         >
           Cancel
         </Link>
         <SubmitButton
           pendingText="Saving product..."
-          className="inline-flex h-12 items-center justify-center rounded-lg bg-[#22ddeb] px-5 text-sm font-semibold text-black shadow-[0_10px_24px_rgba(34,221,235,0.2)] transition hover:bg-[#2ff4ff]"
+          className="inline-flex h-12 items-center justify-center rounded-lg bg-[#7c3aed] px-5 text-sm font-semibold text-black shadow-[0_10px_24px_rgba(124,58,237,0.2)] transition hover:bg-[#6d28d9]"
         >
           {submitLabel}
         </SubmitButton>

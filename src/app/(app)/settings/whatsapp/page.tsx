@@ -41,27 +41,27 @@ export default async function WhatsAppSettingsPage({ searchParams }: PageProps) 
     <div className="space-y-6 p-5 lg:p-8">
       <section className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-[#f8fbff]">WhatsApp</h1>
-          <p className="mt-2 text-[#8fa3ad]">Connect the WhatsApp Business number for {tenant.name}.</p>
+          <h1 className="text-2xl font-black text-[#000000]">WhatsApp</h1>
+          <p className="mt-2 text-[#000000]">Connect the WhatsApp Business number for {tenant.name}.</p>
         </div>
         <Badge tone="cyan" className="gap-2"><ShieldCheck className="h-3.5 w-3.5" />settings:manage</Badge>
       </section>
 
-      {message ? <div className="rounded-lg border border-[#22ddeb]/35 bg-[#082529] px-4 py-3 text-sm text-white">{message}</div> : null}
+      {message ? <div className="rounded-lg border border-[#7c3aed]/35 bg-[#f4ecff] px-4 py-3 text-sm text-black">{message}</div> : null}
 
       <Card className="p-6">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div className="flex gap-4">
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#082529] text-[#22ddeb] ring-1 ring-[#22ddeb]/40">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#f4ecff] text-[#7c3aed] ring-1 ring-[#7c3aed]/40">
               <MessageCircle className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-white">Connection Status</h2>
-              <p className="mt-1 text-sm text-[#8fa3ad]">{connection?.phone_number ?? "No WhatsApp number connected"}</p>
+              <h2 className="text-lg font-semibold text-black">Connection Status</h2>
+              <p className="mt-1 text-sm text-[#000000]">{connection?.phone_number ?? "No WhatsApp number connected"}</p>
               <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
-                <div><dt className="text-[#6f858f]">Status</dt><dd className="font-semibold text-white">{connection?.status ?? "Disconnected"}</dd></div>
-                <div><dt className="text-[#6f858f]">Phone Number ID</dt><dd className="break-all text-white">{connection?.phone_number_id ?? "Not set"}</dd></div>
-                <div><dt className="text-[#6f858f]">WABA ID</dt><dd className="break-all text-white">{connection?.waba_id ?? "Not set"}</dd></div>
+                <div><dt className="text-[#000000]">Status</dt><dd className="font-semibold text-black">{connection?.status ?? "Disconnected"}</dd></div>
+                <div><dt className="text-[#000000]">Phone Number ID</dt><dd className="break-all text-black">{connection?.phone_number_id ?? "Not set"}</dd></div>
+                <div><dt className="text-[#000000]">WABA ID</dt><dd className="break-all text-black">{connection?.waba_id ?? "Not set"}</dd></div>
               </dl>
             </div>
           </div>
@@ -70,7 +70,7 @@ export default async function WhatsAppSettingsPage({ searchParams }: PageProps) 
             <input type="hidden" name="phoneNumberId" id="wa-phone-number-id" />
             <input type="hidden" name="wabaId" id="wa-waba-id" />
             <input type="hidden" name="phoneNumber" id="wa-phone-number" />
-            <button id="wa-connect-button" type="button" disabled={!canConnect} className="h-11 rounded-lg bg-[#22ddeb] px-5 text-sm font-semibold text-black transition hover:bg-[#2ff4ff] disabled:cursor-not-allowed disabled:opacity-60">
+            <button id="wa-connect-button" type="button" disabled={!canConnect} className="h-11 rounded-lg bg-[#7c3aed] px-5 text-sm font-semibold text-black transition hover:bg-[#6d28d9] disabled:cursor-not-allowed disabled:opacity-60">
               Connect WhatsApp
             </button>
           </form>

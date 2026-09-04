@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #030607;
-  --foreground: #f8fbff;
+  --background: #ffffff;
+  --foreground: #000000;
   --font-geist-sans: Arial, Helvetica, sans-serif;
   --font-geist-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
@@ -30,8 +30,8 @@ body {
 }
 
 ::selection {
-  background: rgba(34, 221, 235, 0.24);
-  color: #f8fbff;
+  background: rgba(124, 58, 237, 0.24);
+  color: #000000;
 }
 
 button,

@@ -33,17 +33,17 @@ export default async function EditInventoryProductPage({ params, searchParams }:
   return (
     <div className="space-y-6 p-5 lg:p-8">
       <div>
-        <Link href="/inventory/products" className="text-sm font-bold text-[#22ddeb]">
+        <Link href="/inventory/products" className="text-sm font-bold text-[#7c3aed]">
           Product Catalog
         </Link>
-        <h1 className="mt-3 text-2xl font-black text-white">Edit Product</h1>
-        <p className="mt-2 max-w-2xl text-[#8fa3ad]">
+        <h1 className="mt-3 text-2xl font-black text-black">Edit Product</h1>
+        <p className="mt-2 max-w-2xl text-[#000000]">
           Update product details, stock, image, and POS availability.
         </p>
       </div>
 
       {errorMessage ? (
-        <div className="rounded-lg border border-[#8d2638] bg-[#351018] px-4 py-3 text-sm text-[#ff9aac]">
+        <div className="rounded-lg border border-[#7c3aed] bg-[#f4ecff] px-4 py-3 text-sm text-[#6d28d9]">
           {errorMessage}
         </div>
       ) : null}
@@ -56,7 +56,7 @@ export default async function EditInventoryProductPage({ params, searchParams }:
           submitLabel="Update Product"
         />
         {!data.branches.length ? (
-          <p className="mt-5 rounded-lg border border-[#8a621f] bg-[#33240b] px-4 py-3 text-sm text-[#f6c76a]">
+          <p className="mt-5 rounded-lg border border-[#7c3aed] bg-[#f4ecff] px-4 py-3 text-sm text-[#6d28d9]">
             No active branch exists for this tenant. Product details can be updated, but stock
             cannot be assigned until a branch exists.
           </p>

@@ -2,11 +2,11 @@ import type React from "react";
 import { cn } from "@/lib/utils";
 
 const tones = {
-  green: "bg-[#052e1b] text-[#5ee0a0] ring-[#0f6d43]",
-  yellow: "bg-[#33240b] text-[#f6c76a] ring-[#8a621f]",
-  red: "bg-[#351018] text-[#ff7a94] ring-[#8d2638]",
-  slate: "bg-[#10181c] text-[#8fa3ad] ring-[#1d3038]",
-  cyan: "bg-[#082529] text-[#22ddeb] ring-[#22ddeb]",
+  green: "bg-[#f4ecff] text-[#6d28d9] ring-[#7c3aed]",
+  yellow: "bg-[#f4ecff] text-[#6d28d9] ring-[#7c3aed]",
+  red: "bg-[#f4ecff] text-[#6d28d9] ring-[#7c3aed]",
+  slate: "bg-[#f4ecff] text-[#000000] ring-[#d8c3ff]",
+  cyan: "bg-[#f4ecff] text-[#7c3aed] ring-[#7c3aed]",
 };
 
 export function Badge({

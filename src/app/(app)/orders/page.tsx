@@ -45,14 +45,14 @@ function StatCard({
     <Card className="p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="text-xs font-black uppercase tracking-[0.18em] text-[#6f858f]">{label}</div>
-          <div className="mt-5 text-3xl font-black text-[#f8fbff]">{value}</div>
+          <div className="text-xs font-black uppercase tracking-[0.18em] text-[#000000]">{label}</div>
+          <div className="mt-5 text-3xl font-black text-[#000000]">{value}</div>
         </div>
-        <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#082529] text-[#22ddeb] ring-1 ring-[#22ddeb]/40">
+        <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#f4ecff] text-[#7c3aed] ring-1 ring-[#7c3aed]/40">
           {children}
         </span>
       </div>
-      <div className="mt-4 text-sm text-[#8fa3ad]">{helper}</div>
+      <div className="mt-4 text-sm text-[#000000]">{helper}</div>
     </Card>
   );
 }
@@ -73,12 +73,12 @@ export default async function OrdersPage() {
     <div className="space-y-7 p-5 lg:p-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-[#f8fbff]">Orders</h1>
-          <p className="mt-2 text-[#8fa3ad]">Review transaction history, purchased items, and customer relationships.</p>
+          <h1 className="text-2xl font-black text-[#000000]">Orders</h1>
+          <p className="mt-2 text-[#000000]">Review transaction history, purchased items, and customer relationships.</p>
         </div>
         <Link
           href="/pos"
-          className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-[#22ddeb] px-5 text-sm font-semibold text-black shadow-[0_6px_14px_rgba(34,221,235,0.24)] transition hover:bg-[#2ff4ff]"
+          className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-[#7c3aed] px-5 text-sm font-semibold text-black shadow-[0_6px_14px_rgba(124,58,237,0.24)] transition hover:bg-[#6d28d9]"
         >
           <Plus className="h-4 w-4" /> New Order
         </Link>
@@ -100,16 +100,16 @@ export default async function OrdersPage() {
       </section>
 
       <Card className="overflow-hidden">
-        <div className="flex flex-wrap items-center gap-3 border-b border-[#1d3038] p-5">
+        <div className="flex flex-wrap items-center gap-3 border-b border-[#d8c3ff] p-5">
           <label className="relative min-w-[260px] flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6f858f]" />
-            <input className="h-11 w-full rounded-lg border border-[#1d3038] bg-[#0b1114] pl-10 text-[#f8fbff] outline-none placeholder:text-[#6f858f] focus:border-[#22ddeb]" placeholder="Filter by ID or Name" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#000000]" />
+            <input className="h-11 w-full rounded-lg border border-[#d8c3ff] bg-[#ffffff] pl-10 text-[#000000] outline-none placeholder:text-[#000000] focus:border-[#7c3aed]" placeholder="Filter by ID or Name" />
           </label>
-          <button className="inline-flex h-12 items-center justify-center rounded-lg border border-[#1d3038] bg-[#070b0d] px-5 text-sm font-semibold text-[#f8fbff] shadow-sm transition hover:bg-[#0b1114]">
+          <button className="inline-flex h-12 items-center justify-center rounded-lg border border-[#d8c3ff] bg-[#fbf8ff] px-5 text-sm font-semibold text-[#000000] shadow-sm transition hover:bg-[#ffffff]">
             All Status
           </button>
           <button
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-transparent p-0 text-[#8fa3ad] transition hover:bg-[#10181c] hover:text-[#22ddeb]"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-transparent p-0 text-[#000000] transition hover:bg-[#f4ecff] hover:text-[#7c3aed]"
             aria-label="Download orders"
           >
             <Download className="h-5 w-5" />
@@ -117,7 +117,7 @@ export default async function OrdersPage() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1120px] text-left">
-            <thead className="bg-[#0b1114] text-xs uppercase tracking-[0.12em] text-[#6f858f]">
+            <thead className="bg-[#ffffff] text-xs uppercase tracking-[0.12em] text-[#000000]">
               <tr>
                 <th className="whitespace-nowrap px-6 py-5">Order ID</th>
                 <th className="whitespace-nowrap px-6 py-5">Customer Name</th>
@@ -137,35 +137,35 @@ export default async function OrdersPage() {
                 const itemCount = (order.items ?? []).reduce((sum, item) => sum + item.quantity, 0);
 
                 return (
-                  <tr key={order.id} className="group border-t border-[#1d3038] text-[#f8fbff] transition hover:bg-[#0b1114]">
+                  <tr key={order.id} className="group border-t border-[#d8c3ff] text-[#000000] transition hover:bg-[#ffffff]">
                     <td className="align-middle">
-                      <Link href={orderHref} className="block whitespace-nowrap px-6 py-5 font-semibold text-[#f8fbff]">
+                      <Link href={orderHref} className="block whitespace-nowrap px-6 py-5 font-semibold text-[#000000]">
                         #{orderNumber}
                       </Link>
                     </td>
                     <td className="align-middle">
                       <Link href={orderHref} className="flex items-center gap-3 px-6 py-5">
-                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#10181c] text-xs font-bold text-[#f8fbff] ring-1 ring-[#1d3038]">{initials(customerName)}</span>
-                        <span className="whitespace-nowrap text-[#f8fbff]">{customerName}</span>
+                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f4ecff] text-xs font-bold text-[#000000] ring-1 ring-[#d8c3ff]">{initials(customerName)}</span>
+                        <span className="whitespace-nowrap text-[#000000]">{customerName}</span>
                       </Link>
                     </td>
                     <td className="align-middle">
                       <Link href={orderHref} className="block px-6 py-5">
-                        <span className="block max-w-[320px] truncate text-sm font-semibold text-[#f8fbff]">
+                        <span className="block max-w-[320px] truncate text-sm font-semibold text-[#000000]">
                           {(order.items ?? [])[0]?.productName ?? "No items"}
                         </span>
-                        <span className="block whitespace-nowrap text-xs text-[#6f858f]">
+                        <span className="block whitespace-nowrap text-xs text-[#000000]">
                           {itemCount ? `${itemCount} item${itemCount === 1 ? "" : "s"}` : "Empty order"}
                         </span>
                       </Link>
                     </td>
                     <td className="align-middle">
-                      <Link href={orderHref} className="block whitespace-nowrap px-6 py-5 text-[#8fa3ad]">
+                      <Link href={orderHref} className="block whitespace-nowrap px-6 py-5 text-[#000000]">
                         {dateValue(order.createdAt)}
                       </Link>
                     </td>
                     <td className="align-middle">
-                      <Link href={orderHref} className="block whitespace-nowrap px-6 py-5 font-black text-[#22ddeb]">
+                      <Link href={orderHref} className="block whitespace-nowrap px-6 py-5 font-black text-[#7c3aed]">
                         {formatCurrency(order.total)}
                       </Link>
                     </td>
@@ -175,7 +175,7 @@ export default async function OrdersPage() {
                       </Link>
                     </td>
                     <td className="align-middle text-right">
-                      <Link href={orderHref} className="block whitespace-nowrap px-6 py-5 font-bold text-[#22ddeb]">
+                      <Link href={orderHref} className="block whitespace-nowrap px-6 py-5 font-bold text-[#7c3aed]">
                         View Details
                       </Link>
                     </td>
@@ -185,16 +185,16 @@ export default async function OrdersPage() {
                 <tr>
                   <td colSpan={7} className="px-6 py-16 text-center">
                     <div className="mx-auto flex max-w-sm flex-col items-center">
-                      <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#082529] text-[#22ddeb] ring-1 ring-[#22ddeb]/40">
+                      <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#f4ecff] text-[#7c3aed] ring-1 ring-[#7c3aed]/40">
                         <ShoppingBag className="h-6 w-6" />
                       </span>
-                      <h2 className="mt-4 text-lg font-semibold text-[#f8fbff]">No orders yet</h2>
-                      <p className="mt-2 text-sm text-[#8fa3ad]">
+                      <h2 className="mt-4 text-lg font-semibold text-[#000000]">No orders yet</h2>
+                      <p className="mt-2 text-sm text-[#000000]">
                         Orders created from the POS checkout will appear here for this tenant.
                       </p>
                       <Link
                         href="/pos"
-                        className="mt-5 inline-flex h-11 items-center justify-center rounded-lg bg-[#22ddeb] px-4 text-sm font-semibold text-black transition hover:bg-[#2ff4ff]"
+                        className="mt-5 inline-flex h-11 items-center justify-center rounded-lg bg-[#7c3aed] px-4 text-sm font-semibold text-black transition hover:bg-[#6d28d9]"
                       >
                         Create first order
                       </Link>
