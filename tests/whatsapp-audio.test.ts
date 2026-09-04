@@ -160,7 +160,7 @@ test("fractional browser recording duration is safe for integer database column"
   assert.equal(payload.media_duration_seconds, 3);
 });
 
-test("WhatsApp expired token errors are explained with environment action", () => {
+test("WhatsApp expired token errors are explained with tenant connection action", () => {
   const error = new WhatsAppApiError("Session has expired", {
     status: 401,
     payload: { error: { code: 190, error_subcode: 463, message: "Session has expired" } },
@@ -168,10 +168,10 @@ test("WhatsApp expired token errors are explained with environment action", () =
   });
 
   assert.match(formatWhatsAppApiErrorForUser(error), /access token expired/i);
-  assert.match(formatWhatsAppApiErrorForUser(error), /WHATSAPP_ACCESS_TOKEN/);
+  assert.match(formatWhatsAppApiErrorForUser(error), /Reconnect this tenant's WhatsApp Business account/);
 });
 
-test("WhatsApp access denied errors are explained with phone number access action", () => {
+test("WhatsApp access denied errors are explained with tenant connection action", () => {
   const error = new WhatsAppApiError("(#131005) Access denied", {
     status: 400,
     payload: { error: { code: 131005, message: "(#131005) Access denied" } },
@@ -179,7 +179,7 @@ test("WhatsApp access denied errors are explained with phone number access actio
   });
 
   assert.match(formatWhatsAppApiErrorForUser(error), /access denied/i);
-  assert.match(formatWhatsAppApiErrorForUser(error), /phone number ID/i);
+  assert.match(formatWhatsAppApiErrorForUser(error), /Reconnect this tenant's WhatsApp Business account/);
 });
 
 test("audio Blob bytes are sliced away from Node Buffer pool memory", () => {
