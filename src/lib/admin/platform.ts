@@ -24,6 +24,9 @@ type TenantRow = {
   created_at: string;
 };
 
+type BaseTenantRow = Pick<TenantRow, "id" | "name" | "slug" | "created_at">;
+type TenantDetailRow = TenantRow & { updated_at: string | null };
+
 type MembershipRow = {
   id: string;
   auth_user_id: string;
@@ -95,6 +98,36 @@ function matchesSearch(value: string | null | undefined, query: string) {
   return (value ?? "").toLowerCase().includes(query);
 }
 
+function isMissingTenantLifecycleSchema(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const record = error as { code?: unknown; message?: unknown };
+  const message = typeof record.message === "string" ? record.message.toLowerCase() : "";
+
+  return (
+    record.code === "PGRST204" ||
+    record.code === "42703" ||
+    ((message.includes("schema cache") || message.includes("column")) &&
+      (message.includes("status") ||
+        message.includes("subscription_status") ||
+        message.includes("trial_starts_at") ||
+        message.includes("trial_ends_at") ||
+        message.includes("updated_at")))
+  );
+}
+
+function withDefaultLifecycle<T extends BaseTenantRow>(tenant: T): T & TenantRow {
+  return {
+    ...tenant,
+    status: "active",
+    subscription_status: "trialing",
+    trial_starts_at: tenant.created_at,
+    trial_ends_at: null,
+  };
+}
+
 async function listAllAuthUsers(supabase: ReturnType<typeof createSupabaseAdminClient>) {
   const users: AuthListUser[] = [];
 
@@ -110,12 +143,21 @@ async function listAllAuthUsers(supabase: ReturnType<typeof createSupabaseAdminC
 
 export async function getAdminOverview() {
   const supabase = createSupabaseAdminClient();
-  const [{ data: tenants, error: tenantError }, { data: memberships, error: membershipError }, { data: connections }] =
+  const [tenantsResult, { data: memberships, error: membershipError }, { data: connections }] =
     await Promise.all([
       supabase.from("tenants").select("id,status"),
       supabase.from("tenant_users").select("id"),
       supabase.from("whatsapp_connections").select("id,status").eq("status", "connected"),
     ]);
+
+  let tenants = tenantsResult.data;
+  let tenantError = tenantsResult.error;
+
+  if (tenantError && isMissingTenantLifecycleSchema(tenantError)) {
+    const fallback = await supabase.from("tenants").select("id");
+    tenants = fallback.data ? fallback.data.map((tenant) => ({ ...tenant, status: "active" })) : null;
+    tenantError = fallback.error;
+  }
 
   if (tenantError || membershipError) throw new Error(tenantError?.message ?? membershipError?.message);
 
@@ -131,7 +173,7 @@ export async function getAdminOverview() {
 
 export async function getAdminTenants(search = "") {
   const supabase = createSupabaseAdminClient();
-  const [authUsers, { data: tenants, error: tenantError }, { data: members, error: memberError }, { data: connections }] =
+  const [authUsers, tenantsResult, { data: members, error: memberError }, { data: connections }] =
     await Promise.all([
       listAllAuthUsers(supabase),
       supabase
@@ -145,6 +187,20 @@ export async function getAdminTenants(search = "") {
         .returns<MembershipRow[]>(),
       supabase.from("whatsapp_connections").select("tenant_id,status,phone_number").returns<ConnectionRow[]>(),
     ]);
+
+  let tenants = tenantsResult.data;
+  let tenantError = tenantsResult.error;
+
+  if (tenantError && isMissingTenantLifecycleSchema(tenantError)) {
+    const fallback = await supabase
+      .from("tenants")
+      .select("id,name,slug,created_at")
+      .order("created_at", { ascending: false })
+      .returns<BaseTenantRow[]>();
+
+    tenants = fallback.data ? fallback.data.map(withDefaultLifecycle) : null;
+    tenantError = fallback.error;
+  }
 
   if (tenantError || memberError) throw new Error(tenantError?.message ?? memberError?.message);
 
@@ -188,7 +244,7 @@ export async function getAdminTenant(tenantId: string) {
       .from("tenants")
       .select("id,name,slug,status,subscription_status,trial_starts_at,trial_ends_at,created_at,updated_at")
       .eq("id", tenantId)
-      .maybeSingle<(TenantRow & { updated_at: string })>(),
+      .maybeSingle<TenantDetailRow>(),
     supabase
       .from("tenant_users")
       .select("id,auth_user_id,tenant_id,name,role,created_at")
@@ -204,11 +260,25 @@ export async function getAdminTenant(tenantId: string) {
       .maybeSingle<ConnectionRow>(),
   ]);
 
-  if (tenantResult.error || membersResult.error || connectionResult.error) {
-    throw new Error(tenantResult.error?.message ?? membersResult.error?.message ?? connectionResult.error?.message);
+  let tenant = tenantResult.data;
+  let tenantError = tenantResult.error;
+
+  if (tenantError && isMissingTenantLifecycleSchema(tenantError)) {
+    const fallback = await supabase
+      .from("tenants")
+      .select("id,name,slug,created_at")
+      .eq("id", tenantId)
+      .maybeSingle<BaseTenantRow>();
+
+    tenant = fallback.data ? { ...withDefaultLifecycle(fallback.data), updated_at: fallback.data.created_at } : null;
+    tenantError = fallback.error;
   }
 
-  if (!tenantResult.data) {
+  if (tenantError || membersResult.error || connectionResult.error) {
+    throw new Error(tenantError?.message ?? membersResult.error?.message ?? connectionResult.error?.message);
+  }
+
+  if (!tenant) {
     return null;
   }
 
@@ -219,7 +289,7 @@ export async function getAdminTenant(tenantId: string) {
   }));
 
   return {
-    tenant: tenantResult.data,
+    tenant,
     users,
     owner: users.find((member) => member.role === "owner") ?? null,
     whatsapp: connectionResult.data ?? null,
@@ -263,7 +333,7 @@ async function findAuthUserByEmail(supabase: ReturnType<typeof createSupabaseAdm
 async function createTenantWithUniqueSlug(supabase: SupabaseClient, input: { name: string; slug: string; trialStartsAt: string; trialEndsAt: string }) {
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const slug = attempt === 0 ? input.slug : `${input.slug}-${randomUUID().slice(0, 8)}`;
-    const { data, error } = await supabase
+    const insertResult = await supabase
       .from("tenants")
       .insert({
         name: input.name,
@@ -279,7 +349,27 @@ async function createTenantWithUniqueSlug(supabase: SupabaseClient, input: { nam
       .select("id,name,slug")
       .single<TenantSummary>();
 
-    if (data) return data;
+    if (insertResult.data) return insertResult.data;
+
+    let error = insertResult.error;
+
+    if (error && isMissingTenantLifecycleSchema(error)) {
+      const fallback = await supabase
+        .from("tenants")
+        .insert({
+          name: input.name,
+          slug,
+          currency: "USD",
+          tax_rate: 0,
+          timezone: "UTC",
+        })
+        .select("id,name,slug")
+        .single<TenantSummary>();
+
+      if (fallback.data) return fallback.data;
+      error = fallback.error;
+    }
+
     if (error?.code !== "23505") throw error;
   }
 
@@ -380,5 +470,8 @@ export async function updateAdminTenantStatus(tenantId: string, status: "active"
   if (lookupError || !tenant) throw new AdminTenantError("tenant-not-found", "Business was not found.");
 
   const { error } = await supabase.from("tenants").update({ status, updated_at: new Date().toISOString() }).eq("id", tenantId);
+  if (error && isMissingTenantLifecycleSchema(error)) {
+    throw new AdminTenantError("tenant-lifecycle-schema-required", "Run the tenant lifecycle migration before suspending businesses.");
+  }
   if (error) throw error;
 }
