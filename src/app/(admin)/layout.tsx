@@ -15,13 +15,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   ];
 
   return (
-    <main className="min-h-screen bg-[#071115] text-white">
-      <div className="border-b border-[#1f3f49] bg-[#0b171c]">
+    <main className="min-h-screen bg-[#ffffff] text-black">
+      <div className="border-b border-[#d8c3ff] bg-[#ffffff]">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4 lg:px-8">
-          <Link href="/admin" className="text-lg font-black text-white">InChouf Admin</Link>
+          <Link href="/admin" className="text-lg font-black text-black">InChouf Admin</Link>
           <nav className="flex flex-wrap gap-2">
             {nav.map(({ href, label, icon: Icon }) => (
-              <Link key={href} href={href} className="inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-[#9bb7c1] transition hover:bg-[#102229] hover:text-[#22d3ee]">
+              <Link key={href} href={href} className="inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-[#000000] transition hover:bg-[#f4ecff] hover:text-[#7c3aed]">
                 <Icon className="h-4 w-4" />
                 {label}
               </Link>

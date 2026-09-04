@@ -21,8 +21,8 @@ function date(value: string | null) {
 function pill(value: string) {
   const tone =
     value === "active" || value === "connected"
-      ? "text-[#22d3ee] ring-[#1f3f49] bg-[#102229]"
-      : "text-[#9bb7c1] ring-[#1f3f49] bg-[#071115]";
+      ? "text-[#7c3aed] ring-[#d8c3ff] bg-[#f4ecff]"
+      : "text-[#000000] ring-[#d8c3ff] bg-[#ffffff]";
   return <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${tone}`}>{value}</span>;
 }
 
@@ -35,43 +35,43 @@ export default async function AdminTenantsPage({ searchParams }: PageProps) {
     <div className="mx-auto grid max-w-7xl gap-6 p-5 lg:grid-cols-[1fr_360px] lg:p-8">
       <section className="space-y-5">
         <div>
-          <h1 className="text-2xl font-black text-white">Tenants / Businesses</h1>
-          <p className="mt-2 text-sm text-[#9bb7c1]">Search, inspect, and manage tenant onboarding.</p>
+          <h1 className="text-2xl font-black text-black">Tenants / Businesses</h1>
+          <p className="mt-2 text-sm text-[#000000]">Search, inspect, and manage tenant onboarding.</p>
         </div>
-        {params.error ? <div className="rounded-lg border border-[#7f1d1d] bg-[#2b1111] px-4 py-3 text-sm text-[#fecaca]">{errors[params.error] ?? "Action failed."}</div> : null}
+        {params.error ? <div className="rounded-lg border border-[#d8c3ff] bg-[#f4ecff] px-4 py-3 text-sm text-[#000000]">{errors[params.error] ?? "Action failed."}</div> : null}
         <form className="flex gap-3">
           <label className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#22d3ee]" />
-            <input name="q" defaultValue={params.q ?? ""} placeholder="Search businesses or owners" className="h-11 w-full rounded-lg border border-[#1f3f49] bg-[#071115] pl-10 pr-3 text-sm text-white outline-none placeholder:text-[#58717a] focus:border-[#22d3ee]" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7c3aed]" />
+            <input name="q" defaultValue={params.q ?? ""} placeholder="Search businesses or owners" className="h-11 w-full rounded-lg border border-[#d8c3ff] bg-[#ffffff] pl-10 pr-3 text-sm text-black outline-none placeholder:text-black/45 focus:border-[#7c3aed]" />
           </label>
-          <button className="h-11 rounded-lg bg-[#22d3ee] px-4 text-sm font-semibold text-[#061115]">Search</button>
+          <button className="h-11 rounded-lg bg-[#7c3aed] px-4 text-sm font-semibold text-[#000000]">Search</button>
         </form>
-        <div className="overflow-hidden rounded-lg border border-[#1f3f49] bg-[#0b171c]">
-          <div className="grid grid-cols-[1.2fr_1fr_80px_120px_120px_100px] gap-4 border-b border-[#1f3f49] bg-[#102229] px-5 py-3 text-xs font-black uppercase tracking-[0.12em] text-[#9bb7c1] max-xl:hidden">
+        <div className="overflow-hidden rounded-lg border border-[#d8c3ff] bg-[#ffffff]">
+          <div className="grid grid-cols-[1.2fr_1fr_80px_120px_120px_100px] gap-4 border-b border-[#d8c3ff] bg-[#f4ecff] px-5 py-3 text-xs font-black uppercase tracking-[0.12em] text-[#000000] max-xl:hidden">
             <span>Business</span><span>Owner</span><span>Users</span><span>WhatsApp</span><span>Trial</span><span>Status</span>
           </div>
-          {tenants.length === 0 ? <div className="p-8 text-sm text-[#9bb7c1]">No businesses found.</div> : null}
+          {tenants.length === 0 ? <div className="p-8 text-sm text-[#000000]">No businesses found.</div> : null}
           {tenants.map((tenant) => (
-            <Link key={tenant.id} href={`/admin/tenants/${tenant.id}`} className="grid gap-3 border-b border-[#1f3f49] px-5 py-4 text-sm text-[#9bb7c1] transition last:border-b-0 hover:bg-[#102229] xl:grid-cols-[1.2fr_1fr_80px_120px_120px_100px] xl:items-center">
-              <span><strong className="block text-white">{tenant.name}</strong><span className="text-[#9bb7c1]">{tenant.slug}</span></span>
-              <span className="text-[#9bb7c1]"><strong className="block font-semibold text-white">{tenant.owner?.name ?? "No owner"}</strong>{tenant.ownerEmail ?? ""}</span>
-              <span className="text-white">{tenant.userCount}</span>
+            <Link key={tenant.id} href={`/admin/tenants/${tenant.id}`} className="grid gap-3 border-b border-[#d8c3ff] px-5 py-4 text-sm text-[#000000] transition last:border-b-0 hover:bg-[#f4ecff] xl:grid-cols-[1.2fr_1fr_80px_120px_120px_100px] xl:items-center">
+              <span><strong className="block text-black">{tenant.name}</strong><span className="text-[#000000]">{tenant.slug}</span></span>
+              <span className="text-[#000000]"><strong className="block font-semibold text-black">{tenant.owner?.name ?? "No owner"}</strong>{tenant.ownerEmail ?? ""}</span>
+              <span className="text-black">{tenant.userCount}</span>
               <span>{pill(tenant.whatsappStatus)}</span>
-              <span className="text-[#9bb7c1]">{date(tenant.trial_ends_at)}</span>
+              <span className="text-[#000000]">{date(tenant.trial_ends_at)}</span>
               <span>{pill(tenant.status ?? "active")}</span>
             </Link>
           ))}
         </div>
       </section>
-      <aside className="rounded-lg border border-[#1f3f49] bg-[#0b171c] p-6">
-        <h2 className="text-lg font-semibold text-white">Create Business</h2>
+      <aside className="rounded-lg border border-[#d8c3ff] bg-[#ffffff] p-6">
+        <h2 className="text-lg font-semibold text-black">Create Business</h2>
         <form action={createBusinessAction} className="mt-5 space-y-4">
-          <input name="businessName" required minLength={2} placeholder="Business name" className="h-11 w-full rounded-lg border border-[#1f3f49] bg-[#071115] px-3 text-sm text-white outline-none placeholder:text-[#58717a] focus:border-[#22d3ee]" />
-          <input name="ownerName" required minLength={2} placeholder="Owner full name" className="h-11 w-full rounded-lg border border-[#1f3f49] bg-[#071115] px-3 text-sm text-white outline-none placeholder:text-[#58717a] focus:border-[#22d3ee]" />
-          <input name="ownerEmail" required type="email" placeholder="Owner email" className="h-11 w-full rounded-lg border border-[#1f3f49] bg-[#071115] px-3 text-sm text-white outline-none placeholder:text-[#58717a] focus:border-[#22d3ee]" />
-          <input name="password" required type="password" minLength={8} placeholder="Initial password" className="h-11 w-full rounded-lg border border-[#1f3f49] bg-[#071115] px-3 text-sm text-white outline-none placeholder:text-[#58717a] focus:border-[#22d3ee]" />
-          <input name="trialDays" required type="number" min={1} max={365} defaultValue={14} className="h-11 w-full rounded-lg border border-[#1f3f49] bg-[#071115] px-3 text-sm text-white outline-none focus:border-[#22d3ee]" />
-          <button className="h-11 w-full rounded-lg bg-[#22d3ee] text-sm font-semibold text-[#061115]">Create Business</button>
+          <input name="businessName" required minLength={2} placeholder="Business name" className="h-11 w-full rounded-lg border border-[#d8c3ff] bg-[#ffffff] px-3 text-sm text-black outline-none placeholder:text-black/45 focus:border-[#7c3aed]" />
+          <input name="ownerName" required minLength={2} placeholder="Owner full name" className="h-11 w-full rounded-lg border border-[#d8c3ff] bg-[#ffffff] px-3 text-sm text-black outline-none placeholder:text-black/45 focus:border-[#7c3aed]" />
+          <input name="ownerEmail" required type="email" placeholder="Owner email" className="h-11 w-full rounded-lg border border-[#d8c3ff] bg-[#ffffff] px-3 text-sm text-black outline-none placeholder:text-black/45 focus:border-[#7c3aed]" />
+          <input name="password" required type="password" minLength={8} placeholder="Initial password" className="h-11 w-full rounded-lg border border-[#d8c3ff] bg-[#ffffff] px-3 text-sm text-black outline-none placeholder:text-black/45 focus:border-[#7c3aed]" />
+          <input name="trialDays" required type="number" min={1} max={365} defaultValue={14} className="h-11 w-full rounded-lg border border-[#d8c3ff] bg-[#ffffff] px-3 text-sm text-black outline-none focus:border-[#7c3aed]" />
+          <button className="h-11 w-full rounded-lg bg-[#7c3aed] text-sm font-semibold text-[#000000]">Create Business</button>
         </form>
       </aside>
     </div>

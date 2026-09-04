@@ -11,10 +11,10 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   const data = await getDashboardData();
   const stats = [
-    ["Total Revenue", formatCurrency(data.stats.revenue), "vs. last week", "+12.5%", "cyan"],
-    ["Orders Today", data.stats.orders.toLocaleString(), "pending pickup", "Static", "slate"],
-    ["New Conversations", data.stats.activeChats.toLocaleString(), "unread", "+4.2%", "orange"],
-    ["Response Rate", "98.4%", "Avg. 4m 20s", "-1.2%", "cyan"],
+    ["Total Revenue", formatCurrency(data.stats.revenue), "vs. last week", "+12.5%", "purple"],
+    ["Orders Today", data.stats.orders.toLocaleString(), "pending pickup", "Static", "default"],
+    ["New Conversations", data.stats.activeChats.toLocaleString(), "unread", "+4.2%", "purple"],
+    ["Response Rate", "98.4%", "Avg. 4m 20s", "-1.2%", "purple"],
   ] as const;
 
   return (
@@ -35,7 +35,7 @@ export default async function DashboardPage() {
           <Card key={label} className="relative min-h-[178px] overflow-hidden p-7">
             <div className="flex items-start justify-between">
               <div className="max-w-[150px] text-xs font-black uppercase tracking-[0.14em] text-[#000000]">{label}</div>
-              <Badge tone={tone === "orange" ? "yellow" : tone === "cyan" ? "cyan" : "slate"}>{trend}</Badge>
+              <Badge tone={tone === "purple" ? "cyan" : "slate"}>{trend}</Badge>
             </div>
             <div className="mt-7 text-[30px] font-black text-[#000000]">{value}</div>
             <div className="mt-1 text-sm text-[#000000]">{helper}</div>
@@ -43,7 +43,7 @@ export default async function DashboardPage() {
               {[0, 1, 2, 3, 4].map((bar) => (
                 <span
                   key={bar}
-                  className={tone === "orange" ? "w-1.5 rounded-full bg-[#000000]" : "w-1.5 rounded-full bg-[#7c3aed]"}
+                  className="w-1.5 rounded-full bg-[#7c3aed]"
                   style={{ height: `${14 + bar * 5}px`, opacity: 0.2 + bar * 0.16 }}
                 />
               ))}
@@ -60,7 +60,7 @@ export default async function DashboardPage() {
           </div>
           <div className="flex items-center gap-6 text-sm text-[#000000]">
             <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-[#7c3aed]" />Sales ($)</span>
-            <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-[#000000]" />Messages</span>
+            <span className="inline-flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-[#d8c3ff] ring-1 ring-[#7c3aed]" />Messages</span>
           </div>
         </div>
         <SalesChart data={data.chart} />
