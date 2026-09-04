@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
+  formatWhatsAppApiErrorForUser,
+  getWhatsAppConnectionForTenant,
   isInsideCustomerServiceWindow,
   normalizeWhatsAppPhone,
   sendWhatsAppTextMessage,
-  validateWhatsAppSendEnv,
+  validateWhatsAppSendConfig,
   WhatsAppApiError,
 } from "@/lib/whatsapp";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -104,7 +106,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const env = validateWhatsAppSendEnv(tenant.whatsappPhoneNumberId);
+    const env = validateWhatsAppSendConfig(await getWhatsAppConnectionForTenant(supabase, tenant.id));
 
     if (env.ok && env.phoneNumberId && env.accessToken) {
       if (!isInsideCustomerServiceWindow(conversation.last_inbound_at ?? conversation.last_message_at)) {
@@ -122,12 +124,12 @@ export async function POST(request: Request) {
       });
       whatsappMessageId = result.messages?.[0]?.id ?? null;
     } else {
-      console.error("[messages/send] WhatsApp env vars missing.", {
+      console.error("[messages/send] WhatsApp connection missing.", {
         errors: env.errors,
       });
       return NextResponse.json(
         {
-          error: `WhatsApp send is not configured: ${env.errors.join(", ")}. Restart the dev server after updating .env.local.`,
+          error: `WhatsApp send is not configured: ${env.errors.join(", ")}.`,
         },
         { status: 500 },
       );
@@ -194,19 +196,9 @@ export async function POST(request: Request) {
     console.error("[messages/send] Unexpected failure", error);
 
     if (error instanceof WhatsAppApiError) {
-      if (error.isAuthError) {
-        return NextResponse.json(
-          {
-            error: "WhatsApp authentication failed. Regenerate WHATSAPP_ACCESS_TOKEN in Meta API Setup and restart dev server.",
-            details: process.env.NODE_ENV !== "production" ? error.payload : undefined,
-          },
-          { status: 401 },
-        );
-      }
-
       return NextResponse.json(
         {
-          error: error.message,
+          error: formatWhatsAppApiErrorForUser(error),
           details: process.env.NODE_ENV !== "production" ? error.payload : undefined,
         },
         { status: error.status || 500 },

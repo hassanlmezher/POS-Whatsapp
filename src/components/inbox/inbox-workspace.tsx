@@ -651,35 +651,6 @@ export function InboxWorkspace({
 
     const messageId = voiceMessageIdRef.current ?? crypto.randomUUID();
     voiceMessageIdRef.current = messageId;
-    const createdAt = new Date().toISOString();
-    const audioUrl = recordedAudioUrl ?? URL.createObjectURL(recordedAudioBlob);
-    const optimisticMessage: Message = {
-      id: messageId,
-      companyId: company.id,
-      conversationId: activeConversation.id,
-      customerId: activeConversation.customerId,
-      messageType: "audio",
-      direction: "outbound",
-      body: "🎤 Voice message",
-      status: "uploading",
-      whatsappMessageId: null,
-      audio: {
-        mediaId: null,
-        mimeType: recordedAudioMimeType,
-        sha256: null,
-        isVoice: true,
-        durationSeconds: recordingElapsed,
-        fileSize: recordedAudioBlob.size,
-        fileName: `${messageId}.${getAudioExtension(recordedAudioMimeType)}`,
-        storageBucket: null,
-        storagePath: null,
-        error: null,
-        url: audioUrl,
-      },
-      createdAt,
-    };
-
-    upsertMessage(optimisticMessage);
     setRecorderState("sending");
     setSendError(null);
 
@@ -690,7 +661,6 @@ export function InboxWorkspace({
     formData.append("audio", recordedAudioBlob, `${messageId}.${getAudioExtension(recordedAudioMimeType)}`);
 
     try {
-      upsertMessage({ ...optimisticMessage, status: "sending" });
       const response = await fetch("/api/messages/send-audio", {
         method: "POST",
         body: formData,
@@ -698,18 +668,17 @@ export function InboxWorkspace({
       const payload = await response.json().catch(() => null);
 
       if (!response.ok) {
-        const failedMessage = payload?.message
-          ? { ...payload.message, audio: { ...payload.message.audio, url: payload.message.audio?.url ?? audioUrl } }
-          : {
-              ...optimisticMessage,
-              status: "failed" as const,
-              audio: {
-                ...optimisticMessage.audio!,
-                error: formatSendError(payload),
-              },
-            };
-        upsertMessage(failedMessage);
-        setRecorderState("preview");
+        if (payload?.message) {
+          upsertMessage(payload.message);
+          setSuggestion(null);
+          setSuggestionConversationId(null);
+          setSuggestionError(null);
+          scheduleSync("send-audio-failed");
+          resetRecording();
+        } else {
+          setRecorderState("preview");
+        }
+
         setSendError(formatSendError(payload));
         return;
       }
@@ -721,17 +690,13 @@ export function InboxWorkspace({
         setSuggestionError(null);
         scheduleSync("send-audio");
         resetRecording();
+        return;
       }
+
+      setRecorderState("preview");
+      setSendError("Voice message sent, but the server did not return the saved message.");
     } catch (error) {
       console.error("[inbox] Send voice message request failed", error);
-      upsertMessage({
-        ...optimisticMessage,
-        status: "failed",
-        audio: {
-          ...optimisticMessage.audio!,
-          error: "Voice message request failed.",
-        },
-      });
       setRecorderState("preview");
       setSendError("Voice message request failed. Check the console and server logs.");
     }
@@ -1146,7 +1111,13 @@ export function InboxWorkspace({
               </Button>
             </div>
           ) : recorderState === "preview" || recorderState === "sending" ? (
-            <div className="rounded-xl bg-[#071013] p-4 shadow-lg ring-1 ring-[#1d3038]">
+            <div className="overflow-hidden rounded-xl bg-[#071013] shadow-lg ring-1 ring-[#1d3038]">
+              {recorderState === "sending" ? (
+                <div className="h-1 w-full overflow-hidden bg-[#10242a]">
+                  <div className="h-full w-1/2 animate-[progress-slide_1.1s_ease-in-out_infinite] rounded-full bg-[#22ddeb]" />
+                </div>
+              ) : null}
+              <div className="p-4">
               {recordedAudioUrl ? (
                 <audio
                   ref={previewAudioRef}
@@ -1179,6 +1150,11 @@ export function InboxWorkspace({
                       {formatRecordingTime(previewCurrentTime || recordingElapsed)} / {formatRecordingTime(recordingElapsed)}
                     </span>
                   </div>
+                  {recorderState === "sending" ? (
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#22ddeb]">
+                      Sending voice note
+                    </p>
+                  ) : null}
                   <div className="flex h-9 items-center gap-1">
                     {recordingLevels.map((height, index) => (
                       <span
@@ -1200,13 +1176,10 @@ export function InboxWorkspace({
                   <Trash2 className="h-5 w-5" />
                 </Button>
                 <Button type="button" onClick={sendVoiceMessage} disabled={recorderState === "sending"}>
-                  {recorderState === "sending" ? (
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-black/30 border-t-black" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
+                  <Send className="h-4 w-4" />
                   {recorderState === "sending" ? "Sending" : "Send"}
                 </Button>
+              </div>
               </div>
             </div>
           ) : (

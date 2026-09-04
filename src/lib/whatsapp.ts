@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildWhatsAppAudioMessagePayload, parseWhatsAppMediaUploadResponse, parseWhatsAppSendResponse } from "@/lib/whatsapp-audio";
 import { buildWhatsAppAttachmentMessagePayload } from "@/lib/whatsapp-attachments";
 
@@ -37,6 +38,13 @@ type WhatsAppEnvCheck = {
   accessToken: string | null;
 };
 
+export type WhatsAppConnectionCredentials = {
+  phoneNumberId: string;
+  accessToken: string;
+  phoneNumber: string | null;
+  wabaId: string;
+};
+
 export type WhatsAppMediaMetadata = {
   id: string;
   url: string;
@@ -55,6 +63,23 @@ type MetaErrorPayload = {
   };
 };
 
+function getMetaError(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const error = (payload as MetaErrorPayload).error;
+
+  return error && typeof error === "object" ? error : null;
+}
+
+function isWhatsAppAuthOrAccessError(status: number, payload: unknown) {
+  const error = getMetaError(payload);
+  const code = error?.code;
+
+  return status === 401 || status === 403 || code === 190 || code === 131005;
+}
+
 export class WhatsAppApiError extends Error {
   status: number;
   payload: unknown;
@@ -69,27 +94,44 @@ export class WhatsAppApiError extends Error {
   }
 }
 
+export function formatWhatsAppApiErrorForUser(error: WhatsAppApiError) {
+  const metaError = getMetaError(error.payload);
+  const code = metaError?.code;
+  const subcode = metaError?.error_subcode;
+
+  if (code === 190 || subcode === 463) {
+    return "WhatsApp access token expired. Reconnect this tenant's WhatsApp Business account.";
+  }
+
+  if (code === 131005 || /access denied/i.test(error.message)) {
+    return "WhatsApp access denied. Reconnect this tenant's WhatsApp Business account.";
+  }
+
+  if (error.isAuthError) {
+    return "WhatsApp authentication failed. Reconnect this tenant's WhatsApp Business account.";
+  }
+
+  return error.message;
+}
+
 export function getPreferredWebhookVerifyToken() {
   return process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN ?? process.env.WHATSAPP_VERIFY_TOKEN ?? null;
 }
 
-export function getWhatsAppAccessToken() {
-  return process.env.WHATSAPP_ACCESS_TOKEN?.trim() || null;
-}
-
-export function validateWhatsAppSendEnv(phoneNumberId: string | null): WhatsAppEnvCheck {
-  const accessToken = getWhatsAppAccessToken();
+export function validateWhatsAppSendConfig(connection: WhatsAppConnectionCredentials | null): WhatsAppEnvCheck {
   const errors: string[] = [];
+  const phoneNumberId = connection?.phoneNumberId ?? null;
+  const accessToken = connection?.accessToken ?? null;
 
   if (!phoneNumberId) {
-    errors.push("The tenant does not have a WhatsApp phone_number_id configured");
+    errors.push("The tenant does not have a connected WhatsApp phone_number_id");
   }
 
   if (!accessToken) {
-    errors.push("Missing WHATSAPP_ACCESS_TOKEN");
+    errors.push("The tenant does not have a WhatsApp access token");
   }
 
-  console.info("[whatsapp/send] env check", {
+  console.info("[whatsapp/send] connection check", {
     hasPhoneNumberId: Boolean(phoneNumberId),
     hasAccessToken: Boolean(accessToken),
     accessTokenLength: accessToken?.length ?? 0,
@@ -101,6 +143,54 @@ export function validateWhatsAppSendEnv(phoneNumberId: string | null): WhatsAppE
     phoneNumberId,
     accessToken,
   };
+}
+
+export async function getWhatsAppConnectionForTenant(supabase: SupabaseClient, tenantId: string) {
+  const { data, error } = await supabase
+    .from("whatsapp_connections")
+    .select("phone_number_id,access_token,phone_number,waba_id")
+    .eq("tenant_id", tenantId)
+    .eq("status", "connected")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<{
+      phone_number_id: string;
+      access_token: string;
+      phone_number: string | null;
+      waba_id: string;
+    }>();
+
+  if (error) {
+    throw new Error(`WhatsApp connection lookup failed: ${error.message}`);
+  }
+
+  return data
+    ? {
+        phoneNumberId: data.phone_number_id,
+        accessToken: data.access_token,
+        phoneNumber: data.phone_number,
+        wabaId: data.waba_id,
+      } satisfies WhatsAppConnectionCredentials
+    : null;
+}
+
+export async function getWhatsAppConnectionForPhoneNumberId(supabase: SupabaseClient, phoneNumberId: string | null) {
+  if (!phoneNumberId) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("whatsapp_connections")
+    .select("tenant_id,access_token")
+    .eq("phone_number_id", phoneNumberId)
+    .eq("status", "connected")
+    .maybeSingle<{ tenant_id: string; access_token: string }>();
+
+  if (error) {
+    throw new Error(`WhatsApp connection lookup failed: ${error.message}`);
+  }
+
+  return data ? { tenantId: data.tenant_id, accessToken: data.access_token } : null;
 }
 
 export function normalizeWhatsAppPhone(value: string | null | undefined) {
@@ -142,10 +232,7 @@ export async function sendWhatsAppTextMessage({
     }
 
     const message = payload?.error?.message ?? "WhatsApp Cloud API request failed";
-    const isAuthError =
-      response.status === 401 ||
-      response.status === 403 ||
-      payload?.error?.code === 190;
+    const isAuthError = isWhatsAppAuthOrAccessError(response.status, payload);
 
     throw new WhatsAppApiError(message, {
       status: response.status,
@@ -162,11 +249,9 @@ export async function uploadWhatsAppMedia({
   accessToken,
   file,
   fileName,
-  mimeType,
 }: UploadWhatsAppMediaInput) {
   const formData = new FormData();
   formData.append("messaging_product", "whatsapp");
-  formData.append("type", mimeType);
   formData.append("file", file, fileName);
 
   const response = await fetch(`https://graph.facebook.com/v25.0/${phoneNumberId}/media`, {
@@ -187,10 +272,7 @@ export async function uploadWhatsAppMedia({
     }
 
     const message = (payload as MetaErrorPayload | null)?.error?.message ?? "WhatsApp media upload failed";
-    const isAuthError =
-      response.status === 401 ||
-      response.status === 403 ||
-      (payload as MetaErrorPayload | null)?.error?.code === 190;
+    const isAuthError = isWhatsAppAuthOrAccessError(response.status, payload);
 
     throw new WhatsAppApiError(message, {
       status: response.status,
@@ -237,10 +319,7 @@ export async function sendWhatsAppAudioMessage({
     }
 
     const message = (payload as MetaErrorPayload | null)?.error?.message ?? "WhatsApp audio send failed";
-    const isAuthError =
-      response.status === 401 ||
-      response.status === 403 ||
-      (payload as MetaErrorPayload | null)?.error?.code === 190;
+    const isAuthError = isWhatsAppAuthOrAccessError(response.status, payload);
 
     throw new WhatsAppApiError(message, {
       status: response.status,
@@ -286,10 +365,7 @@ export async function sendWhatsAppAttachmentMessage({
     }
 
     const message = (metaPayload as MetaErrorPayload | null)?.error?.message ?? "WhatsApp attachment send failed";
-    const isAuthError =
-      response.status === 401 ||
-      response.status === 403 ||
-      (metaPayload as MetaErrorPayload | null)?.error?.code === 190;
+    const isAuthError = isWhatsAppAuthOrAccessError(response.status, metaPayload);
 
     throw new WhatsAppApiError(message, {
       status: response.status,
@@ -334,10 +410,7 @@ export async function fetchWhatsAppMediaMetadata(mediaId: string, accessToken: s
     }
 
     const message = payload?.error?.message ?? "WhatsApp media metadata request failed";
-    const isAuthError =
-      response.status === 401 ||
-      response.status === 403 ||
-      payload?.error?.code === 190;
+    const isAuthError = isWhatsAppAuthOrAccessError(response.status, payload);
 
     throw new WhatsAppApiError(message, {
       status: response.status,
@@ -376,7 +449,7 @@ export async function downloadWhatsAppMedia(mediaUrl: string, accessToken: strin
     throw new WhatsAppApiError("WhatsApp media download failed", {
       status: response.status,
       payload,
-      isAuthError: response.status === 401 || response.status === 403,
+      isAuthError: isWhatsAppAuthOrAccessError(response.status, payload),
     });
   }
 

@@ -6,11 +6,14 @@ import {
   canRetryAudioMessage,
   conversationBelongsToTenant,
   DEFAULT_MAX_AUDIO_BYTES,
+  normalizeAudioDurationSeconds,
   parseWhatsAppMediaUploadResponse,
   shouldReturnExistingAudioMessage,
   shouldTranscodeAudioForWhatsApp,
+  toExactArrayBuffer,
   validateAudioUpload,
 } from "../src/lib/whatsapp-audio";
+import { formatWhatsAppApiErrorForUser, WhatsAppApiError } from "../src/lib/whatsapp";
 
 const tenantA = "11111111-1111-4111-8111-111111111111";
 const tenantB = "22222222-2222-4222-8222-222222222222";
@@ -130,5 +133,63 @@ test("duplicate retry does not resend non-failed messages and allows failed mess
 
 test("browser WebM recording is marked for server-side WhatsApp transcode", () => {
   assert.equal(shouldTranscodeAudioForWhatsApp("audio/webm;codecs=opus"), true);
-  assert.equal(shouldTranscodeAudioForWhatsApp("audio/mpeg"), false);
+  assert.equal(shouldTranscodeAudioForWhatsApp("audio/mpeg"), true);
+  assert.equal(shouldTranscodeAudioForWhatsApp("audio/ogg;codecs=opus"), false);
+});
+
+test("fractional browser recording duration is safe for integer database column", () => {
+  assert.equal(normalizeAudioDurationSeconds(3.42), 3);
+  assert.equal(normalizeAudioDurationSeconds(0.51), 1);
+
+  const payload = buildAudioMessageDatabasePayload({
+    messageId,
+    tenantId: tenantA,
+    conversationId,
+    customerId,
+    status: "sent",
+    whatsappMessageId: "wamid.SUCCESS",
+    mediaId: "MEDIA_ID_123",
+    mimeType: "audio/mpeg",
+    durationSeconds: 3.42,
+    fileSize: 2048,
+    storageBucket: "whatsapp-audio",
+    storagePath: `${tenantA}/conversations/${conversationId}/audio/outgoing/${messageId}.mp3`,
+    fileName: `${messageId}.mp3`,
+  });
+
+  assert.equal(payload.media_duration_seconds, 3);
+});
+
+test("WhatsApp expired token errors are explained with environment action", () => {
+  const error = new WhatsAppApiError("Session has expired", {
+    status: 401,
+    payload: { error: { code: 190, error_subcode: 463, message: "Session has expired" } },
+    isAuthError: true,
+  });
+
+  assert.match(formatWhatsAppApiErrorForUser(error), /access token expired/i);
+  assert.match(formatWhatsAppApiErrorForUser(error), /WHATSAPP_ACCESS_TOKEN/);
+});
+
+test("WhatsApp access denied errors are explained with phone number access action", () => {
+  const error = new WhatsAppApiError("(#131005) Access denied", {
+    status: 400,
+    payload: { error: { code: 131005, message: "(#131005) Access denied" } },
+    isAuthError: true,
+  });
+
+  assert.match(formatWhatsAppApiErrorForUser(error), /access denied/i);
+  assert.match(formatWhatsAppApiErrorForUser(error), /phone number ID/i);
+});
+
+test("audio Blob bytes are sliced away from Node Buffer pool memory", () => {
+  const pooled = Buffer.allocUnsafe(32);
+  pooled.fill(255);
+  const audioBytes = pooled.subarray(8, 12);
+  audioBytes.set([1, 2, 3, 4]);
+
+  const exact = toExactArrayBuffer(audioBytes);
+
+  assert.equal(exact.byteLength, audioBytes.byteLength);
+  assert.deepEqual(Array.from(new Uint8Array(exact)), [1, 2, 3, 4]);
 });

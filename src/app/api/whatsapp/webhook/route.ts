@@ -4,8 +4,9 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   downloadWhatsAppMedia,
   fetchWhatsAppMediaMetadata,
+  getWhatsAppConnectionForPhoneNumberId,
+  getWhatsAppConnectionForTenant,
   getPreferredWebhookVerifyToken,
-  getWhatsAppAccessToken,
 } from "@/lib/whatsapp";
 
 export const dynamic = "force-dynamic";
@@ -354,18 +355,24 @@ async function uploadAudioMedia({
   webhookMimeType: string | null;
   webhookSha256: string | null;
 }) {
-  const accessToken = getWhatsAppAccessToken();
+  let accessToken: string | null = null;
+
+  try {
+    accessToken = (await getWhatsAppConnectionForTenant(supabase, tenantId))?.accessToken ?? null;
+  } catch (error) {
+    console.error("[WhatsApp] audio connection lookup failed", { tenantId, error });
+  }
 
   if (!accessToken) {
-      return {
-        mediaId,
-        mimeType: webhookMimeType,
-        sha256: webhookSha256,
-        fileSize: null,
-        storageBucket: null,
-        storagePath: null,
-        fileName: null,
-      error: "Missing WHATSAPP_ACCESS_TOKEN",
+    return {
+      mediaId,
+      mimeType: webhookMimeType,
+      sha256: webhookSha256,
+      fileSize: null,
+      storageBucket: null,
+      storagePath: null,
+      fileName: null,
+      error: "Missing tenant WhatsApp access token",
     };
   }
 
@@ -453,24 +460,22 @@ async function resolveTenant(
     return null;
   }
 
-  const { data: tenant, error } = await supabase
-    .from("tenants")
-    .select("id")
-    .eq("whatsapp_phone_number_id", phoneNumberId)
-    .maybeSingle<{ id: string }>();
+  let connection: { tenantId: string } | null = null;
 
-  if (error) {
+  try {
+    connection = await getWhatsAppConnectionForPhoneNumberId(supabase, phoneNumberId);
+  } catch (error) {
     console.error("[whatsapp/webhook] Tenant lookup failed", { phoneNumberId, error });
   }
 
-  if (!tenant?.id) {
+  if (!connection?.tenantId) {
     console.error("[WhatsApp] tenant not found:", phoneNumberId);
     return null;
   }
 
-  console.info(`[WhatsApp] tenant resolved = ${tenant.id}`);
+  console.info(`[WhatsApp] tenant resolved = ${connection.tenantId}`);
 
-  return tenant.id;
+  return connection.tenantId;
 }
 
 async function persistInboundMessage(
@@ -707,6 +712,30 @@ function mapWebhookStatus(status: string | null) {
   return null;
 }
 
+function getStatusErrorMessage(status: Record<string, unknown>) {
+  const errors = asArray(status.errors).map(asRecord);
+  const firstError = errors[0];
+
+  if (!firstError) {
+    return null;
+  }
+
+  const code = firstError.code;
+  const codeText =
+    typeof code === "number" || typeof code === "string"
+      ? `#${code}`
+      : null;
+  const details = asOptionalString(asRecord(firstError.error_data).details);
+  const messageParts = [
+    codeText,
+    asOptionalString(firstError.title),
+    asOptionalString(firstError.message),
+    details,
+  ].filter(Boolean);
+
+  return messageParts.length > 0 ? messageParts.join(" - ") : "WhatsApp delivery failed";
+}
+
 async function persistMessageStatus(
   supabase: ReturnType<typeof createSupabaseAdminClient>,
   value: Record<string, unknown>,
@@ -724,7 +753,7 @@ async function persistMessageStatus(
   }
 
   const timestamp = getMessageCreatedAt(status);
-  const updates: Record<string, string> = { status: messageStatus };
+  const updates: Record<string, string | null> = { status: messageStatus };
 
   if (messageStatus === "delivered") {
     updates.delivered_at = timestamp;
@@ -733,6 +762,10 @@ async function persistMessageStatus(
   if (messageStatus === "read") {
     updates.delivered_at = timestamp;
     updates.read_at = timestamp;
+  }
+
+  if (messageStatus === "failed") {
+    updates.media_error = getStatusErrorMessage(status) ?? "WhatsApp delivery failed";
   }
 
   const phoneNumberId = getPhoneNumberId(value);

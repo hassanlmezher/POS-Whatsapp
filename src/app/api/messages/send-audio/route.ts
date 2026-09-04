@@ -4,15 +4,16 @@ import { mkdtemp, readFile, rm, writeFile } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
 import { promisify } from "util";
-import ffmpegPath from "ffmpeg-static";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
+  formatWhatsAppApiErrorForUser,
+  getWhatsAppConnectionForTenant,
   isInsideCustomerServiceWindow,
   normalizeWhatsAppPhone,
   sendWhatsAppAudioMessage,
   uploadWhatsAppMedia,
-  validateWhatsAppSendEnv,
+  validateWhatsAppSendConfig,
   WhatsAppApiError,
 } from "@/lib/whatsapp";
 import {
@@ -24,6 +25,7 @@ import {
   getConfiguredMaxAudioBytes,
   shouldReturnExistingAudioMessage,
   shouldTranscodeAudioForWhatsApp,
+  toExactArrayBuffer,
   validateAudioUpload,
 } from "@/lib/whatsapp-audio";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -34,6 +36,7 @@ export const runtime = "nodejs";
 
 const executeFile = promisify(execFile);
 const WHATSAPP_AUDIO_BUCKET = process.env.WHATSAPP_AUDIO_BUCKET ?? "whatsapp-audio";
+const FFMPEG_PATH = process.env.FFMPEG_BIN ?? "./node_modules/ffmpeg-static/ffmpeg";
 
 const formSchema = z.object({
   conversationId: z.string().uuid(),
@@ -133,18 +136,18 @@ async function prepareAudioForWhatsApp(input: {
     };
   }
 
-  if (!ffmpegPath) {
+  if (!FFMPEG_PATH) {
     throw new Error("Server audio transcoder is not available.");
   }
 
   const tempDir = await mkdtemp(join(tmpdir(), "inchouf-audio-"));
   const inputPath = join(tempDir, `${randomUUID()}.${getAudioExtension(input.mimeType)}`);
-  const outputPath = join(tempDir, `${input.messageId}.mp3`);
+  const outputPath = join(tempDir, `${input.messageId}.ogg`);
 
   try {
     await writeFile(inputPath, input.buffer);
     await executeFile(
-      ffmpegPath,
+      FFMPEG_PATH,
       [
         "-y",
         "-i",
@@ -154,8 +157,12 @@ async function prepareAudioForWhatsApp(input: {
         "1",
         "-ar",
         "16000",
+        "-c:a",
+        "libopus",
         "-b:a",
-        "48k",
+        "24k",
+        "-application",
+        "voip",
         outputPath,
       ],
       { timeout: 30000 },
@@ -163,8 +170,8 @@ async function prepareAudioForWhatsApp(input: {
 
     return {
       buffer: await readFile(outputPath),
-      mimeType: "audio/mpeg",
-      fileName: `${input.messageId}.mp3`,
+      mimeType: "audio/ogg",
+      fileName: `${input.messageId}.ogg`,
       wasTranscoded: true,
     };
   } finally {
@@ -352,7 +359,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const env = validateWhatsAppSendEnv(tenant.whatsappPhoneNumberId);
+    const env = validateWhatsAppSendConfig(await getWhatsAppConnectionForTenant(supabase, tenant.id));
 
     if (!env.ok || !env.phoneNumberId || !env.accessToken) {
       console.error("[messages/send-audio] WhatsApp send is not configured", {
@@ -409,7 +416,7 @@ export async function POST(request: Request) {
       const mediaUpload = await uploadWhatsAppMedia({
         phoneNumberId: env.phoneNumberId,
         accessToken: env.accessToken,
-        file: new Blob([new Uint8Array(prepared.buffer)], { type: prepared.mimeType }),
+        file: new Blob([toExactArrayBuffer(prepared.buffer)], { type: prepared.mimeType }),
         fileName: prepared.fileName,
         mimeType: prepared.mimeType,
       });
@@ -452,7 +459,12 @@ export async function POST(request: Request) {
 
       return NextResponse.json({ message: mapAudioMessage(savedMessage) });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Voice message send failed";
+      const errorMessage =
+        error instanceof WhatsAppApiError
+          ? formatWhatsAppApiErrorForUser(error)
+          : error instanceof Error
+            ? error.message
+            : "Voice message send failed";
       const savedMessage = await persistAudioMessage({
         supabase,
         messageId: input.messageId,
@@ -475,6 +487,10 @@ export async function POST(request: Request) {
         conversationId: tenantConversation.id,
         messageId: input.messageId,
         mediaId,
+        preparedMimeType: prepared.mimeType,
+        preparedFileName: prepared.fileName,
+        preparedBytes: prepared.buffer.byteLength,
+        transcoded: prepared.wasTranscoded,
         error,
       });
 
@@ -483,6 +499,7 @@ export async function POST(request: Request) {
         {
           error: errorMessage,
           message: savedMessage ? mapAudioMessage(savedMessage) : undefined,
+          details: error instanceof WhatsAppApiError && process.env.NODE_ENV !== "production" ? error.payload : undefined,
         },
         { status },
       );
@@ -493,9 +510,7 @@ export async function POST(request: Request) {
     if (error instanceof WhatsAppApiError) {
       return NextResponse.json(
         {
-          error: error.isAuthError
-            ? "WhatsApp authentication failed. Regenerate WHATSAPP_ACCESS_TOKEN in Meta API Setup."
-            : error.message,
+          error: formatWhatsAppApiErrorForUser(error),
           details: process.env.NODE_ENV !== "production" ? error.payload : undefined,
         },
         { status: error.status || 500 },

@@ -60,7 +60,7 @@ export function isRecordableAudioMimeType(mimeType: string | null | undefined) {
 }
 
 export function shouldTranscodeAudioForWhatsApp(mimeType: string | null | undefined) {
-  return normalizeAudioMimeType(mimeType) === "audio/webm";
+  return normalizeAudioMimeType(mimeType) !== "audio/ogg";
 }
 
 export function validateAudioUpload({
@@ -119,6 +119,12 @@ export function buildAudioStoragePath({
   direction?: "incoming" | "outgoing";
 }) {
   return `${tenantId}/conversations/${conversationId}/audio/${direction}/${messageId}.${getAudioExtension(mimeType)}`;
+}
+
+export function toExactArrayBuffer(buffer: Buffer): ArrayBuffer {
+  const exactBytes = new Uint8Array(buffer.byteLength);
+  exactBytes.set(buffer);
+  return exactBytes.buffer;
 }
 
 export function conversationBelongsToTenant(
@@ -183,6 +189,14 @@ export function buildWhatsAppAudioMessagePayload(to: string, mediaId: string) {
   };
 }
 
+export function normalizeAudioDurationSeconds(value: number | null | undefined) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return null;
+  }
+
+  return Math.max(1, Math.round(value));
+}
+
 export function buildAudioMessageDatabasePayload({
   messageId,
   tenantId,
@@ -228,7 +242,7 @@ export function buildAudioMessageDatabasePayload({
     media_mime_type: mimeType,
     media_sha256: null,
     media_is_voice: true,
-    media_duration_seconds: durationSeconds,
+    media_duration_seconds: normalizeAudioDurationSeconds(durationSeconds),
     media_file_size: fileSize,
     media_storage_bucket: storageBucket,
     media_storage_path: storagePath,
