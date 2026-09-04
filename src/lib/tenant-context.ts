@@ -73,6 +73,23 @@ function isMissingOptionalProfileSchema(error: unknown) {
   );
 }
 
+function isMissingOptionalTenantLifecycleSchema(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const record = error as { code?: unknown; message?: unknown };
+  const message = typeof record.message === "string" ? record.message.toLowerCase() : "";
+
+  return (
+    record.code === "PGRST204" ||
+    record.code === "42703" ||
+    (message.includes("schema cache") && message.includes("status")) ||
+    message.includes("tenants.status") ||
+    message.includes("'status'")
+  );
+}
+
 export async function getTenantContext() {
   const supabase = await createSupabaseServerClient();
   const { data: authData, error: authError } = await supabase.auth.getUser();
@@ -109,7 +126,7 @@ export async function getTenantContext() {
     throw new TenantMembershipRequiredError();
   }
 
-  const { data: tenantRow, error: tenantError } = await supabase
+  const { data: tenantRowWithLifecycle, error: tenantLifecycleError } = await supabase
     .from("tenants")
     .select(
       "id,name,slug,status,currency,tax_rate,timezone,whatsapp_phone_number,whatsapp_phone_number_id,whatsapp_business_account_id,created_at",
@@ -128,6 +145,33 @@ export async function getTenantContext() {
       whatsapp_business_account_id: string | null;
       created_at: string;
     }>();
+
+  let tenantRow = tenantRowWithLifecycle;
+  let tenantError = tenantLifecycleError;
+
+  if (tenantLifecycleError && isMissingOptionalTenantLifecycleSchema(tenantLifecycleError)) {
+    const fallback = await supabase
+      .from("tenants")
+      .select(
+        "id,name,slug,currency,tax_rate,timezone,whatsapp_phone_number,whatsapp_phone_number_id,whatsapp_business_account_id,created_at",
+      )
+      .eq("id", membershipRow.tenant_id)
+      .single<{
+        id: string;
+        name: string;
+        slug: string;
+        currency: string | null;
+        tax_rate: number | string | null;
+        timezone: string | null;
+        whatsapp_phone_number: string | null;
+        whatsapp_phone_number_id: string | null;
+        whatsapp_business_account_id: string | null;
+        created_at: string;
+      }>();
+
+    tenantRow = fallback.data ? { ...fallback.data, status: "active" } : null;
+    tenantError = fallback.error;
+  }
 
   if (tenantError || !tenantRow) {
     throw new Error(`Tenant lookup failed: ${tenantError?.message ?? "tenant not found"}`);
